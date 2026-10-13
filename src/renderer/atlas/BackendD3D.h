@@ -58,6 +58,15 @@ namespace Microsoft::Console::Render::Atlas
 #pragma warning(suppress : 4324) // 'CustomConstBuffer': structure was padded due to alignment specifier
         };
 
+        static_assert(sizeof(CustomConstBuffer) == 32);
+        struct alignas(16) RetroConstBuffer
+        {
+            f32 glowIntensity;
+            f32 scanlineIntensity;
+            f32 padding[2]{};
+        };
+        static_assert(sizeof(RetroConstBuffer) == 16);
+
         enum class ShadingType : u8 // u8 so that it packs perfectly into AtlasGlyphEntry
         {
             Default = 0,
@@ -283,6 +292,7 @@ namespace Microsoft::Console::Render::Atlas
         wil::com_ptr<ID3D11VertexShader> _customVertexShader;
         wil::com_ptr<ID3D11PixelShader> _customPixelShader;
         wil::com_ptr<ID3D11Buffer> _customShaderConstantBuffer;
+        wil::com_ptr<ID3D11Buffer> _retroShaderConstantBuffer;
         wil::com_ptr<ID3D11SamplerState> _customShaderSamplerState;
         wil::com_ptr<ID3D11Texture2D> _customShaderTexture;
         wil::com_ptr<ID3D11ShaderResourceView> _customShaderTextureView;

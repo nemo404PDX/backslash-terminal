@@ -23,6 +23,7 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(DeserializationTests);
 
+        TEST_METHOD(BackslashDisablesExternalFragments);
         TEST_METHOD(ValidateProfilesExist);
         TEST_METHOD(ValidateDefaultProfileExists);
         TEST_METHOD(ValidateDuplicateProfiles);
@@ -126,6 +127,15 @@ namespace SettingsModelUnitTests
         }
     };
 
+    void DeserializationTests::BackslashDisablesExternalFragments()
+    {
+        // Both runtime settings and extension-list UI discovery must leave settings alone.
+        implementation::SettingsLoader loader{ R"({"profiles":{"list":[]}})", R"({"profiles":{"list":[]}})" };
+        loader.FindFragmentsAndMergeIntoUserSettings(false);
+        loader.FindFragmentsAndMergeIntoUserSettings(true);
+        VERIFY_ARE_EQUAL(size_t{ 0 }, loader.userSettings.profiles.size());
+        VERIFY_ARE_EQUAL(size_t{ 0 }, loader.extensionPackageMap.size());
+    }
     void DeserializationTests::ValidateProfilesExist()
     {
         static constexpr std::string_view settingsWithProfiles{ R"(

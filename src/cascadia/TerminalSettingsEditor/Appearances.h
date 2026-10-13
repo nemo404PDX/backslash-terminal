@@ -125,6 +125,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void UseDesktopBGImage(const bool useDesktop);
         bool BackgroundImageSettingsVisible() const;
         void SetBackgroundImageOpacityFromPercentageValue(double percentageValue);
+        void SetRetroTerminalScanlineIntensityFromPercentageValue(double percentageValue);
+        void SetRetroTerminalGlowIntensityFromPercentageValue(double percentageValue);
         void SetBackgroundImagePath(winrt::hstring path);
         hstring BackgroundImageAlignmentCurrentValue() const;
 
@@ -150,6 +152,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile().FontInfo(), EnableColorGlyphs);
 
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalEffect);
+        OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineIntensity);
+        OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalGlowIntensity);
         OBSERVABLE_PROJECTED_SETTING(_appearance, CursorShape);
         OBSERVABLE_PROJECTED_SETTING(_appearance, CursorHeight);
         OBSERVABLE_PROJECTED_SETTING(_appearance, DarkColorSchemeName);

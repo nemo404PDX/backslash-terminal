@@ -2,15 +2,17 @@
 
 [Project entry point](README.md) · [Feature scope](FEATURES.md)
 
-This is a proposed implementation sequence. Only source/documentation preparation is completed and authorized; future phases require implementation/build authorization. Each phase should be a small reviewable vertical slice, with focused tests and no claim that the full roadmap is delivered.
+This is a proposed implementation sequence. Source/documentation preparation and an unchanged upstream source-copy build are completed; see [build evidence](BUILD-BASELINE.md). Future changed-source builds/implementation and launch/install actions require their own authorization. Each phase should be a small reviewable vertical slice, with focused tests and no claim that the full roadmap is delivered.
 
 ## Phase 0 — prepared source and decisions
 
-Completed: stable archive source, provenance, no upstream Git history, folder organization and project docs. Blocked: approved concept image local materialization (see [brand record](../../branding/concepts/README.md)).
+Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. Blocked: approved concept image local materialization (see [brand record](../../branding/concepts/README.md)).
 
 Next agent: read provenance and this doc; verify instructions; choose one next slice with the user. Resolve identity strings before editing them. Maintain a decision record for schema, controls and scope decisions. Do not initialize Git or add a remote on the user's behalf.
 
 ## Phase 1 — independent identity and coexistence
+
+Read the [source-grounded application identity plan](APP-IDENTITY.md). Portable-first is recommended: separate output/.portable/adjacent settings, with explicit fragment/catalog isolation and no automatic import. The completed unchanged upstream build establishes a baseline; future identity edits and changed-source builds are a separate reviewed slice. Follow [minimal next prerequisites](BUILD-BASELINE.md).
 
 Task: audit package identity/publisher, executable/app aliases, app IDs, resources, shortcuts, settings/cache locations, activation/default-terminal registration, update/release paths and attribution. Produce an explicit migration map; exact identifiers and signing/distribution model are open.
 

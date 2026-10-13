@@ -374,6 +374,7 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
     _customVertexShader.reset();
     _customPixelShader.reset();
     _customShaderConstantBuffer.reset();
+    _retroShaderConstantBuffer.reset();
     _customShaderSamplerState.reset();
     _customShaderTexture.reset();
     _customShaderTextureView.reset();
@@ -495,6 +496,13 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
     else if (p.s->misc->useRetroTerminalEffect)
     {
         THROW_IF_FAILED(p.device->CreatePixelShader(&custom_shader_ps[0], sizeof(custom_shader_ps), nullptr, _customPixelShader.put()));
+        static constexpr D3D11_BUFFER_DESC desc{
+            .ByteWidth = sizeof(RetroConstBuffer),
+            .Usage = D3D11_USAGE_DYNAMIC,
+            .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+            .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
+        };
+        THROW_IF_FAILED(p.device->CreateBuffer(&desc, nullptr, _retroShaderConstantBuffer.put()));
     }
 
     if (_customPixelShader)
@@ -2365,6 +2373,19 @@ void BackendD3D::_executeCustomShader(RenderingPayload& p)
         // PS: Pixel Shader
         p.deviceContext->PSSetShader(_customPixelShader.get(), nullptr, 0);
         p.deviceContext->PSSetConstantBuffers(0, 1, _customShaderConstantBuffer.addressof());
+        if (_retroShaderConstantBuffer)
+        {
+            const RetroConstBuffer data{
+                .glowIntensity = p.s->retroTerminalGlowIntensity,
+                .scanlineIntensity = p.s->retroTerminalScanlineIntensity,
+            };
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            THROW_IF_FAILED(p.deviceContext->Map(_retroShaderConstantBuffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
+            memcpy(mapped.pData, &data, sizeof(data));
+            p.deviceContext->Unmap(_retroShaderConstantBuffer.get(), 0);
+        }
+        // b0 remains the external shader ABI; b1 is used only by the built-in shader.
+        p.deviceContext->PSSetConstantBuffers(1, 1, _retroShaderConstantBuffer.addressof());
         ID3D11ShaderResourceView* const resourceViews[]{
             _customOffscreenTextureView.get(), // The terminal contents
             _customShaderTextureView.get(), // the experimental.pixelShaderImagePath, if there is one

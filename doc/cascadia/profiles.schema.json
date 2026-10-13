@@ -276,6 +276,20 @@
           ],
           "type": "string"
         },
+        "experimental.retroTerminalGlowIntensity": {
+          "description": "Intensity of the built-in retro glow effect. Custom pixel shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        },
+        "experimental.retroTerminalScanlineIntensity": {
+          "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        },
         "experimental.retroTerminalEffect": {
           "description": "When set to true, enable retro terminal effects when unfocused. This is an experimental feature, and its continued existence is not guaranteed.",
           "type": "boolean"
@@ -2941,6 +2955,20 @@
           "type": "boolean",
           "description": "[Deprecated] Replaced with the \"autoMarkPrompts\" setting.",
           "deprecated": true
+        },
+        "experimental.retroTerminalGlowIntensity": {
+          "description": "Intensity of the built-in retro glow effect. Custom pixel shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.3
+        },
+        "experimental.retroTerminalScanlineIntensity": {
+          "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
         },
         "experimental.retroTerminalEffect": {
           "description": "When set to true, enable retro terminal effects. This is an experimental feature, and its continued existence is not guaranteed.",

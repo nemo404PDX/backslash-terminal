@@ -424,6 +424,24 @@ void AtlasEngine::SetRetroTerminalEffect(bool enable) noexcept
     }
 }
 
+void AtlasEngine::SetRetroTerminalGlowIntensity(float value) noexcept
+{
+    value = std::isfinite(value) ? std::clamp(value, 0.0f, 1.0f) : 0.3f;
+    if (_api.s->retroTerminalGlowIntensity != value)
+    {
+        _api.s.write()->retroTerminalGlowIntensity = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalScanlineIntensity(float value) noexcept
+{
+    value = std::isfinite(value) ? std::clamp(value, 0.0f, 1.0f) : 0.5f;
+    if (_api.s->retroTerminalScanlineIntensity != value)
+    {
+        _api.s.write()->retroTerminalScanlineIntensity = value;
+    }
+}
+
 void AtlasEngine::SetSoftwareRendering(bool enable) noexcept
 {
     if (_api.s->target->useWARP != enable)

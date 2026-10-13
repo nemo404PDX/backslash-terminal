@@ -911,6 +911,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _NotifyChanges(L"uwu");
     }
 
+    void AppearanceViewModel::SetRetroTerminalGlowIntensityFromPercentageValue(double percentageValue)
+    {
+        RetroTerminalGlowIntensity(static_cast<float>(percentageValue) / 100.0f);
+    }
+
+    void AppearanceViewModel::SetRetroTerminalScanlineIntensityFromPercentageValue(double percentageValue)
+    {
+        RetroTerminalScanlineIntensity(static_cast<float>(percentageValue) / 100.0f);
+    }
+
     void AppearanceViewModel::SetBackgroundImageOpacityFromPercentageValue(double percentageValue)
     {
         BackgroundImageOpacity(static_cast<float>(percentageValue) / 100.0f);

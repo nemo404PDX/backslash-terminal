@@ -296,6 +296,8 @@ namespace SettingsModelUnitTests
                         "name": "profile0",
                         "guid": "{6239a42c-0000-49a3-80bd-e8fdd045185c}",
                         "backgroundImage": "file:///some/path",
+                        "experimental.retroTerminalGlowIntensity": 0,
+                        "experimental.retroTerminalScanlineIntensity": 0.75,
                         "hidden": false,
                     }
                 ]
@@ -308,6 +310,9 @@ namespace SettingsModelUnitTests
 
         // GH#11392: Ensure duplicated profiles properly inherit the base layer, even for nested objects.
         VERIFY_ARE_EQUAL(123, duplicatedProfile.FontInfo().FontSize());
+        VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, duplicatedProfile.DefaultAppearance().RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.75f, duplicatedProfile.DefaultAppearance().RetroTerminalScanlineIntensity());
 
         duplicatedProfile.Guid(profile.Guid());
         duplicatedProfile.Name(profile.Name());

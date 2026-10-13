@@ -45,6 +45,7 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(TerminalSettingsTests);
 
+        TEST_METHOD(BackslashRetroFocusedUnfocused);
         TEST_METHOD(TestTerminalArgsForBinding);
         TEST_METHOD(CommandLineToArgvW);
         TEST_METHOD(NormalizeCommandLine);
@@ -55,6 +56,36 @@ namespace SettingsModelUnitTests
         TEST_METHOD(TestCommandlineToTitlePromotion);
         TEST_METHOD(TestInitialPositionParsing);
     };
+
+    void TerminalSettingsTests::BackslashRetroFocusedUnfocused()
+    {
+        const auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({
+            "profiles": {
+                "defaults": { "experimental.retroTerminalGlowIntensity": 0.8, "experimental.retroTerminalScanlineIntensity": 0.6 },
+                "list": [{ "name": "retro-test", "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                    "experimental.retroTerminalEffect": true,
+                    "experimental.retroTerminalGlowIntensity": 0,
+                    "unfocusedAppearance": { "experimental.retroTerminalScanlineIntensity": 0 }
+                }]
+            }
+        })");
+        const auto profile = settings->ActiveProfiles().GetAt(0);
+        VERIFY_ARE_EQUAL(0.0f, profile.DefaultAppearance().RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.6f, profile.DefaultAppearance().RetroTerminalScanlineIntensity());
+        VERIFY_ARE_EQUAL(0.0f, profile.UnfocusedAppearance().RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, profile.UnfocusedAppearance().RetroTerminalScanlineIntensity());
+        const auto result = TerminalSettings::CreateWithProfile(*settings, profile);
+        VERIFY_ARE_EQUAL(0.0f, result.DefaultSettings()->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.6f, result.DefaultSettings()->RetroTerminalScanlineIntensity());
+        VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalScanlineIntensity());
+        VERIFY_IS_TRUE(result.UnfocusedSettings()->RetroTerminalEffect());
+        profile.DefaultAppearance().ClearRetroTerminalGlowIntensity();
+        VERIFY_ARE_EQUAL(0.8f, profile.DefaultAppearance().RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.8f, profile.UnfocusedAppearance().RetroTerminalGlowIntensity());
+        profile.UnfocusedAppearance().ClearRetroTerminalScanlineIntensity();
+        VERIFY_ARE_EQUAL(0.6f, profile.UnfocusedAppearance().RetroTerminalScanlineIntensity());
+    }
 
     // CascadiaSettings::_normalizeCommandLine abuses some aspects from CommandLineToArgvW
     // to simplify the implementation. It assumes that all arguments returned by

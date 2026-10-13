@@ -173,3 +173,8 @@ Author(s):
     X(winrt::Microsoft::Terminal::Settings::Model::ThemeColor, UnfocusedBackground, "unfocusedBackground", nullptr)                                    \
     X(winrt::Microsoft::Terminal::Settings::Model::IconStyle, IconStyle, "iconStyle", winrt::Microsoft::Terminal::Settings::Model::IconStyle::Default) \
     X(winrt::Microsoft::Terminal::Settings::Model::TabCloseButtonVisibility, ShowCloseButton, "showCloseButton", winrt::Microsoft::Terminal::Settings::Model::TabCloseButtonVisibility::Always)
+
+// Kept separate from the telemetry-producing appearance macro.
+#define MTSM_RETRO_INTENSITY_SETTINGS(X) \
+    X(float, RetroTerminalGlowIntensity, "experimental.retroTerminalGlowIntensity", 0.3f) \
+    X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.5f)

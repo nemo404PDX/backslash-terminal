@@ -2753,4 +2753,10 @@
     <value>Type to filter icons</value>
     <comment>Placeholder text for a text box to filter and select an icon.</comment>
   </data>
+  <data name="Profile_RetroTerminalGlowIntensity.Header" xml:space="preserve"><value>Retro glow intensity</value></data>
+  <data name="Profile_RetroTerminalGlowIntensity.HelpText" xml:space="preserve"><value>Adjusts the built-in retro effect. Enable Retro terminal effects to see it. A custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalGlowIntensitySlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retro glow intensity</value></data>
+  <data name="Profile_RetroTerminalScanlineIntensity.Header" xml:space="preserve"><value>Retro scanline intensity</value></data>
+  <data name="Profile_RetroTerminalScanlineIntensity.HelpText" xml:space="preserve"><value>Adjusts the built-in retro effect. Enable Retro terminal effects to see it. A custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalScanlineIntensitySlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retro scanline intensity</value></data>
 </root>

@@ -2,7 +2,7 @@
 
 **Backslash** is a planned independently branded, Windows-first fork of Microsoft Windows Terminal. This tree currently contains the stable v1.25.2733.0 baseline plus project documentation; no Backslash features or application identity changes have been implemented.
 
-Start with the [Backslash project docs](docs/backslash/README.md), [feature scope](docs/backslash/FEATURES.md), [phased roadmap](docs/backslash/ROADMAP.md), [brand concept record](branding/concepts/README.md) and [upstream provenance](UPSTREAM-SOURCE.md). Source licenses and attribution are retained. No build, installation, Git initialization, remote setup or publication was performed.
+Start with the [Backslash project docs](docs/backslash/README.md), [feature scope](docs/backslash/FEATURES.md), [phased roadmap](docs/backslash/ROADMAP.md), [brand concept record](branding/concepts/README.md) and [upstream provenance](UPSTREAM-SOURCE.md). Source licenses and attribution are retained. A successful unchanged upstream source-copy build is recorded in [baseline build evidence](docs/backslash/BUILD-BASELINE.md); it is not an independently identified Backslash release or runtime proof. Initial source preparation performed no installation, Git initialization, remote setup or publication.
 
 The upstream README follows, preserved in full. Its product claims and build instructions describe Microsoft Windows Terminal, not a released Backslash application.
 

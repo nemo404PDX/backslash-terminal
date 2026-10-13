@@ -472,6 +472,45 @@
                               Style="{StaticResource ToggleSwitchInExpanderStyle}" />
             </local:SettingContainer>
 
+            <local:SettingContainer x:Name="RetroTerminalGlowIntensity"
+                                    x:Uid="Profile_RetroTerminalGlowIntensity"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalGlowIntensity}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalGlowIntensity, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalGlowIntensityOverrideSource, Mode=OneWay}">
+                <Grid Style="{StaticResource CustomSliderControlGridStyle}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Uid="Profile_RetroTerminalGlowIntensitySlider"
+                            Minimum="0" Maximum="100" StepFrequency="1"
+                            Grid.Column="0"
+                            Value="{x:Bind mtu:Converters.PercentageToPercentageValue(Appearance.RetroTerminalGlowIntensity), BindBack=Appearance.SetRetroTerminalGlowIntensityFromPercentageValue, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1"
+                               Style="{StaticResource SliderValueLabelStyle}"
+                               Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalGlowIntensity), Mode=OneWay}" />
+                </Grid>
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroTerminalScanlineIntensity"
+                                    x:Uid="Profile_RetroTerminalScanlineIntensity"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalScanlineIntensity}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalScanlineIntensity, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalScanlineIntensityOverrideSource, Mode=OneWay}">
+                <Grid Style="{StaticResource CustomSliderControlGridStyle}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Uid="Profile_RetroTerminalScanlineIntensitySlider"
+                            Minimum="0" Maximum="100" StepFrequency="1"
+                            Grid.Column="0"
+                            Value="{x:Bind mtu:Converters.PercentageToPercentageValue(Appearance.RetroTerminalScanlineIntensity), BindBack=Appearance.SetRetroTerminalScanlineIntensityFromPercentageValue, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1"
+                               Style="{StaticResource SliderValueLabelStyle}"
+                               Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalScanlineIntensity), Mode=OneWay}" />
+                </Grid>
+            </local:SettingContainer>
+
             <!--  Adjust Indistinguishable Colors  -->
             <local:SettingContainer x:Name="AdjustIndistinguishableColors"
                                     x:Uid="Profile_AdjustIndistinguishableColors"

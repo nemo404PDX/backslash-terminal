@@ -5,7 +5,7 @@
 Texture2D shaderTexture;
 SamplerState samplerState;
 
-cbuffer PixelShaderSettings
+cbuffer PixelShaderSettings : register(b0)
 {
     float time;
     float scale;
@@ -13,7 +13,14 @@ cbuffer PixelShaderSettings
     float4 background;
 };
 
-#define SCANLINE_FACTOR 0.5f
+cbuffer RetroShaderSettings : register(b1)
+{
+    float glowIntensity;
+    float scanlineIntensity;
+    float2 retroPadding;
+};
+
+#define SCANLINE_FACTOR scanlineIntensity
 #define SCALED_SCANLINE_PERIOD scale
 #define SCALED_GAUSSIAN_SIGMA (2.0f * scale)
 
@@ -76,10 +83,15 @@ float4 Scanline(float4 color, float4 pos)
 float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
 // clang-format on
 {
-    // TODO:GH#3930 Make these configurable in some way.
     float4 color = shaderTexture.Sample(samplerState, tex);
-    color += Blur(shaderTexture, tex, SCALED_GAUSSIAN_SIGMA) * 0.3f;
-    color = Scanline(color, pos);
+    [branch] if (glowIntensity > 0.0f)
+    {
+        color += Blur(shaderTexture, tex, SCALED_GAUSSIAN_SIGMA) * glowIntensity;
+    }
+    [branch] if (scanlineIntensity > 0.0f)
+    {
+        color = Scanline(color, pos);
+    }
 
     return color;
 }

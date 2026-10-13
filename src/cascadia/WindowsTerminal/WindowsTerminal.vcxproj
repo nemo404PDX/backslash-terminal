@@ -13,7 +13,7 @@
     <WindowsStoreApp>true</WindowsStoreApp>
     <WindowsAppContainer>false</WindowsAppContainer>
     <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
-    <VersionInfoFileDescription>Windows Terminal Host</VersionInfoFileDescription>
+    <VersionInfoFileDescription>Backslash Portable Development Host</VersionInfoFileDescription>
     <PgoTarget>true</PgoTarget>
   </PropertyGroup>
 

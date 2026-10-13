@@ -407,6 +407,8 @@ namespace Microsoft::Console::Render::Atlas
         til::generational<FontSettings> font;
         til::generational<CursorSettings> cursor;
         til::generational<MiscellaneousSettings> misc;
+        f32 retroTerminalGlowIntensity = 0.3f;
+        f32 retroTerminalScanlineIntensity = 0.5f;
         // Size of the viewport / swap chain in pixel.
         u16x2 targetSize{ 0, 0 };
         // Size of the portion of the text buffer that we're drawing on the screen.

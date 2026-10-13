@@ -439,6 +439,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             });
 
             _renderEngine->SetRetroTerminalEffect(_settings.RetroTerminalEffect());
+            _renderEngine->SetRetroTerminalGlowIntensity(_settings.RetroTerminalGlowIntensity());
+            _renderEngine->SetRetroTerminalScanlineIntensity(_settings.RetroTerminalScanlineIntensity());
+
             _renderEngine->SetPixelShaderPath(_settings.PixelShaderPath());
             _renderEngine->SetPixelShaderImagePath(_settings.PixelShaderImagePath());
             _renderEngine->SetGraphicsAPI(parseGraphicsAPI(_settings.GraphicsAPI()));
@@ -986,6 +989,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         {
             // Update AtlasEngine settings under the lock
             _renderEngine->SetRetroTerminalEffect(newAppearance.RetroTerminalEffect());
+            _renderEngine->SetRetroTerminalGlowIntensity(newAppearance.RetroTerminalGlowIntensity());
+            _renderEngine->SetRetroTerminalScanlineIntensity(newAppearance.RetroTerminalScanlineIntensity());
+
             _renderEngine->SetPixelShaderPath(newAppearance.PixelShaderPath());
             _renderEngine->SetPixelShaderImagePath(newAppearance.PixelShaderImagePath());
 

@@ -343,6 +343,7 @@ Model::Profile CascadiaSettings::DuplicateProfile(const Model::Profile& source)
     DUPLICATE_SETTING_MACRO_SUB(appearance, target, name);
 
         MTSM_APPEARANCE_SETTINGS(DUPLICATE_APPEARANCE_SETTINGS)
+        MTSM_RETRO_INTENSITY_SETTINGS(DUPLICATE_APPEARANCE_SETTINGS)
 #undef DUPLICATE_APPEARANCE_SETTINGS
 
         // These aren't in MTSM_APPEARANCE_SETTINGS because they're special
@@ -1062,6 +1063,12 @@ winrt::hstring CascadiaSettings::ApplicationDisplayName()
 
 winrt::hstring CascadiaSettings::ApplicationVersion()
 {
+    // Local portable builds do not receive release-pipeline DLL version resources.
+    if (!IsPackaged())
+    {
+        return L"0.0.1.0 (Backslash Dev; upstream 1.25)";
+    }
+
     try
     {
         const auto package{ winrt::Windows::ApplicationModel::Package::Current() };

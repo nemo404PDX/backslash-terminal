@@ -8,6 +8,7 @@
 #include "../TerminalSettingsModel/resource.h"
 #include "JsonTestClass.h"
 #include "TestUtils.h"
+#include "../TerminalSettingsModel/AppearanceConfig.h"
 
 using namespace Microsoft::Console;
 using namespace WEX::Logging;
@@ -36,6 +37,8 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(SerializationTests);
 
+        TEST_METHOD(BackslashRetroIntensityModel);
+        TEST_METHOD(BackslashRetroIntensityValidation);
         TEST_METHOD(GlobalSettings);
         TEST_METHOD(Profile);
         TEST_METHOD(ColorScheme);
@@ -97,6 +100,67 @@ namespace SettingsModelUnitTests
             return json;
         }
     };
+
+    void SerializationTests::BackslashRetroIntensityModel()
+    {
+        const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_ARE_EQUAL(0.3f, parent->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.5f, parent->RetroTerminalScanlineIntensity());
+        VERIFY_IS_FALSE(parent->HasRetroTerminalGlowIntensity());
+        VERIFY_IS_FALSE(parent->ToJson().isMember("experimental.retroTerminalGlowIntensity"));
+        parent->RetroTerminalGlowIntensity(0.8f);
+        parent->RetroTerminalScanlineIntensity(0.7f);
+        const auto child = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        child->AddLeastImportantParent(parent);
+        VERIFY_ARE_EQUAL(0.8f, child->RetroTerminalGlowIntensity());
+        VERIFY_IS_FALSE(child->HasRetroTerminalGlowIntensity());
+        VERIFY_IS_NOT_NULL(child->RetroTerminalGlowIntensityOverrideSource());
+        child->LayerJson(VerifyParseSucceeded(R"({
+            "experimental.retroTerminalEffect": false,
+            "experimental.retroTerminalGlowIntensity": 0,
+            "experimental.retroTerminalScanlineIntensity": 0,
+            "experimental.pixelShaderPath": "custom.hlsl"
+        })"));
+        VERIFY_IS_TRUE(child->HasRetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, child->ToJson()["experimental.retroTerminalGlowIntensity"].asFloat());
+        const auto copy = implementation::AppearanceConfig::CopyAppearance(child.get(), {});
+        VERIFY_ARE_EQUAL(toString(child->ToJson()), toString(copy->ToJson()));
+        const auto reloaded = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        reloaded->LayerJson(copy->ToJson());
+        VERIFY_ARE_EQUAL(toString(copy->ToJson()), toString(reloaded->ToJson()));
+        child->RetroTerminalEffect(true);
+        child->RetroTerminalEffect(false);
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalGlowIntensity());
+        child->ClearRetroTerminalGlowIntensity();
+        VERIFY_IS_FALSE(child->HasRetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.8f, child->RetroTerminalGlowIntensity());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineIntensity":null})"));
+        VERIFY_IS_FALSE(child->HasRetroTerminalScanlineIntensity());
+        VERIFY_ARE_EQUAL(0.7f, child->RetroTerminalScanlineIntensity());
+        std::set<std::string> changes;
+        parent->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":0.4,"experimental.retroTerminalScanlineIntensity":0.2})"));
+        parent->LogSettingChanges(changes, "profile");
+        VERIFY_IS_TRUE(changes.empty());
+    }
+
+    void SerializationTests::BackslashRetroIntensityValidation()
+    {
+        const auto appearance = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":-2,"experimental.retroTerminalScanlineIntensity":2})"));
+        VERIFY_ARE_EQUAL(0.0f, appearance->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalScanlineIntensity());
+        appearance->RetroTerminalGlowIntensity(2.0f);
+        appearance->RetroTerminalScanlineIntensity(-1.0f);
+        VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.0f, appearance->RetroTerminalScanlineIntensity());
+        VERIFY_THROWS(appearance->RetroTerminalGlowIntensity(std::numeric_limits<float>::quiet_NaN()), winrt::hresult_invalid_argument);
+        VERIFY_THROWS(appearance->RetroTerminalScanlineIntensity(std::numeric_limits<float>::infinity()), winrt::hresult_invalid_argument);
+        VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalGlowIntensity());
+        VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":1e100})")), winrt::hresult_invalid_argument);
+        VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalGlowIntensity());
+        VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":"bad"})")), std::exception);
+    }
 
     void SerializationTests::GlobalSettings()
     {

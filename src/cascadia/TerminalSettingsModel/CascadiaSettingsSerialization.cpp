@@ -27,7 +27,6 @@
 #include "WtExeUtils.h"
 
 using namespace winrt::Windows::Foundation::Collections;
-using namespace winrt::Windows::ApplicationModel::AppExtensions;
 using namespace winrt::Microsoft::Terminal::Settings;
 using namespace winrt::Microsoft::Terminal::Settings::Model::implementation;
 
@@ -56,48 +55,11 @@ static constexpr std::array builtinThemes{
     legacyDarkThemeName,
 };
 
-static constexpr std::wstring_view jsonExtension{ L".json" };
-static constexpr std::wstring_view FragmentsSubDirectory{ L"\\Fragments" };
-static constexpr std::wstring_view FragmentsPath{ L"\\Microsoft\\Windows Terminal\\Fragments" };
 
-static constexpr std::wstring_view AppExtensionHostName{ L"com.microsoft.windows.terminal.settings" };
 
 // make sure this matches defaults.json.
 static constexpr winrt::guid DEFAULT_WINDOWS_POWERSHELL_GUID{ 0x61c54bbd, 0xc2c6, 0x5271, { 0x96, 0xe7, 0x00, 0x9a, 0x87, 0xff, 0x44, 0xbf } };
 static constexpr winrt::guid DEFAULT_COMMAND_PROMPT_GUID{ 0x0caa0dad, 0x35be, 0x5f56, { 0xa8, 0xff, 0xaf, 0xce, 0xee, 0xaa, 0x61, 0x01 } };
-
-// Function Description:
-// - Extracting the value from an async task (like talking to the app catalog) when we are on the
-//   UI thread causes C++/WinRT to complain quite loudly (and halt execution!)
-//   This templated function extracts the result from a task with chicanery.
-template<typename TTask>
-static auto extractValueFromTaskWithoutMainThreadAwait(TTask&& task) -> decltype(task.get())
-{
-    std::optional<decltype(task.get())> finalVal;
-    til::latch latch{ 1 };
-
-    const auto _ = [&]() -> safe_void_coroutine {
-        const auto cleanup = wil::scope_exit([&]() {
-            latch.count_down();
-        });
-        co_await winrt::resume_background();
-        finalVal.emplace(co_await task);
-    }();
-
-    latch.wait();
-    return finalVal.value();
-}
-
-// Concatenates the two given strings (!) and returns them as a path.
-// You better make sure there's a path separator at the end of lhs or at the start of rhs.
-static std::filesystem::path buildPath(const std::wstring_view& lhs, const std::wstring_view& rhs)
-{
-    std::wstring buffer;
-    buffer.reserve(lhs.size() + rhs.size());
-    buffer.append(lhs);
-    buffer.append(rhs);
-    return { std::move(buffer) };
-}
 
 void ParsedSettings::clear()
 {
@@ -326,151 +288,10 @@ void SettingsLoader::MergeInboxIntoUserSettings()
 // merge them. Unfortunately however the "updates" key in fragment profiles make this impossible:
 // The targeted profile might be one that got created as part of SettingsLoader::MergeInboxIntoUserSettings.
 // Additionally the GUID in "updates" will conflict with existing GUIDs in .inboxSettings.
-void SettingsLoader::FindFragmentsAndMergeIntoUserSettings(bool generateExtensionPackages)
+void SettingsLoader::FindFragmentsAndMergeIntoUserSettings(bool /*generateExtensionPackages*/)
 {
-    ParsedSettings fragmentSettings;
-
-    const auto parseAndLayerFragmentFiles = [&](const std::filesystem::path& path, const winrt::hstring& source, FragmentScope scope) {
-        const winrt::hstring sourceBasePath{ path.native() };
-        for (const auto& fragmentExt : std::filesystem::directory_iterator{ path })
-        {
-            const auto fragExtPath = fragmentExt.path();
-            if (fragExtPath.extension() == jsonExtension)
-            {
-                try
-                {
-                    const auto content = til::io::read_file_as_utf8_string_if_exists(fragExtPath);
-                    if (!content.empty())
-                    {
-                        _parseFragment(source,
-                                       sourceBasePath,
-                                       content,
-                                       fragmentSettings,
-                                       generateExtensionPackages ?
-                                           static_cast<std::optional<ParseFragmentMetadata>>(ParseFragmentMetadata{ fragExtPath.filename().wstring(), scope }) :
-                                           std::nullopt);
-                    }
-                }
-                CATCH_LOG();
-            }
-        }
-    };
-
-    for (const auto& rfid : std::array{ FOLDERID_LocalAppData, FOLDERID_ProgramData })
-    {
-        wil::unique_cotaskmem_string folder;
-        THROW_IF_FAILED(SHGetKnownFolderPath(rfid, 0, nullptr, &folder));
-
-        const auto fragmentPath = buildPath(folder.get(), FragmentsPath);
-
-        if (std::filesystem::is_directory(fragmentPath))
-        {
-            for (const auto& fragmentExtFolder : std::filesystem::directory_iterator{ fragmentPath })
-            {
-                const auto filename = fragmentExtFolder.path().filename();
-                const auto& source = filename.native();
-
-                if (fragmentExtFolder.is_directory())
-                {
-                    parseAndLayerFragmentFiles(fragmentExtFolder.path(),
-                                               winrt::hstring{ source },
-                                               rfid == FOLDERID_LocalAppData ? FragmentScope::User : FragmentScope::Machine); // scope
-                }
-            }
-        }
-    }
-
-    // Search through app extensions.
-    // Gets the catalog of extensions with the name "com.microsoft.windows.terminal.settings".
-    //
-    // GH#12305: Open() can throw an 0x80070490 "Element not found.".
-    // It's unclear to me under which circumstances this happens as no one on the team
-    // was able to reproduce the user's issue, even if the application was run unpackaged.
-    // The error originates from `CallerIdentity::GetCallingProcessAppId` which returns E_NOT_SET.
-    // A comment can be found, reading:
-    // > Gets the "strong" AppId from the process token. This works for UWAs and Centennial apps,
-    // > strongly named processes where the AppId is stored securely in the process token. [...]
-    // > E_NOT_SET is returned for processes without strong AppIds.
-    IVectorView<AppExtension> extensions;
-    try
-    {
-        const auto catalog = AppExtensionCatalog::Open(AppExtensionHostName);
-        if (auto catalog2{ catalog.try_as<IAppExtensionCatalog2>() })
-        {
-            extensions = catalog2.FindAll();
-        }
-        else
-        {
-            extensions = extractValueFromTaskWithoutMainThreadAwait(catalog.FindAllAsync());
-        }
-    }
-    CATCH_LOG();
-
-    if (!extensions)
-    {
-        return;
-    }
-
-    for (const auto& ext : extensions)
-    {
-        const auto& package = ext.Package();
-        const auto packageName = package.Id().FamilyName();
-
-        // If the extension was explicitly disabled, skip over it early to avoid the async API!
-        // NOTE: only do this if we're NOT generating extension packages. If we are, we need to get all the
-        //       package metadata anyway to display in the settings UI later.
-        if (!generateExtensionPackages && _ignoredNamespaces.contains(std::wstring_view{ packageName }))
-        {
-            continue;
-        }
-
-        winrt::hstring publicFolderPath;
-        if (auto ext3{ ext.try_as<IAppExtension3>() })
-        {
-            // Windows 11 24H2 and above support a much faster, much less
-            // Windows.Storage-y API.
-            publicFolderPath = ext3.GetPublicPath();
-            if (publicFolderPath.empty())
-            {
-                // No point in falling through to GetPublicFolderAsync;
-                // it won't work.
-                continue;
-            }
-        }
-        else
-        {
-            // Likewise, getting the public folder from an extension is an async operation.
-            auto foundFolder = extractValueFromTaskWithoutMainThreadAwait(ext.GetPublicFolderAsync());
-            if (!foundFolder)
-            {
-                continue;
-            }
-
-            // the StorageFolder class has its own methods for obtaining the files within the folder
-            // however, all those methods are Async methods
-            // you may have noticed that we need to resort to clunky implementations for async operations
-            // (they are in extractValueFromTaskWithoutMainThreadAwait)
-            // so for now we will just take the folder path and access the files that way
-            publicFolderPath = foundFolder.Path();
-        }
-
-        const auto path = buildPath(publicFolderPath, FragmentsSubDirectory);
-        if (std::filesystem::is_directory(path))
-        {
-            // MSIX does not support machine-wide scope
-            // See https://github.com/microsoft/winget-cli/discussions/1983
-            parseAndLayerFragmentFiles(path,
-                                       packageName,
-                                       FragmentScope::User);
-
-            if (generateExtensionPackages)
-            {
-                auto extPkg = extensionPackageMap[packageName];
-                extPkg->Icon(package.Logo().AbsoluteUri());
-                extPkg->DisplayName(package.DisplayName());
-            }
-        }
-    }
+    // Backslash starts with external fragments disabled (both files and app extensions).
+    // Explicit fragment parsing remains available for tests and a future opt-in import UI.
 }
 
 // See FindFragmentsAndMergeIntoUserSettings.
@@ -1230,25 +1051,8 @@ try
     auto settingsString = til::io::read_file_as_utf8_string_if_exists(_settingsPath(), false, &lastWriteTime);
     auto firstTimeSetup = settingsString.empty();
 
-    // If it's the firstTimeSetup and a preview build, then try to
-    // read settings.json from the Release stable file path if it exists.
-    // Otherwise use default settings file provided from original settings file
-    bool releaseSettingExists = false;
-    if (firstTimeSetup && !IsPortableMode())
-    {
-#if defined(WT_BRANDING_PREVIEW) || defined(WT_BRANDING_CANARY)
-        {
-            try
-            {
-                settingsString = til::io::read_file_as_utf8_string_if_exists(_releaseSettingsPath());
-                releaseSettingExists = settingsString.empty() ? false : true;
-            }
-            catch (...)
-            {
-            }
-        }
-#endif
-    }
+    // Backslash never automatically imports another application's settings, in any branding mode.
+    const bool releaseSettingExists = false;
 
     // GH#11119: If we find that the settings file doesn't exist, or is empty,
     // then let's quick delete the state file as well. If the user does have a

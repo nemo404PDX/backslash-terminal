@@ -10,9 +10,12 @@ Current inventory on 2026-10-13. Paths below are relative to D:\codex-workspace\
 | [UPSTREAM-SOURCE.md](../../UPSTREAM-SOURCE.md) | Stable tag/commit/archive hash, source preparation, dependency status and documentation change record. |
 | [branding/concepts/README.md](../../branding/concepts/README.md) | Approved Backslash visual direction, exact Library image identity, transfer blocker and pending production assets. |
 | [docs/backslash/README.md](README.md) | Project entry point, status, scope labels and links. |
+| [docs/backslash/BUILD-BASELINE.md](BUILD-BASELINE.md) | Successful unchanged source-copy build, toolchain/artifact evidence and runtime/identity limits. |
+| [docs/backslash/APP-IDENTITY.md](APP-IDENTITY.md) | Source-grounded portable-first identity, coexistence and later packaging plan. |
 | [docs/backslash/FEATURES.md](FEATURES.md) | Requested features, proposed safeguards and unresolved choices. |
 | [docs/backslash/PALETTE.md](PALETTE.md) | Independent one-time palette copy/fill requirements, color categories and acceptance checks. |
 | [docs/backslash/CRT-APPEARANCE.md](CRT-APPEARANCE.md) | Configurable profile CRT controls, rendering constraints and quality bar. |
+| [docs/backslash/BEZEL-DESIGN.md](BEZEL-DESIGN.md) | Future bezel/material/theme design: presets, finishes, optional artwork and layout; not implemented. |
 | [docs/backslash/FONTS.md](FONTS.md) | Opt-in font catalog/install design, ligatures versus patched glyph coverage and code/prompt previews. |
 | [docs/backslash/SHELL-PRODUCTIVITY.md](SHELL-PRODUCTIVITY.md) | Configurable shared history, outcome filters/scope, SSH recall and current preferred local composition behavior. |
 | [docs/backslash/SSH-LOCAL-EDITOR-AUDIT.md](SSH-LOCAL-EDITOR-AUDIT.md) | Independent source-grounded audit and capability-proof gates; report preserved unchanged. |

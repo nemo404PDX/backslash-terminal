@@ -43,6 +43,7 @@ winrt::com_ptr<AppearanceConfig> AppearanceConfig::CopyAppearance(const Appearan
 #define APPEARANCE_SETTINGS_COPY(type, name, jsonKey, ...) \
     appearance->_##name = source->_##name;
     MTSM_APPEARANCE_SETTINGS(APPEARANCE_SETTINGS_COPY)
+    MTSM_RETRO_INTENSITY_SETTINGS(APPEARANCE_SETTINGS_COPY)
 #undef APPEARANCE_SETTINGS_COPY
 
     return appearance;
@@ -74,6 +75,7 @@ Json::Value AppearanceConfig::ToJson() const
 #define APPEARANCE_SETTINGS_TO_JSON(type, name, jsonKey, ...) \
     JsonUtils::SetValueForKey(json, jsonKey, _##name);
     MTSM_APPEARANCE_SETTINGS(APPEARANCE_SETTINGS_TO_JSON)
+    MTSM_RETRO_INTENSITY_SETTINGS(APPEARANCE_SETTINGS_TO_JSON)
 #undef APPEARANCE_SETTINGS_TO_JSON
 
     return json;
@@ -131,6 +133,16 @@ void AppearanceConfig::LayerJson(const Json::Value& json)
 
     MTSM_APPEARANCE_SETTINGS(APPEARANCE_SETTINGS_LAYER_JSON)
 #undef APPEARANCE_SETTINGS_LAYER_JSON
+
+#define RETRO_INTENSITY_LAYER_JSON(type, name, jsonKey, ...) \
+    { \
+        auto parsed = _##name; \
+        if (JsonUtils::GetValueForKey(json, jsonKey, parsed)) { \
+            if (parsed) { name(*parsed); } else { Clear##name(); } \
+        } \
+    }
+    MTSM_RETRO_INTENSITY_SETTINGS(RETRO_INTENSITY_LAYER_JSON)
+#undef RETRO_INTENSITY_LAYER_JSON
 }
 
 winrt::Microsoft::Terminal::Settings::Model::Profile AppearanceConfig::SourceProfile()

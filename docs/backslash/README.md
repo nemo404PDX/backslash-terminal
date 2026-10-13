@@ -4,9 +4,13 @@ Display brand: **Backslash**. Repository/folder: **backslash-terminal**.
 
 Backslash is a planned independently branded, Windows-first fork of Microsoft Windows Terminal. The goal is approachable saved workspaces, useful inline terminal graphics, understandable palette editing, and optional configurable CRT styling. This is the existing C++/Windows source baseline, not a Rust rewrite or a cross-platform port.
 
-**Status: source preparation and design documentation only.** No Backslash features, identity migration, build, installation or release have been completed. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](../../UPSTREAM-SOURCE.md).
+**Status: prepared source, design documentation and a successful unchanged upstream source-copy build.** No Backslash features or identity migration, application installation/launch or release have been completed. See [verified baseline build evidence](BUILD-BASELINE.md); runtime remains untested. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](../../UPSTREAM-SOURCE.md).
 
 ## Read next
+
+- [Baseline build evidence](BUILD-BASELINE.md): verified source-copy artifact/logs, toolchain and runtime limits.
+
+- [Application identity plan](APP-IDENTITY.md): portable-first isolation and later package/alias/registration choices.
 
 - [Exact documentation inventory](DOCUMENTATION.md): paths and purposes.
 - [Independent SSH editor audit](SSH-LOCAL-EDITOR-AUDIT.md): capability gates and source-confirmed gaps.
@@ -16,6 +20,7 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 - [Palette design](PALETTE.md): agreed copy behavior and precise color categories.
 - [Font catalog](FONTS.md): requested opt-in font discovery and download design.
 - [CRT Appearance design](CRT-APPEARANCE.md): controls, rendering constraints and quality requirements.
+- [Future bezel/material/theme design](BEZEL-DESIGN.md): limited frame presets, finishes, artwork options and layout research; not implemented.
 - [Phased roadmap](ROADMAP.md): bounded future tasks with acceptance checks.
 - [Baseline evidence](BASELINE.md): reused capabilities, source paths and upstream research.
 - [Brand concept](../../branding/concepts/README.md): approved visual direction and exact image transfer status.

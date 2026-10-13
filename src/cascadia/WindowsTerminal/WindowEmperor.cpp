@@ -317,13 +317,13 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     std::wstring windowClassName;
     windowClassName.reserve(64); // "Windows Terminal Preview Admin 0123456789012345 0123456789012345"
 #if defined(WT_BRANDING_RELEASE)
-    windowClassName.append(L"Windows Terminal");
+    windowClassName.append(L"Backslash");
 #elif defined(WT_BRANDING_PREVIEW)
-    windowClassName.append(L"Windows Terminal Preview");
+    windowClassName.append(L"Backslash Preview");
 #elif defined(WT_BRANDING_CANARY)
-    windowClassName.append(L"Windows Terminal Canary");
+    windowClassName.append(L"Backslash Canary");
 #else
-    windowClassName.append(L"Windows Terminal Dev");
+    windowClassName.append(L"Backslash Dev");
 #endif
     if (Utils::IsRunningElevated())
     {

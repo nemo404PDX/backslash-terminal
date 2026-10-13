@@ -1,0 +1,24 @@
+# Build this checkout
+
+Use PowerShell 7 on Windows and an already installed Visual Studio with the upstream C++, Windows SDK and packaging prerequisites. The previously successful baseline used VS Community 2026 18.10.1, MSBuild 18.10.1, MSVC v145 14.51.36231 and SDK 10.0.26100.0. This script installs no tools.
+
+From any directory:
+
+```powershell
+pwsh -NoProfile -File 'D:\codex-workspace\backslash-terminal\tools\backslash\Build.ps1' -Preflight
+pwsh -NoProfile -File 'D:\codex-workspace\backslash-terminal\tools\backslash\Build.ps1'
+```
+
+The script derives the checkout root from PSScriptRoot, validates upstream source files, and runs restores/builds there. It never substitutes a temporary source copy. Preflight only checks source/tool paths without writes or developer-shell changes; it does not verify SDK completeness, write access, network access or compilation.
+
+Defaults: `-Configuration Release -Platform x64 -MaxCpuCount 2`. Configuration accepts Release/Debug and platform accepts x64/ARM64/Win32. Only Release x64 has the recorded baseline evidence. Official installed vswhere selects the latest VS with MSBuild and C++ tools; override with `-VsInstallPath 'C:\path with spaces\Visual Studio'`. The script selects the installed amd64 MSBuild executable (matching the x64 host developer shell) to avoid accidentally using 32-bit MSBuild. The matching developer shell uses an x64 host compiler and disables automatic directory switching. Existing Git for Windows under Program Files is preferred on PATH.
+
+NuGet restores the repository's dep/nuget/packages.config and OpenConsole.slnx using unchanged official configuration and pins. Dependencies may be fetched into normal caches/output directories; network and write access must already be permitted. A restore failure stops the build. Upstream MSBuild/vcpkg can also download and unpack its required build utilities into its caches; these are part of upstream build dependency resolution, with no system installer invoked by this script. MSBuild targets Terminal\CascadiaPackage with signing and symbol packaging disabled.
+
+Each build creates a unique directory in the already ignored artifacts/build with session.log, restore-dependencies.log, restore-solution.log, build.log, build.binlog and package output under packages/. MSBuild prints the exact package paths. Standard executable/intermediate outputs stay in upstream bin/obj; the default executable is normally bin/x64/Release/WindowsTerminal/WindowsTerminal.exe. No artifacts are deleted, and artifacts/baseline-v1.25.2733.0-x64 is untouched. Run one build at a time because bin/obj are shared. Repeat builds can reuse intermediates and dependency caches.
+
+Native failures return their exit code; setup/script failures return 1. Only a zero MSBuild exit produces the completion message. Consult the current invocation's logs rather than old output files. Build success does not validate runtime behavior. Binlogs can contain environment/path information; review before sharing.
+
+**Default upstream WindowsTerminalDev identity and Microsoft publisher subject remain. This is not an independently identified Backslash release.** The script does not sign, install, register or launch the app, or change default-terminal, security or permission settings. See the [baseline record](../../docs/backslash/BUILD-BASELINE.md) and [identity prerequisites](../../docs/backslash/APP-IDENTITY.md) before distribution or installation.
+
+

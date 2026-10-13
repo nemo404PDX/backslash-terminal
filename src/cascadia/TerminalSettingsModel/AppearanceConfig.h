@@ -52,6 +52,18 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         MTSM_APPEARANCE_SETTINGS(APPEARANCE_SETTINGS_INITIALIZE)
 #undef APPEARANCE_SETTINGS_INITIALIZE
 
+// Finite values clamp consistently for JSON and projected setters; null clears inheritance.
+#define RETRO_INTENSITY_INITIALIZE(type, name, jsonKey, defaultValue) \
+    _BASE_INHERITABLE_SETTING(Model::IAppearanceConfig, std::optional<float>, name) \
+public: \
+    float name() const { return _get##name##Impl().value_or(defaultValue); } \
+    void name(float value) { \
+        if (!std::isfinite(value)) { throw winrt::hresult_invalid_argument(); } \
+        _##name = std::clamp(value, 0.0f, 1.0f); \
+    }
+        MTSM_RETRO_INTENSITY_SETTINGS(RETRO_INTENSITY_INITIALIZE)
+#undef RETRO_INTENSITY_INITIALIZE
+
     private:
         winrt::weak_ref<Profile> _sourceProfile;
         std::set<std::string> _changeLog;
