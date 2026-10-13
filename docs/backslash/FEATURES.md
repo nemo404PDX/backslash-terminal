@@ -28,7 +28,7 @@ Images must be terminal output content, not only backgrounds. Reuse Sixel suppor
 
 ## Requested: CRT Appearance controls
 
-Add a configurable profile Appearance section with sliders/fields, live preview, saved controls, presets and fast reset/comparison. Include intentional glitch/effects, old-screen overlay/frame treatment, and actual terminal-view curvature/warping alongside background image/transparency. This scope goes beyond the upstream retro toggle. See [CRT design](CRT-APPEARANCE.md).
+Add a configurable profile Appearance section with sliders/fields, live preview, saved controls, presets and fast reset/comparison. Include intentional glitch/effects, old-screen overlay/frame treatment, and actual terminal-view curvature/warping alongside background image/transparency. Upstream already implements sampled glow and DPI scanlines, plus production custom shader hooks; the new product work is configurable saved controls, preview/presets and quality/performance behavior, with curvature/history/overlay extensions separately validated. None of these Backslash controls is implemented. See [CRT design](CRT-APPEARANCE.md) and [sample mapping](BASELINE.md).
 
 ## Requested: curated terminal fonts
 

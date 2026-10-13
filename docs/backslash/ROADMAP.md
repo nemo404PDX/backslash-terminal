@@ -54,7 +54,7 @@ Acceptance: scrolling/alternate screen/resize/clipping behavior, bounded image r
 
 ## Phase 6 — configurable CRT Appearance
 
-Task: design the per-profile controls/live preview/presets UI and renderer integration. Begin with neutral preset and a limited effect slice. Prototype curvature plus mouse/selection mapping together, temporal persistence separately, then overlay composition.
+Task: first parameterize existing sampled glow and DPI-scaled scanlines in Retro.hlsl/atlas custom_shader_ps.hlsl through profile controls, saved settings and live preview. Reuse BackendD3D shader hooks; include neutral/Nop comparison, reset, readability and GPU/DPI/resize checks. Saved control persistence is distinct from phosphor afterimage history. Validate time wrap/continuous redraw and diagnostic errors. Higher-quality bloom/multiple passes, curvature with input mapping, temporal history and bezel composition are later separate proofs; animation/background samples do not deliver them. See [sample map](BASELINE.md) and [concrete first CRT slice](CRT-APPEARANCE.md).
 
 Acceptance: [CRT quality bar](CRT-APPEARANCE.md), saved profile state, reset/compare, reduced motion, readable text, stable resize, aligned input/cursor/selection, bounded GPU/animation/memory. Intentional glitch must never excuse instability. Review cool-retro-term component licenses before any copying.
 

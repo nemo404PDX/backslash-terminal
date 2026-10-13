@@ -178,3 +178,9 @@ Four critical go/no-go capabilities are input ownership/readiness, exact multili
 - **Configure-once proof:** compare zero-helper limitations, pre-existing integration and explicitly scoped transient/persisted bootstrap. Prove compatibility, quoting, state preservation and cleanup; no manual setup does not mean no remote code. Restricted/unsupported shells need disclosed capabilities and native recovery, not a hidden UI substitution.
 
 Future evidence must include outbound byte traces, grid snapshots, local buffer revisions/ownership transitions, execution records and supported shell/version. Screenshots alone cannot pass these gates. Native recovery is an intentional supported path; it must not be mislabeled delivery of the preferred inline feature. The audit report itself was read and left byte-identical.
+
+## Sample reuse correction
+
+See the [pinned sample map](BASELINE.md). EchoCon launches ping localhost; MiniTerm demonstrates managed IO/Ctrl-C; GUIConsole is raw VT/TextBlock and key-name input scaffolding; ReadConsoleInputStream is console event handling. None proves client-owned semantic editing, production resize/keyboard/TSF/IME or the audit's ownership/submission/echo/status gates. Use production SshHostGenerator/ConptyConnection/control/parser seams for the initial integration plan.
+
+The existing OSC633 menu ends in DEL+text remote input, not local editor state. Marked scrollback remains reconstructed history, not durable execution storage. These reuse findings preserve the preferred local inline buffer/view shift and all capability-first audit gates.

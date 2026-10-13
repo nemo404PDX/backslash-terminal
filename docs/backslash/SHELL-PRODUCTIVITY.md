@@ -177,3 +177,7 @@ On Enter, freeze the current buffer/context generation and submit once. Never au
 Define metadata trust and a supported cooperative-shell contract. OSC133 D can be absent or forged and carries no authenticated execution identity. Duplicate/late/out-of-order/forged marks cannot promote Unknown into confirmed success; an observable stream nonce is not a security boundary against a hostile peer. Successful-only mode requires accepted reliable correlated evidence.
 
 Preserve the remote grid and do not hide arbitrary matching output during echo reconciliation. Ownership/view shifts must preserve TSF/IME, paste, selection/copy, hyperlinks/hit-tests and accessibility. Do not hold editor/grid locks across blocking connection writes; keep terminal device replies out of local composition interception. These constraints preserve preferred local inline composition/upward view shifting without remote layout mutation.
+
+## Samples do not establish the editor contract
+
+The [sample map](BASELINE.md) distinguishes ConPTY pipe/input demos from production transport/control/editor seams. Existing completion menus use DEL+text outbound input, not the preferred local-owned buffer; scrollback history is not persistent execution storage. No sample changes the required ownership, exact multiline submission, echo, result-trust, Unicode/IME or local view-shift gates in the [research](SSH-LOCAL-EDITOR-RESEARCH.md) and [audit](SSH-LOCAL-EDITOR-AUDIT.md).
