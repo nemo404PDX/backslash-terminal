@@ -442,6 +442,10 @@ namespace SettingsModelUnitTests
 
         const auto settings = winrt::make_self<implementation::CascadiaSettings>(userProfiles);
         const auto profile = settings->AllProfiles().GetAt(0);
+        profile.DefaultAppearance().RetroTerminalScanlineThickness(2.75f);
+        profile.DefaultAppearance().RetroTerminalScanlineGap(0.0f);
+        profile.DefaultAppearance().RetroTerminalTintIntensity(0.45f);
+        profile.DefaultAppearance().RetroTerminalTintColor(winrt::Microsoft::Terminal::Core::Color{ 255, 176, 0, 255 });
         const auto duplicatedProfile = settings->DuplicateProfile(profile);
 
         // GH#11392: Ensure duplicated profiles properly inherit the base layer, even for nested objects.
@@ -454,6 +458,13 @@ namespace SettingsModelUnitTests
         VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.0f, duplicatedProfile.DefaultAppearance().RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.75f, duplicatedProfile.DefaultAppearance().RetroTerminalScanlineIntensity());
+        VERIFY_ARE_EQUAL(2.75f, duplicatedProfile.DefaultAppearance().RetroTerminalScanlineThickness());
+        VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalScanlineGap());
+        VERIFY_ARE_EQUAL(0.0f, duplicatedProfile.DefaultAppearance().RetroTerminalScanlineGap());
+        VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalTintIntensity());
+        VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalTintColor());
+        VERIFY_ARE_EQUAL(0.45f, duplicatedProfile.DefaultAppearance().RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), til::color{ duplicatedProfile.DefaultAppearance().RetroTerminalTintColor() });
 
         duplicatedProfile.Guid(profile.Guid());
         duplicatedProfile.Name(profile.Name());

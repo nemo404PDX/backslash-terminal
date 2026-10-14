@@ -64,6 +64,30 @@ public: \
         MTSM_RETRO_INTENSITY_SETTINGS(RETRO_INTENSITY_INITIALIZE)
 #undef RETRO_INTENSITY_INITIALIZE
 
+#define RETRO_DIMENSION_INITIALIZE(type, name, jsonKey, defaultValue, minimum, maximum) \
+    _BASE_INHERITABLE_SETTING(Model::IAppearanceConfig, std::optional<float>, name) \
+public: \
+    float name() const { return _get##name##Impl().value_or(defaultValue); } \
+    void name(float value) { \
+        if (!std::isfinite(value)) { throw winrt::hresult_invalid_argument(); } \
+        _##name = std::clamp(value, minimum, maximum); \
+    }
+        MTSM_RETRO_DIMENSION_SETTINGS(RETRO_DIMENSION_INITIALIZE)
+#undef RETRO_DIMENSION_INITIALIZE
+
+        _BASE_INHERITABLE_SETTING(Model::IAppearanceConfig, std::optional<Microsoft::Terminal::Core::Color>, RetroTerminalTintColor)
+    public:
+        Microsoft::Terminal::Core::Color RetroTerminalTintColor() const
+        {
+            return _getRetroTerminalTintColorImpl().value_or(Microsoft::Terminal::Core::Color{ 0, 255, 65, 255 });
+        }
+        void RetroTerminalTintColor(Microsoft::Terminal::Core::Color value)
+        {
+            // Phosphor is an RGB choice, never an opacity control.
+            value.A = 255;
+            _RetroTerminalTintColor = value;
+        }
+
     private:
         winrt::weak_ref<Profile> _sourceProfile;
         std::set<std::string> _changeLog;

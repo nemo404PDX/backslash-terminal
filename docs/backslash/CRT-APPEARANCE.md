@@ -6,7 +6,7 @@
 
 Provide an optional **per-profile Appearance section** with sliders/fields and live preview. The user requests richer CRT controls inspired by [cool-retro-term](https://github.com/Swordfish90/cool-retro-term), configurable intentional glitch/effects, an old-screen overlay/frame, and actual terminal-view curvature/warping. Place this beside background image and transparency settings so their interaction is understandable.
 
-This is a substantial requested feature, not merely a theme preset or the existing simple retro toggle. The first implementation slice exposes the existing built-in glow and scanline strengths; the other proposed controls remain unimplemented.
+This is a substantial requested feature, not merely a theme preset or the existing simple retro toggle. The first implementation slice exposes the existing built-in glow and scanline strengths; scanline dimensions and screen-only phosphor tint are implemented in the follow-ups below. Other proposed controls remain unimplemented.
 
 ## Proposed controls to evaluate
 
@@ -130,3 +130,19 @@ Use the latest clean portable folder or extract its ZIP into a new directory. La
 10. Check text, cursor, selection, background image/transparency and scrolling at 0/default/full intensity. Resize the window and test available DPI scales (e.g. 100%, 125%, 150%, 200%): look for stale bands, redraw artifacts or unreadable text. This is visual coverage only; hardware GPU timing and idle redraw measurements remain separate unrun checks.
 
 No remaining implementation/build blocker was identified. Native UI automation is unavailable in this session, so every checklist item above remains for manual validation. The earlier WARP evidence remains applicable: this follow-up changes model duplication and its test, not shader/runtime rendering code.
+
+## Implemented independent scanline dimensions (2026-10-14)
+
+Appearance adds **Dark scanline thickness (DIP)**, 0.5–8, and **Clear gap between scanlines (DIP)**, 0–16; both default to 1. Each has a quarter-DIP slider, numeric value and inherited reset. Gap zero uniformly dims the screen at nonzero intensity. Zero intensity and zero glow still bypass the postprocess regardless of dimensions. A custom shader retains precedence.
+
+Values persist per focused/unfocused appearance through JSON (`experimental.retroTerminalScanlineThickness` / `experimental.retroTerminalScanlineGap`), inheritance, null/reset, copy/duplicate and the normal live preview. Fractional pixel coverage filters thin/noninteger bands; default 100%/200% rows retain legacy output, while fractional-DPI intermediate rows intentionally differ from the former hard-floor mask. Alpha modulation and the external custom shader ABI remain unchanged. No static animation/Time dependency is added.
+
+See [the completed rendering report](CRT-RENDERING-PLAN.md#implemented-follow-up-scanline-thickness-and-clear-gap-2026-10-14) for tests, resource reuse/neutral measurements, pristine artifact and unrun native visual checks. Test this build in a fresh copy; existing working settings were untouched. No tint implementation is included.
+
+## Implemented screen-only phosphor tint (2026-10-14)
+
+Appearance adds **Screen phosphor color** (default `#00FF41`) and **Screen tint intensity** (0-100%, default zero) with inheritance, reset, duplication, serialization and default live preview. Enable Retro terminal effects. JSON uses `experimental.retroTerminalTintColor` and `experimental.retroTerminalTintIntensity` (0-1). Zero preserves post-CRT RGBA exactly and all-zero strengths bypass postprocessing; custom shaders retain precedence.
+
+Full tint preserves linear-light luminance along a black -> chosen phosphor -> white tonal ramp; highlights can whiten, black/white phosphor gives grayscale, and ANSI hue distinctions disappear. Lower strengths blend smoothly with original colors. Tint preserves incoming post-glow/scanline alpha, including their unchanged legacy alpha modulation. It affects terminal GPU pixels (including cell backgrounds, text, cursor/selection and inline images); separate profile/window background images, wallpaper/acrylic/solid backdrops, XAML overlays, bezel/casing and tabs/chrome remain outside the pass. Static tint uses the existing Direct3D11 CRT path and reuses resources on color/strength changes.
+
+See [the completed tint report](CRT-RENDERING-PLAN.md#implemented-follow-up-screen-only-phosphor-tint-2026-10-14) for exact coverage, alpha/gamut behavior, tests/artifact and manual checklist. Use a fresh portable copy to inspect dark/light and transparent themes, ANSI readability, preview/reset/save/cancel and custom precedence. Native visuals/accessibility and hardware GPU/VRAM remain unrun.

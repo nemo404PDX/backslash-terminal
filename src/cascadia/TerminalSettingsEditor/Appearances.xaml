@@ -510,6 +510,77 @@
                                Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalScanlineIntensity), Mode=OneWay}" />
                 </Grid>
             </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroTerminalScanlineThickness"
+                                    x:Uid="Profile_RetroTerminalScanlineThickness"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalScanlineThickness}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalScanlineThickness, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalScanlineThicknessOverrideSource, Mode=OneWay}">
+                <Grid Style="{StaticResource CustomSliderControlGridStyle}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Uid="Profile_RetroTerminalScanlineThicknessSlider"
+                            Minimum="0.5" Maximum="8" StepFrequency="0.25"
+                            Grid.Column="0"
+                            Value="{x:Bind Appearance.RetroTerminalScanlineThickness, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1" Style="{StaticResource SliderValueLabelStyle}"
+                               Text="{x:Bind Appearance.RetroTerminalScanlineThickness, Mode=OneWay}" />
+                </Grid>
+            </local:SettingContainer>
+
+            <local:SettingContainer x:Name="RetroTerminalScanlineGap"
+                                    x:Uid="Profile_RetroTerminalScanlineGap"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalScanlineGap}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalScanlineGap, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalScanlineGapOverrideSource, Mode=OneWay}">
+                <Grid Style="{StaticResource CustomSliderControlGridStyle}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Uid="Profile_RetroTerminalScanlineGapSlider"
+                            Minimum="0" Maximum="16" StepFrequency="0.25"
+                            Grid.Column="0"
+                            Value="{x:Bind Appearance.RetroTerminalScanlineGap, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1" Style="{StaticResource SliderValueLabelStyle}"
+                               Text="{x:Bind Appearance.RetroTerminalScanlineGap, Mode=OneWay}" />
+                </Grid>
+            </local:SettingContainer>
+
+
+
+            <local:SettingContainer x:Name="RetroTerminalTintColor"
+                                    x:Uid="Profile_RetroTerminalTintColor"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalTintColor}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalTintColor, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalTintColorOverrideSource, Mode=OneWay}"
+                                    CurrentValue="{x:Bind Appearance.RetroTerminalTintColorPreview, Mode=OneWay}"
+                                    CurrentValueAccessibleName="{x:Bind Appearance.RetroTerminalTintColorPreview, Converter={StaticResource ColorToStringConverter}, Mode=OneWay}"
+                                    CurrentValueTemplate="{StaticResource ColorPreviewTemplate}"
+                                    Style="{StaticResource ExpanderSettingContainerStyleWithComplexPreview}">
+                <local:NullableColorPicker x:Uid="Profile_RetroTerminalTintColorPicker"
+                                           ColorSchemeVM="{x:Bind Appearance.CurrentColorScheme, Mode=OneWay}"
+                                           ShowNullColorButton="False"
+                                           CurrentColor="{x:Bind Appearance.RetroTerminalTintColorForPicker, Mode=TwoWay}" />
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroTerminalTintIntensity"
+                                    x:Uid="Profile_RetroTerminalTintIntensity"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalTintIntensity}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalTintIntensity, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalTintIntensityOverrideSource, Mode=OneWay}">
+                <Grid Style="{StaticResource CustomSliderControlGridStyle}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Uid="Profile_RetroTerminalTintIntensitySlider"
+                            Minimum="0" Maximum="100" StepFrequency="1" Grid.Column="0"
+                            Value="{x:Bind mtu:Converters.PercentageToPercentageValue(Appearance.RetroTerminalTintIntensity), BindBack=Appearance.SetRetroTerminalTintIntensityFromPercentageValue, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="1" Style="{StaticResource SliderValueLabelStyle}"
+                               Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalTintIntensity), Mode=OneWay}" />
+                </Grid>
+            </local:SettingContainer>
 
             <!--  Adjust Indistinguishable Colors  -->
             <local:SettingContainer x:Name="AdjustIndistinguishableColors"

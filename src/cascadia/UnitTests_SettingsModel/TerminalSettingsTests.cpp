@@ -94,11 +94,12 @@ namespace SettingsModelUnitTests
     {
         const auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({
             "profiles": {
-                "defaults": { "experimental.retroTerminalGlowIntensity": 0.8, "experimental.retroTerminalScanlineIntensity": 0.6 },
+                "defaults": { "experimental.retroTerminalGlowIntensity": 0.8, "experimental.retroTerminalScanlineIntensity": 0.6, "experimental.retroTerminalScanlineThickness": 1.5, "experimental.retroTerminalScanlineGap": 3, "experimental.retroTerminalTintColor": "#FFB000", "experimental.retroTerminalTintIntensity": 0.4 },
                 "list": [{ "name": "retro-test", "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
                     "experimental.retroTerminalEffect": true,
                     "experimental.retroTerminalGlowIntensity": 0,
-                    "unfocusedAppearance": { "experimental.retroTerminalScanlineIntensity": 0 }
+                    "experimental.retroTerminalScanlineThickness": 2.75,
+                    "unfocusedAppearance": { "experimental.retroTerminalScanlineIntensity": 0, "experimental.retroTerminalScanlineGap": 0, "experimental.retroTerminalTintIntensity": 0, "experimental.retroTerminalTintColor": "#123456" }
                 }]
             }
         })");
@@ -113,6 +114,24 @@ namespace SettingsModelUnitTests
         VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalScanlineIntensity());
         VERIFY_IS_TRUE(result.UnfocusedSettings()->RetroTerminalEffect());
+        VERIFY_ARE_EQUAL(2.75f, result.DefaultSettings()->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(3.0f, result.DefaultSettings()->RetroTerminalScanlineGap());
+        VERIFY_ARE_EQUAL(2.75f, result.UnfocusedSettings()->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalScanlineGap());
+        VERIFY_ARE_EQUAL(0.4f, result.DefaultSettings()->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), result.DefaultSettings()->RetroTerminalTintColor());
+        VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(18, 52, 86), result.UnfocusedSettings()->RetroTerminalTintColor());
+        profile.UnfocusedAppearance().ClearRetroTerminalTintColor();
+        profile.UnfocusedAppearance().ClearRetroTerminalTintIntensity();
+        const auto tintReset = TerminalSettings::CreateWithProfile(*settings, profile);
+        VERIFY_ARE_EQUAL(0.4f, tintReset.UnfocusedSettings()->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), tintReset.UnfocusedSettings()->RetroTerminalTintColor());
+        profile.DefaultAppearance().ClearRetroTerminalScanlineThickness();
+        profile.UnfocusedAppearance().ClearRetroTerminalScanlineGap();
+        const auto reset = TerminalSettings::CreateWithProfile(*settings, profile);
+        VERIFY_ARE_EQUAL(1.5f, reset.DefaultSettings()->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(3.0f, reset.UnfocusedSettings()->RetroTerminalScanlineGap());
         profile.DefaultAppearance().ClearRetroTerminalGlowIntensity();
         VERIFY_ARE_EQUAL(0.8f, profile.DefaultAppearance().RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.8f, profile.UnfocusedAppearance().RetroTerminalGlowIntensity());

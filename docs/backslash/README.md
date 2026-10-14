@@ -21,6 +21,7 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 - [Palette design](PALETTE.md): agreed copy behavior and precise color categories.
 - [Font catalog](FONTS.md): requested opt-in font discovery and download design.
 - [CRT Appearance design](CRT-APPEARANCE.md): controls, rendering constraints and quality requirements.
+- [CRT rendering plan and performance audit](CRT-RENDERING-PLAN.md): visibility/resource findings, isolated measurements, implemented tint/scanline controls and acceptance gates.
 - [Bezel implementation and future material design](BEZEL-DESIGN.md): implemented frame controls, corner/centering fixes, validation and remaining visual checks.
 - [Phased roadmap](ROADMAP.md): bounded future tasks with acceptance checks.
 - [Baseline evidence](BASELINE.md): reused capabilities, source paths and upstream research.

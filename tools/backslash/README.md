@@ -22,3 +22,9 @@ Native failures return their exit code; setup/script failures return 1. Only a z
 **Default upstream WindowsTerminalDev identity and Microsoft publisher subject remain. This is not an independently identified Backslash release.** The script does not sign, install, register or launch the app, or change default-terminal, security or permission settings. See the [baseline record](../../docs/backslash/BUILD-BASELINE.md) and [identity prerequisites](../../docs/backslash/APP-IDENTITY.md) before distribution or installation.
 
 
+
+## Rendering visibility regression fixture
+
+`Test-RenderVisibility.ps1 -EvidenceDirectory <fresh-directory>` compiles the real `RenderVisibility` and `RenderDiagnostics` helpers with the already installed VS/WIL toolchain. It verifies suspension acknowledgment, independent output, coalesced resume, rapid transitions, hidden shutdown and diagnostic opt-in/JSON roundtrip. It installs nothing and does not launch the app or change user settings.
+
+For app diagnostics, set process-local `BACKSLASH_RENDER_DIAGNOSTICS` to an absolute writable JSONL path and launch a fresh portable copy by its full executable path. Leave the variable unset for normal use. Lifecycle snapshots and one-second active samples contain counters only; file size grows with the bounded opt-in run. See [the CRT rendering report](../../docs/backslash/CRT-RENDERING-PLAN.md#implemented-follow-up-hidden-controls-and-opt-in-counters-2026-10-14) for counter meanings, the reparenting fix, exact evidence and limits. Actual GPU residency/occlusion is not inferred from these counters.

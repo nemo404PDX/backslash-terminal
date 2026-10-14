@@ -288,6 +288,32 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         _core = _interactivity.Core();
 
+        // A hidden tab is removed from the XAML tree. Loading is independent of focus,
+        // so every visible split keeps rendering, including its unfocused appearance.
+        const auto updateRendering = [weakThis{ get_weak() }](const bool visible) {
+            if (const auto self = weakThis.get(); self && !self->_IsClosing() && !self->_detached)
+            {
+                get_self<ControlCore>(self->_core)->SetRenderingVisible(visible);
+            }
+        };
+        // A split reparents an existing control within the same layout transaction.
+        // Reconcile the final tree state rather than treating a transient Unloaded
+        // notification as permanent invisibility.
+        const auto renderingTreeChanged = [weakThis{ get_weak() }, updateRendering](auto&&, auto&&) {
+            if (const auto self = weakThis.get())
+            {
+                winrt::Windows::System::DispatcherQueue::GetForCurrentThread().TryEnqueue([weakThis, updateRendering]() {
+                    if (const auto current = weakThis.get())
+                    {
+                        updateRendering(current->IsLoaded());
+                    }
+                });
+            }
+        };
+        _revokers.renderingLoaded = Loaded(winrt::auto_revoke, renderingTreeChanged);
+        _revokers.renderingUnloaded = Unloaded(winrt::auto_revoke, renderingTreeChanged);
+        updateRendering(IsLoaded());
+
         // If high contrast mode was changed, update the appearance appropriately.
         _core.SetHighContrastMode(_GetAccessibilitySettings().HighContrast());
         _revokers.HighContrastChanged = _GetAccessibilitySettings().HighContrastChanged(winrt::auto_revoke, [weakThis{ get_weak() }](const Windows::UI::ViewManagement::AccessibilitySettings& a11ySettings, auto&&) {

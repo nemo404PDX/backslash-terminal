@@ -525,6 +525,7 @@ void AtlasEngine::_present()
         }
     }
 
+    if (_p.diagnostics) { _p.diagnostics->presents.fetch_add(1, std::memory_order_relaxed); }
     auto hr = _p.swapChain.swapChain->Present1(1, 0, &params);
     if constexpr (Feature_AtlasEnginePresentFallback::IsEnabled())
     {

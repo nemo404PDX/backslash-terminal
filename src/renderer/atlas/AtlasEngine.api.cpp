@@ -442,6 +442,42 @@ void AtlasEngine::SetRetroTerminalScanlineIntensity(float value) noexcept
     }
 }
 
+void AtlasEngine::SetRetroTerminalScanlineThickness(float value) noexcept
+{
+    value = std::isfinite(value) ? std::clamp(value, 0.5f, 8.0f) : 1.0f;
+    if (_api.s->retroTerminalScanlineThickness != value)
+    {
+        _api.s.write()->retroTerminalScanlineThickness = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalScanlineGap(float value) noexcept
+{
+    value = std::isfinite(value) ? std::clamp(value, 0.0f, 16.0f) : 1.0f;
+    if (_api.s->retroTerminalScanlineGap != value)
+    {
+        _api.s.write()->retroTerminalScanlineGap = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalTintIntensity(float value) noexcept
+{
+    value = std::isfinite(value) ? std::clamp(value, 0.0f, 1.0f) : 0.0f;
+    if (_api.s->retroTerminalTintIntensity != value)
+    {
+        _api.s.write()->retroTerminalTintIntensity = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalTintColor(COLORREF value) noexcept
+{
+    const u32 color = value | 0xff000000;
+    if (_api.s->retroTerminalTintColor != color)
+    {
+        _api.s.write()->retroTerminalTintColor = color;
+    }
+}
+
 void AtlasEngine::SetSoftwareRendering(bool enable) noexcept
 {
     if (_api.s->target->useWARP != enable)

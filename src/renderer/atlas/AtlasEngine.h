@@ -9,6 +9,8 @@
 
 #include "common.h"
 
+namespace ControlUnitTests { class ControlCoreTests; }
+
 namespace Microsoft::Console::Render::Atlas
 {
     struct TextAnalysisSinkResult;
@@ -71,8 +73,13 @@ namespace Microsoft::Console::Render::Atlas
         void SetPixelShaderPath(std::wstring_view value) noexcept;
         void SetPixelShaderImagePath(std::wstring_view value) noexcept;
         void SetRetroTerminalEffect(bool enable) noexcept;
+        void SetDiagnostics(std::shared_ptr<RenderDiagnostics> diagnostics) noexcept { _p.diagnostics = std::move(diagnostics); }
         void SetRetroTerminalGlowIntensity(float value) noexcept;
         void SetRetroTerminalScanlineIntensity(float value) noexcept;
+        void SetRetroTerminalScanlineThickness(float value) noexcept;
+        void SetRetroTerminalScanlineGap(float value) noexcept;
+        void SetRetroTerminalTintIntensity(float value) noexcept;
+        void SetRetroTerminalTintColor(COLORREF value) noexcept;
 
         void SetSoftwareRendering(bool enable) noexcept;
         void SetDisablePartialInvalidation(bool enable) noexcept;
@@ -126,6 +133,7 @@ namespace Microsoft::Console::Render::Atlas
         static constexpr u32 highlightFocusBg = 0xff3296ff;
         static constexpr u32 highlightFocusFg = 0xff000000;
 
+        friend class ControlUnitTests::ControlCoreTests;
         std::unique_ptr<IBackend> _b;
         RenderingPayload _p;
 

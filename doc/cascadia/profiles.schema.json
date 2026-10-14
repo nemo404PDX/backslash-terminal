@@ -290,6 +290,32 @@
           "maximum": 1,
           "default": 0.5
         },
+        "experimental.retroTerminalScanlineThickness": {
+          "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.5,
+          "maximum": 8
+        },
+        "experimental.retroTerminalTintIntensity": {
+          "description": "Screen-only phosphor tint strength; zero preserves original colors. Enable retro effects. Custom shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "experimental.retroTerminalTintColor": {
+          "description": "RGB phosphor color for a luminance-preserving black-to-phosphor-to-white ramp. Excludes background images, acrylic, bezel and chrome.",
+          "$ref": "#/$defs/Color",
+          "default": "#00FF41"
+        },
+        "experimental.retroTerminalScanlineGap": {
+          "description": "Clear space between scanlines in device-independent pixels. Zero uniformly dims the screen when intensity is nonzero.",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 16
+        },
         "experimental.retroTerminalEffect": {
           "description": "When set to true, enable retro terminal effects when unfocused. This is an experimental feature, and its continued existence is not guaranteed.",
           "type": "boolean"
@@ -2974,6 +3000,32 @@
           "minimum": 0,
           "maximum": 1,
           "default": 0.5
+        },
+        "experimental.retroTerminalScanlineThickness": {
+          "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.5,
+          "maximum": 8
+        },
+        "experimental.retroTerminalTintIntensity": {
+          "description": "Screen-only phosphor tint strength; zero preserves original colors. Enable retro effects. Custom shaders take precedence.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0
+        },
+        "experimental.retroTerminalTintColor": {
+          "description": "RGB phosphor color for a luminance-preserving black-to-phosphor-to-white ramp. Excludes background images, acrylic, bezel and chrome.",
+          "$ref": "#/$defs/Color",
+          "default": "#00FF41"
+        },
+        "experimental.retroTerminalScanlineGap": {
+          "description": "Clear space between scanlines in device-independent pixels. Zero uniformly dims the screen when intensity is nonzero.",
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0,
+          "maximum": 16
         },
         "experimental.retroTerminalEffect": {
           "description": "When set to true, enable retro terminal effects. This is an experimental feature, and its continued existence is not guaranteed.",

@@ -231,6 +231,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 _NotifyChanges(L"BackgroundImageAlignmentCurrentValue");
             }
+            else if (viewModelProperty == L"RetroTerminalTintColor")
+            {
+                _NotifyChanges(L"RetroTerminalTintColorForPicker", L"RetroTerminalTintColorPreview");
+            }
             else if (viewModelProperty == L"Foreground")
             {
                 _NotifyChanges(L"ForegroundPreview");
@@ -915,6 +919,27 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void AppearanceViewModel::SetRetroTerminalGlowIntensityFromPercentageValue(double percentageValue)
     {
         RetroTerminalGlowIntensity(static_cast<float>(percentageValue) / 100.0f);
+    }
+
+    void AppearanceViewModel::SetRetroTerminalTintIntensityFromPercentageValue(double percentageValue)
+    {
+        RetroTerminalTintIntensity(static_cast<float>(percentageValue) / 100.0f);
+    }
+
+    Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> AppearanceViewModel::RetroTerminalTintColorForPicker() const
+    {
+        return RetroTerminalTintColor();
+    }
+
+    void AppearanceViewModel::RetroTerminalTintColorForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value)
+    {
+        if (value) { RetroTerminalTintColor(value.Value()); }
+        else { ClearRetroTerminalTintColor(); }
+    }
+
+    Windows::UI::Color AppearanceViewModel::RetroTerminalTintColorPreview() const
+    {
+        return til::color{ RetroTerminalTintColor() };
     }
 
     void AppearanceViewModel::SetRetroTerminalScanlineIntensityFromPercentageValue(double percentageValue)

@@ -39,6 +39,9 @@ namespace Microsoft.Terminal.Settings.Editor
         void SetBackgroundImageOpacityFromPercentageValue(Double percentageValue);
         void SetRetroTerminalScanlineIntensityFromPercentageValue(Double percentageValue);
         void SetRetroTerminalGlowIntensityFromPercentageValue(Double percentageValue);
+        void SetRetroTerminalTintIntensityFromPercentageValue(Double percentageValue);
+        Windows.Foundation.IReference<Microsoft.Terminal.Core.Color> RetroTerminalTintColorForPicker;
+        Windows.UI.Color RetroTerminalTintColorPreview { get; };
         void SetBackgroundImagePath(String path);
 
         String CurrentBackgroundImagePath { get; };
@@ -86,6 +89,10 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineThickness);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineGap);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalTintIntensity);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Core.Color, RetroTerminalTintColor);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalGlowIntensity);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Core.CursorStyle, CursorShape);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(UInt32, CursorHeight);

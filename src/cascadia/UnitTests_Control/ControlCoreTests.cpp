@@ -7,6 +7,11 @@
 #include "MockControlSettings.h"
 #include "MockConnection.h"
 #include "../../inc/TestUtils.h"
+#include "../../renderer/base/renderer.hpp"
+#include "../../renderer/atlas/AtlasEngine.h"
+#include <d2d1_3.h>
+#include "../../renderer/atlas/BackendD3D.h"
+#include <fstream>
 
 using namespace Microsoft::Console;
 using namespace WEX::Logging;
@@ -37,6 +42,8 @@ namespace ControlUnitTests
         TEST_METHOD(TestClearScreen);
         TEST_METHOD(TestClearAll);
         TEST_METHOD(TestReadEntireBuffer);
+        TEST_METHOD(BackslashRenderingVisibilityKeepsOutput);
+        TEST_METHOD(BackslashPostProcessWARP);
 
         TEST_METHOD(TestSelectCommandSimple);
         TEST_METHOD(TestSelectOutputSimple);
@@ -367,6 +374,268 @@ namespace ControlUnitTests
         Log::Comment(L"Check the buffer contents");
         VERIFY_ARE_EQUAL(L"This is some text\r\nwith varying amounts\r\nof whitespace\r\n",
                          core->ReadEntireBuffer());
+    }
+
+    void ControlCoreTests::BackslashRenderingVisibilityKeepsOutput()
+    {
+        auto [settings, conn] = _createSettingsAndConnection();
+        auto core = createCore(*settings, *conn);
+        _standardInit(core);
+
+        core->SetRenderingVisible(false);
+        VERIFY_IS_FALSE(core->_renderer->IsRenderingVisible());
+        conn->WriteInput(winrt_wstring_to_array_view(L"hidden output one\r\n"));
+        conn->WriteInput(winrt_wstring_to_array_view(L"hidden output two\r\n"));
+        VERIFY_ARE_EQUAL(L"hidden output one\r\nhidden output two\r\n", core->ReadEntireBuffer());
+
+        core->SetRenderingVisible(true);
+        VERIFY_IS_TRUE(core->_renderer->IsRenderingVisible());
+        core->_focusChanged(false);
+        VERIFY_IS_TRUE(core->_renderer->IsRenderingVisible());
+
+        core->Close();
+        core->SetRenderingVisible(true);
+        VERIFY_IS_FALSE(core->_renderer->IsRenderingVisible());
+    }
+
+    void ControlCoreTests::BackslashPostProcessWARP()
+    {
+        // Production WIC loading runs on a render worker (MTA), not the STA test host.
+        std::exception_ptr workerFailure;
+        std::thread worker([&]() {
+            try
+            {
+                winrt::init_apartment(winrt::apartment_type::multi_threaded);
+                auto uninitialize = wil::scope_exit([] { winrt::uninit_apartment(); });
+                using namespace ::Microsoft::Console::Render::Atlas;
+                auto [settings, conn] = _createSettingsAndConnection();
+                auto core = createCore(*settings, *conn);
+                _standardInit(core);
+                auto& engine = *core->_renderEngine;
+                engine.SetCallback([](HANDLE) {});
+                engine.EnableTransparentBackground(true);
+                engine.SetGraphicsAPI(GraphicsAPI::Direct3D11);
+                VERIFY_SUCCEEDED(engine.UpdateViewport({ 0, 0, 29, 19 }));
+                auto diagnostics = std::make_shared<::Microsoft::Console::Render::RenderDiagnostics>();
+                engine.SetDiagnostics(diagnostics);
+                auto& payload = engine._p;
+                payload.warningCallback = [](HRESULT hr, wil::zwstring_view message) {
+                    Log::Comment(String().Format(L"POSTPROCESS_WARNING 0x%08x %s", static_cast<unsigned int>(hr), message.c_str()));
+                };
+
+                wil::com_ptr<ID3D11Device> device;
+                wil::com_ptr<ID3D11DeviceContext> context;
+                D3D_FEATURE_LEVEL featureLevel{};
+                VERIFY_SUCCEEDED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr,
+                    D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_SINGLETHREADED, nullptr, 0,
+                    D3D11_SDK_VERSION, device.put(), &featureLevel, context.put()));
+                payload.device = device.query<ID3D11Device2>();
+                payload.deviceContext = context.query<ID3D11DeviceContext2>();
+                const auto dxgiDevice = device.query<IDXGIDevice>();
+                wil::com_ptr<IDXGIAdapter> adapter;
+                VERIFY_SUCCEEDED(dxgiDevice->GetAdapter(adapter.put()));
+                wil::com_ptr<IDXGIFactory2> factory;
+                VERIFY_SUCCEEDED(adapter->GetParent(IID_PPV_ARGS(factory.put())));
+                const DXGI_SWAP_CHAIN_DESC1 desc{
+                    .Width = 270, .Height = 380, .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+                    .SampleDesc = { 1, 0 }, .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                    .BufferCount = 2, .Scaling = DXGI_SCALING_STRETCH,
+                    .SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+                    .AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
+                };
+                wil::com_ptr<IDXGISwapChain1> swapChain;
+                VERIFY_SUCCEEDED(factory->CreateSwapChainForComposition(device.get(), &desc, nullptr, swapChain.put()));
+                payload.swapChain.swapChain = swapChain.query<IDXGISwapChain2>();
+                BackendD3D backend{ payload };
+
+                // Draw into an unattached composition buffer and read it back. Never Present,
+                // attach to a XAML surface, create a window, or depend on compositor pacing.
+                auto draw = [&](uint32_t background) {
+                    VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes({}, core->_terminal->GetRenderSettings(), gsl::make_not_null(core->_terminal.get()), false, true));
+                    engine._api.s.write()->misc.write()->backgroundColor = background;
+                    VERIFY_SUCCEEDED(engine.InvalidateAll());
+                    VERIFY_SUCCEEDED(engine.StartPaint());
+                    const std::array<::Microsoft::Console::Render::Cluster, 2> text{
+                        ::Microsoft::Console::Render::Cluster{ L"A", 1 },
+                        ::Microsoft::Console::Render::Cluster{ L"B", 1 },
+                    };
+                    VERIFY_SUCCEEDED(engine.PaintBufferLine(text, { 0, 0 }, false));
+                    VERIFY_SUCCEEDED(engine.EndPaint());
+                    std::fill(payload.backgroundBitmap.begin(), payload.backgroundBitmap.end(), background);
+                    payload.colorBitmapGenerations[0].bump();
+                    backend.Render(payload);
+
+                    wil::com_ptr<ID3D11Texture2D> target;
+                    VERIFY_SUCCEEDED(swapChain->GetBuffer(0, IID_PPV_ARGS(target.put())));
+                    D3D11_TEXTURE2D_DESC readDesc{};
+                    target->GetDesc(&readDesc);
+                    readDesc.Usage = D3D11_USAGE_STAGING;
+                    readDesc.BindFlags = 0;
+                    readDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+                    readDesc.MiscFlags = 0;
+                    wil::com_ptr<ID3D11Texture2D> staging;
+                    VERIFY_SUCCEEDED(device->CreateTexture2D(&readDesc, nullptr, staging.put()));
+                    context->CopyResource(staging.get(), target.get());
+                    D3D11_MAPPED_SUBRESOURCE mapped{};
+                    VERIFY_SUCCEEDED(context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
+                    std::vector<uint32_t> pixels(static_cast<size_t>(readDesc.Width) * readDesc.Height);
+                    for (UINT y = 0; y < readDesc.Height; ++y)
+                    {
+                        memcpy(pixels.data() + static_cast<size_t>(y) * readDesc.Width,
+                            static_cast<const char*>(mapped.pData) + static_cast<size_t>(y) * mapped.RowPitch,
+                            static_cast<size_t>(readDesc.Width) * sizeof(uint32_t));
+                    }
+                    context->Unmap(staging.get(), 0);
+                    return pixels;
+                };
+
+                engine.SetRetroTerminalEffect(false);
+                engine.SetRetroTerminalGlowIntensity(0.0f);
+                engine.SetRetroTerminalScanlineIntensity(0.0f);
+                const auto opaqueOff = draw(0xff402010);
+                engine.SetRetroTerminalTintColor(RGB(255, 176, 0));
+                engine.SetRetroTerminalTintIntensity(0.0f);
+                engine.SetRetroTerminalScanlineThickness(8.0f);
+                engine.SetRetroTerminalScanlineGap(0.0f);
+                engine.SetRetroTerminalEffect(true);
+                VERIFY_IS_TRUE(opaqueOff == draw(0xff402010));
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->postprocessDraws.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->shaderRecreates.load());
+
+                engine.SetRetroTerminalEffect(false);
+                const auto transparentOff = draw(0x80402010);
+                engine.SetRetroTerminalEffect(true);
+                VERIFY_IS_TRUE(transparentOff == draw(0x80402010));
+                VERIFY_IS_TRUE(std::any_of(transparentOff.begin(), transparentOff.end(), [](uint32_t p) { return (p >> 24) > 0 && (p >> 24) < 255; }));
+
+                engine.SetRetroTerminalScanlineThickness(1.0f);
+                engine.SetRetroTerminalScanlineGap(1.0f);
+                engine.SetRetroTerminalScanlineIntensity(0.5f);
+                draw(0x80402010);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderRecreates.load());
+                const auto activeDraws = diagnostics->postprocessDraws.load();
+                engine.SetRetroTerminalScanlineThickness(0.5f);
+                engine.SetRetroTerminalScanlineGap(4.0f);
+                engine.SetRetroTerminalScanlineIntensity(0.7f);
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderRecreates.load());
+                VERIFY_ARE_EQUAL(activeDraws + 1, diagnostics->postprocessDraws.load());
+                const auto untinted = draw(0x80603020);
+                engine.SetRetroTerminalTintIntensity(1.0f);
+                engine.SetRetroTerminalTintColor(RGB(255, 176, 0));
+                const auto tinted = draw(0x80603020);
+                VERIFY_IS_FALSE(untinted == tinted);
+                VERIFY_IS_TRUE(std::equal(untinted.begin(), untinted.end(), tinted.begin(), [](uint32_t a, uint32_t b) { return (a >> 24) == (b >> 24); }));
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderRecreates.load());
+                VERIFY_IS_FALSE(backend.RequiresContinuousRedraw());
+                engine.SetRetroTerminalTintIntensity(0.4f);
+                engine.SetRetroTerminalTintColor(RGB(64, 128, 255));
+                engine.SetRetroTerminalScanlineIntensity(0.0f);
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderRecreates.load());
+                VERIFY_IS_GREATER_THAN(diagnostics->offscreenBytes.load(), uint64_t{ 0 });
+                engine.SetRetroTerminalTintIntensity(0.0f);
+                engine.SetRetroTerminalScanlineIntensity(0.7f);
+
+                backend.ReleaseResources();
+                context->ClearState();
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->textureCreates.load());
+
+                const auto beforeResize = diagnostics->textureCreates.load();
+                backend.ReleaseResources();
+                context->ClearState();
+                VERIFY_SUCCEEDED(swapChain->ResizeBuffers(0, 360, 380, DXGI_FORMAT_UNKNOWN, 0));
+                VERIFY_SUCCEEDED(engine.SetWindowSize({ 360, 380 }));
+                VERIFY_SUCCEEDED(engine.UpdateViewport({ 0, 0, 39, 19 }));
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(beforeResize + 1, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderRecreates.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 360 * 380 * 4 }, diagnostics->offscreenBytes.load());
+
+                engine.SetRetroTerminalScanlineIntensity(0.0f);
+                const auto beforeNeutralDraws = diagnostics->postprocessDraws.load();
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->offscreenBytes.load());
+                VERIFY_ARE_EQUAL(beforeNeutralDraws, diagnostics->postprocessDraws.load());
+                VERIFY_ARE_EQUAL(diagnostics->textureCreates.load(), diagnostics->textureReleases.load());
+
+                const auto directory = wil::GetEnvironmentVariableW<std::wstring>(L"BACKSLASH_TEST_SHADER_DIRECTORY");
+                VERIFY_IS_FALSE(directory.empty());
+                const auto shader = std::filesystem::path{ directory } / L"custom.hlsl";
+                const auto image = std::filesystem::path{ directory } / L"image.png";
+                engine.SetRetroTerminalTintIntensity(1.0f);
+                engine.SetPixelShaderPath(shader.native());
+                engine.SetPixelShaderImagePath(image.native());
+                draw(0x80603020);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderCompiles.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderImageLoads.load());
+                VERIFY_IS_TRUE(backend.RequiresContinuousRedraw());
+                const auto customTextures = diagnostics->textureCreates.load();
+                const auto customRecreates = diagnostics->shaderRecreates.load();
+                draw(0x80401010);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderCompiles.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderImageLoads.load());
+                VERIFY_ARE_EQUAL(customTextures, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(customRecreates, diagnostics->shaderRecreates.load());
+
+                engine.SetPixelShaderImagePath((std::filesystem::path{ directory } / L"missing.png").native());
+                const auto beforeBadImageDraws = diagnostics->postprocessDraws.load();
+                draw(0x80401010);
+                VERIFY_IS_FALSE(backend.RequiresContinuousRedraw());
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->offscreenBytes.load());
+                VERIFY_ARE_EQUAL(beforeBadImageDraws, diagnostics->postprocessDraws.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderCompiles.load());
+                engine.SetPixelShaderImagePath(image.native());
+                draw(0x80401010);
+                VERIFY_ARE_EQUAL(uint64_t{ 1 }, diagnostics->shaderCompiles.load());
+                VERIFY_IS_TRUE(backend.RequiresContinuousRedraw());
+
+                const auto missingShader = std::filesystem::path{ directory } / (L"missing-" + std::to_wstring(GetCurrentProcessId()) + L".hlsl");
+                engine.SetPixelShaderPath(missingShader.native());
+                engine.SetRetroTerminalGlowIntensity(0.3f);
+                draw(0x80401010);
+                VERIFY_IS_FALSE(backend.RequiresContinuousRedraw());
+                VERIFY_ARE_EQUAL(uint64_t{ 0 }, diagnostics->offscreenBytes.load());
+                VERIFY_ARE_EQUAL(uint64_t{ 2 }, diagnostics->shaderCompiles.load());
+                draw(0x80601010);
+                VERIFY_ARE_EQUAL(uint64_t{ 2 }, diagnostics->shaderCompiles.load());
+                {
+                    std::ofstream file{ missingShader };
+                    file << "Texture2D tex:register(t0);SamplerState sam:register(s0);"
+                        "float4 main(float4 p:SV_POSITION,float2 uv:TEXCOORD):SV_TARGET{return tex.Sample(sam,uv);}";
+                }
+                draw(0x80601010);
+                VERIFY_ARE_EQUAL(uint64_t{ 3 }, diagnostics->shaderCompiles.load());
+                VERIFY_IS_FALSE(backend.RequiresContinuousRedraw());
+                const auto beforeSourceEditTextures = diagnostics->textureCreates.load();
+                const auto beforeSourceEditImages = diagnostics->shaderImageLoads.load();
+                {
+                    std::ifstream original{ shader };
+                    std::ofstream changed{ missingShader };
+                    changed << original.rdbuf();
+                }
+                draw(0x80401010);
+                VERIFY_ARE_EQUAL(uint64_t{ 4 }, diagnostics->shaderCompiles.load());
+                VERIFY_IS_TRUE(backend.RequiresContinuousRedraw());
+                VERIFY_ARE_EQUAL(beforeSourceEditTextures, diagnostics->textureCreates.load());
+                VERIFY_ARE_EQUAL(beforeSourceEditImages, diagnostics->shaderImageLoads.load());
+                engine.SetPixelShaderPath(L"");
+                draw(0x80601010);
+                VERIFY_IS_FALSE(backend.RequiresContinuousRedraw());
+                VERIFY_IS_GREATER_THAN(diagnostics->offscreenBytes.load(), uint64_t{ 0 });
+                Log::Comment(String().Format(L"POSTPROCESS_COUNTERS {\"shaderCompiles\":%llu,\"shaderRecreates\":%llu,\"textureCreates\":%llu,\"textureReleases\":%llu,\"offscreenBytes\":%llu,\"shaderImageLoads\":%llu,\"shaderImageReleases\":%llu,\"postprocessDraws\":%llu}",
+                    diagnostics->shaderCompiles.load(), diagnostics->shaderRecreates.load(), diagnostics->textureCreates.load(), diagnostics->textureReleases.load(), diagnostics->offscreenBytes.load(), diagnostics->shaderImageLoads.load(), diagnostics->shaderImageReleases.load(), diagnostics->postprocessDraws.load()));
+            }
+            catch (...) { workerFailure = std::current_exception(); }
+        });
+        worker.join();
+        if (workerFailure) { std::rethrow_exception(workerFailure); }
     }
 
     static void _writePrompt(const winrt::com_ptr<MockConnection>& conn, const std::wstring_view& path)

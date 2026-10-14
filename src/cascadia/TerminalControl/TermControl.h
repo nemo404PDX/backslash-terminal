@@ -449,6 +449,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         struct Revokers
         {
+            Windows::UI::Xaml::FrameworkElement::Loaded_revoker renderingLoaded;
+            Windows::UI::Xaml::FrameworkElement::Unloaded_revoker renderingUnloaded;
             Control::ControlCore::ScrollPositionChanged_revoker coreScrollPositionChanged;
             Control::ControlCore::WarningBell_revoker WarningBell;
             Control::ControlCore::RendererEnteredErrorState_revoker RendererEnteredErrorState;

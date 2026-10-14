@@ -88,6 +88,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                         const float actualHeight,
                         const float compositionScale);
         void EnablePainting();
+        void SetRenderingVisible(bool visible) noexcept;
 
         void Detach();
 

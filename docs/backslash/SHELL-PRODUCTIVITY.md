@@ -8,6 +8,28 @@ Provide optional download/install setup for typing suggestions accepted with Tab
 
 Browse multiple matching history entries, retain older matches, and explicitly dismiss/exclude a bad suggestion without silently erasing history. Keep suggestion exclusion separate from history deletion, with understandable persistence and undo/reset behavior to design. Keybindings must be configurable and match the actual shell's capabilities; Tab completion and right-arrow acceptance may conflict with existing bindings.
 
+## Agreed: progressive successful-history suggestions
+
+This is intended behavior, not an implemented autocomplete feature. Successful command matches persist across sessions and restarts within the approved verified host/connection, user and compatible-shell boundary. Directory changes within that boundary do not hide eligible older matches. Broader cross-connection search/reuse remains explicit and origin-labeled.
+
+The query is the actual text the user has typed, including arguments. Every additional character progressively narrows eligible prefix matches; backspacing broadens them again. Displayed ghost text is not part of that query until accepted. For example, `git ` can match several successful commands; typing `git commit -` narrows to successful executions with that full prefix rather than continuing to suggest unrelated `git` subcommands.
+
+Offer the most recently confirmed-successful matching execution first. Configurable modified-arrow bindings cycle through all eligible matches while preserving the user's actual typed prefix and query; cycling changes only the offered ghost suffix, not the prefix or eligibility. Typing narrows the candidate set, and backspacing broadens it. Right arrow at the end of the editing buffer accepts the remaining suffix. Escape dismisses the suggestion without changing the typed buffer; acceptance does not execute, and Enter executes/submits the reviewed command once. Refresh or reject stale candidates whenever the actual buffer, cursor, target or input mode changes. Existing text after the cursor requires the current-buffer edit rules below, not blind suffix concatenation.
+
+A newer failed execution must never displace an older working match. Eligibility and recency come from confirmed successful executions; a later failure of the same command text does not remove its earlier eligible success or make the failure count as a new successful recency event. Keep failures searchable in full history, with per-execution status. Unknown, incomplete and unavailable outcomes remain distinct from success and are excluded from success-only suggestions.
+
+Ordinary Up/Down retains the shell's history and multiline navigation. Suggestion cycling uses separate configurable modified-arrow bindings in an integrated, verified command-editing mode. Alt+Up/Down is only a candidate pending an audit of shell, terminal, application and accessibility conflicts; no default binding is selected here. Shift+arrow combinations may conflict with selection and must not be assigned without the same audit. Acceptance and dismissal bindings also require provider-compatible ownership checks. Never steal keys from password prompts, interactive/full-screen applications, selection, unverified command editing or pass-through input modes. Preserve their native input behavior and use the safe manual browser/copy fallback when ownership or buffer state is unknown. No autocomplete code, provider installation, shell hook or host change is authorized by this documentation update.
+
+Acceptance fixtures:
+
+1. An older successful `git commit -m "working"` survives restart and appears from another eligible session. A newer failed `git commti` does not replace it.
+2. `git ` offers the newest eligible matching success; adding `commit -` narrows the full command/argument prefix. Deleting those characters restores the broader candidate set.
+3. Ghost suffix changes and configured modified-arrow cycling leave the actual typed prefix unchanged. A match visible only because ghost text was mistakenly added to the query is a defect.
+4. Right arrow at the end accepts only the missing current suffix; Escape dismisses without editing the buffer, and Enter submits once. Cycling/highlighting alone neither edits the typed prefix nor executes.
+5. A command text with older success and newer failure remains eligible from the successful execution, ordered by successful recency. All/Failed history still shows the failure; Unknown remains a separate filter/status.
+6. Host/user/shell and input-mode changes invalidate candidates. Cross-directory recall inside the approved scope works; password/full-screen/unknown modes retain safe native input or copy-only fallback.
+7. Ordinary Up/Down retains native history/multiline behavior. Cycling bindings remain configurable and conflict-audited; Alt+Up/Down is a candidate only, and Shift+arrow selection is preserved. Other application/input modes never receive suggestion interception.
+
 ## Shell/session boundary
 
 Completion, autosuggestions and history providers belong to the shell or its integration, while the terminal displays their output and delivers input. Adapt setup to the actual shell/session; do not promise identical tools or key behavior in every profile.

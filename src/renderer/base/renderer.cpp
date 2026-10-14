@@ -28,6 +28,7 @@ Renderer::Renderer(RenderSettings& renderSettings, IRenderData* pData) :
     _pData(pData)
 {
     _shutdownEvent.create(wil::EventOptions::ManualReset);
+    _diagnostics = RenderDiagnostics::FromEnvironment();
     _cursorBlinker = RegisterTimer("cursor blink", [](Renderer& renderer, TimerHandle) {
         renderer._cursorBlinkerOn = !renderer._cursorBlinkerOn;
     });
@@ -40,6 +41,7 @@ Renderer::Renderer(RenderSettings& renderSettings, IRenderData* pData) :
 Renderer::~Renderer()
 {
     TriggerTeardown();
+    if (_diagnostics) { _diagnostics->Write("destroyed", _visibility.IsVisible(), _visibility.IsSuspended()); }
 }
 
 IRenderData* Renderer::GetRenderData() const noexcept
@@ -95,6 +97,16 @@ void Renderer::EnablePainting()
     }
 }
 
+void Renderer::SetRenderingVisible(const bool visible) noexcept
+{
+    if (_visibility.SetVisible(visible))
+    {
+        if (_diagnostics) { _diagnostics->Write(visible ? "visible-requested" : "hidden-requested", visible, _visibility.IsSuspended()); }
+        // Wake timer/dirty waits; visibility waits are independently cancellable by shutdown.
+        NotifyPaintFrame();
+    }
+}
+
 void Renderer::_disablePainting() noexcept
 {
     _enable.ResetEvent();
@@ -127,6 +139,7 @@ void Renderer::TriggerTeardown() noexcept
 
 void Renderer::NotifyPaintFrame() noexcept
 {
+    if (_diagnostics) { _diagnostics->paintRequests.fetch_add(1, std::memory_order_relaxed); }
     _redraw.store(true, std::memory_order_relaxed);
     til::atomic_notify_one(_redraw);
 }
@@ -141,6 +154,13 @@ DWORD Renderer::_renderThread() noexcept
     while (true)
     {
         _enable.wait();
+        if (!_threadKeepRunning.load(std::memory_order_relaxed) ||
+            !_visibility.Wait(_shutdownEvent.get(), [this]() noexcept {
+                if (_diagnostics) { _diagnostics->Write("suspended", _visibility.IsVisible(), true); }
+            }))
+        {
+            break;
+        }
         if (!_waitUntilCanRender())
         {
             break;
@@ -152,7 +172,12 @@ DWORD Renderer::_renderThread() noexcept
             break;
         }
 
+        if (!_visibility.IsVisible())
+        {
+            continue;
+        }
         LOG_IF_FAILED(PaintFrame());
+        if (_diagnostics) { _diagnostics->Sample(_visibility.IsVisible(), _visibility.IsSuspended()); }
     }
 
     return S_OK;
@@ -353,6 +378,7 @@ DWORD Renderer::_timerToMillis(TimerRepr t) noexcept
 // - HRESULT S_OK, GDI error, Safe Math error, or state/argument errors.
 [[nodiscard]] HRESULT Renderer::PaintFrame()
 {
+    if (_diagnostics) { _diagnostics->paintAttempts.fetch_add(1, std::memory_order_relaxed); }
     HRESULT hr{ S_FALSE };
     // Attempt zero doesn't count as a retry. We should try maxRetries + 1 times.
     for (unsigned int attempt = 0u; attempt <= maxRetriesForRenderEngine; ++attempt)
@@ -370,6 +396,7 @@ DWORD Renderer::_timerToMillis(TimerRepr t) noexcept
         // BODGY: Optimally we would want to retry per engine, but that causes different
         // problems (intermittent inconsistent states between text renderer and UIA output,
         // not being able to lock the cursor location, etc.).
+        if (!_visibility.IsVisible()) { return S_FALSE; }
         hr = _PaintFrame(attempt);
         if (SUCCEEDED(hr))
         {
@@ -406,6 +433,14 @@ try
         auto unlock = wil::scope_exit([&]() {
             _pData->UnlockConsole();
         });
+
+        if (!_visibility.IsVisible()) { return S_FALSE; }
+        if (_visibility.TakeResumeRedraw())
+        {
+            _forceUpdateViewport = true;
+            TriggerRedrawAll();
+            if (_diagnostics) { _diagnostics->Write("resume-redraw", true, false); }
+        }
 
         if (_isSynchronizingOutput)
         {
@@ -457,6 +492,9 @@ try
 
     for (const auto pEngine : enginesToPresent)
     {
+        // A hide can arrive after invalidations were consumed. Resume forces a full redraw.
+        // A presentation already in flight may finish; no subsequent hidden frame starts.
+        if (!_visibility.IsVisible()) { return S_FALSE; }
         RETURN_IF_FAILED(pEngine->Present(_shutdownEvent.get()));
     }
 
@@ -476,8 +514,10 @@ try
     // Return early if there's nothing to paint.
     if (S_FALSE == hr)
     {
+        if (_diagnostics) { _diagnostics->cleanFrames.fetch_add(1, std::memory_order_relaxed); }
         return S_FALSE;
     }
+    if (_diagnostics) { _diagnostics->paintedFrames.fetch_add(1, std::memory_order_relaxed); }
 
     auto endPaint = wil::scope_exit([&]() {
         LOG_IF_FAILED(pEngine->EndPaint());

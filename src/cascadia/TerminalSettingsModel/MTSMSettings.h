@@ -182,4 +182,13 @@ Author(s):
 // Kept separate from the telemetry-producing appearance macro.
 #define MTSM_RETRO_INTENSITY_SETTINGS(X) \
     X(float, RetroTerminalGlowIntensity, "experimental.retroTerminalGlowIntensity", 0.3f) \
-    X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.5f)
+    X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.5f) \
+    X(float, RetroTerminalTintIntensity, "experimental.retroTerminalTintIntensity", 0.0f)
+
+#define MTSM_RETRO_COLOR_SETTINGS(X) \
+    X(winrt::Microsoft::Terminal::Core::Color, RetroTerminalTintColor, "experimental.retroTerminalTintColor", (winrt::Microsoft::Terminal::Core::Color{ 0, 255, 65, 255 }))
+
+// Independent finite DIP ranges; kept outside appearance telemetry like CRT intensities.
+#define MTSM_RETRO_DIMENSION_SETTINGS(X) \
+    X(float, RetroTerminalScanlineThickness, "experimental.retroTerminalScanlineThickness", 1.0f, 0.5f, 8.0f) \
+    X(float, RetroTerminalScanlineGap, "experimental.retroTerminalScanlineGap", 1.0f, 0.0f, 16.0f)

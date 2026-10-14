@@ -6,6 +6,7 @@
 #include <til/generational.h>
 
 #include "../../renderer/inc/IRenderEngine.hpp"
+#include "../base/RenderDiagnostics.h"
 
 namespace Microsoft::Console::Render::Atlas
 {
@@ -409,6 +410,10 @@ namespace Microsoft::Console::Render::Atlas
         til::generational<MiscellaneousSettings> misc;
         f32 retroTerminalGlowIntensity = 0.3f;
         f32 retroTerminalScanlineIntensity = 0.5f;
+        f32 retroTerminalScanlineThickness = 1.0f;
+        f32 retroTerminalScanlineGap = 1.0f;
+        f32 retroTerminalTintIntensity = 0.0f;
+        u32 retroTerminalTintColor = 0xff41ff00;
         // Size of the viewport / swap chain in pixel.
         u16x2 targetSize{ 0, 0 };
         // Size of the portion of the text buffer that we're drawing on the screen.
@@ -502,6 +507,7 @@ namespace Microsoft::Console::Render::Atlas
 
     struct RenderingPayload
     {
+        std::shared_ptr<RenderDiagnostics> diagnostics;
         //// Parameters which are constant across backends.
         wil::com_ptr<ID2D1Factory> d2dFactory;
         wil::com_ptr<IDWriteFactory2> dwriteFactory;

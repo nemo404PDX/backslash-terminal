@@ -28,6 +28,10 @@
     X(winrt::Windows::UI::Xaml::VerticalAlignment, BackgroundImageVerticalAlignment, winrt::Windows::UI::Xaml::VerticalAlignment::Center)       \
     X(float, RetroTerminalGlowIntensity, 0.3f) \
     X(float, RetroTerminalScanlineIntensity, 0.5f) \
+    X(float, RetroTerminalScanlineThickness, 1.0f) \
+    X(float, RetroTerminalScanlineGap, 1.0f) \
+    X(float, RetroTerminalTintIntensity, 0.0f) \
+    X(til::color, RetroTerminalTintColor, til::color(0, 255, 65)) \
     X(bool, RetroTerminalEffect, false)                                                                                                         \
     X(winrt::hstring, PixelShaderPath)                                                                                                          \
     X(winrt::hstring, PixelShaderImagePath)

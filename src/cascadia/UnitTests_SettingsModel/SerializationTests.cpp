@@ -38,6 +38,8 @@ namespace SettingsModelUnitTests
         TEST_CLASS(SerializationTests);
 
         TEST_METHOD(BackslashRetroIntensityModel);
+        TEST_METHOD(BackslashScanlineDimensions);
+        TEST_METHOD(BackslashPhosphorTint);
         TEST_METHOD(BackslashRetroIntensityValidation);
         TEST_METHOD(GlobalSettings);
         TEST_METHOD(Profile);
@@ -160,6 +162,102 @@ namespace SettingsModelUnitTests
         VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":1e100})")), winrt::hresult_invalid_argument);
         VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalGlowIntensity());
         VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":"bad"})")), std::exception);
+    }
+
+    void SerializationTests::BackslashPhosphorTint()
+    {
+        const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_ARE_EQUAL(0.0f, parent->RetroTerminalTintIntensity());
+        VERIFY_IS_FALSE(parent->HasRetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(0, 255, 65), til::color{ parent->RetroTerminalTintColor() });
+        VERIFY_IS_FALSE(parent->HasRetroTerminalTintColor());
+        parent->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintIntensity":0.6,"experimental.retroTerminalTintColor":"#FFB000"})"));
+        const auto child = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        child->AddLeastImportantParent(parent);
+        VERIFY_ARE_EQUAL(0.6f, child->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), til::color{ child->RetroTerminalTintColor() });
+        VERIFY_IS_NOT_NULL(child->RetroTerminalTintColorOverrideSource());
+        VERIFY_IS_FALSE(child->HasRetroTerminalTintColor());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintIntensity":0,"experimental.retroTerminalTintColor":"#234"})"));
+        VERIFY_IS_TRUE(child->HasRetroTerminalTintIntensity());
+        VERIFY_IS_TRUE(child->HasRetroTerminalTintColor());
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(34, 51, 68), til::color{ child->RetroTerminalTintColor() });
+        const auto copy = implementation::AppearanceConfig::CopyAppearance(child.get(), {});
+        VERIFY_ARE_EQUAL(toString(child->ToJson()), toString(copy->ToJson()));
+        const auto reloaded = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        reloaded->LayerJson(copy->ToJson());
+        VERIFY_ARE_EQUAL(toString(copy->ToJson()), toString(reloaded->ToJson()));
+        child->RetroTerminalTintColor(winrt::Microsoft::Terminal::Core::Color{ 10, 20, 30, 40 });
+        VERIFY_ARE_EQUAL(uint8_t{ 255 }, child->RetroTerminalTintColor().A);
+        child->RetroTerminalEffect(true);
+        child->RetroTerminalEffect(false);
+        VERIFY_ARE_EQUAL(til::color(10, 20, 30), til::color{ child->RetroTerminalTintColor() });
+        child->ClearRetroTerminalTintColor();
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintIntensity":null})"));
+        VERIFY_ARE_EQUAL(0.6f, child->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), til::color{ child->RetroTerminalTintColor() });
+        VERIFY_IS_FALSE(child->HasRetroTerminalTintIntensity());
+        VERIFY_IS_FALSE(child->HasRetroTerminalTintColor());
+        child->RetroTerminalTintIntensity(-10);
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalTintIntensity());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintIntensity":20})"));
+        VERIFY_ARE_EQUAL(1.0f, child->RetroTerminalTintIntensity());
+        VERIFY_THROWS(child->RetroTerminalTintIntensity(std::numeric_limits<float>::quiet_NaN()), winrt::hresult_invalid_argument);
+        VERIFY_THROWS(child->RetroTerminalTintIntensity(std::numeric_limits<float>::infinity()), winrt::hresult_invalid_argument);
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintIntensity":"bad"})")), std::exception);
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalTintColor":"bad"})")), std::exception);
+        VERIFY_ARE_EQUAL(1.0f, child->RetroTerminalTintIntensity());
+        VERIFY_ARE_EQUAL(til::color(255, 176, 0), til::color{ child->RetroTerminalTintColor() });
+        std::set<std::string> changes;
+        parent->LogSettingChanges(changes, "profile");
+        VERIFY_IS_TRUE(changes.empty());
+    }
+
+    void SerializationTests::BackslashScanlineDimensions()
+    {
+        const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_ARE_EQUAL(1.0f, parent->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(1.0f, parent->RetroTerminalScanlineGap());
+        VERIFY_IS_FALSE(parent->HasRetroTerminalScanlineGap());
+        parent->RetroTerminalScanlineThickness(2.5f);
+        parent->RetroTerminalScanlineGap(3.0f);
+        const auto child = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        child->AddLeastImportantParent(parent);
+        VERIFY_ARE_EQUAL(2.5f, child->RetroTerminalScanlineThickness());
+        VERIFY_IS_FALSE(child->HasRetroTerminalScanlineThickness());
+        VERIFY_IS_NOT_NULL(child->RetroTerminalScanlineThicknessOverrideSource());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineThickness":0.75,"experimental.retroTerminalScanlineGap":0})"));
+        VERIFY_IS_TRUE(child->HasRetroTerminalScanlineGap());
+        VERIFY_ARE_EQUAL(0.0f, child->ToJson()["experimental.retroTerminalScanlineGap"].asFloat());
+        const auto copy = implementation::AppearanceConfig::CopyAppearance(child.get(), {});
+        VERIFY_ARE_EQUAL(toString(child->ToJson()), toString(copy->ToJson()));
+        const auto reloaded = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        reloaded->LayerJson(copy->ToJson());
+        VERIFY_ARE_EQUAL(toString(copy->ToJson()), toString(reloaded->ToJson()));
+        child->RetroTerminalEffect(true);
+        child->RetroTerminalEffect(false);
+        VERIFY_ARE_EQUAL(0.75f, child->RetroTerminalScanlineThickness());
+        child->ClearRetroTerminalScanlineThickness();
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineGap":null})"));
+        VERIFY_ARE_EQUAL(2.5f, child->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(3.0f, child->RetroTerminalScanlineGap());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineThickness":-20,"experimental.retroTerminalScanlineGap":50})"));
+        VERIFY_ARE_EQUAL(0.5f, child->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(16.0f, child->RetroTerminalScanlineGap());
+        child->RetroTerminalScanlineThickness(20);
+        child->RetroTerminalScanlineGap(-1);
+        VERIFY_ARE_EQUAL(8.0f, child->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalScanlineGap());
+        VERIFY_THROWS(child->RetroTerminalScanlineThickness(std::numeric_limits<float>::quiet_NaN()), winrt::hresult_invalid_argument);
+        VERIFY_THROWS(child->RetroTerminalScanlineGap(std::numeric_limits<float>::infinity()), winrt::hresult_invalid_argument);
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineThickness":"bad"})")), std::exception);
+        VERIFY_ARE_EQUAL(8.0f, child->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(0.0f, child->RetroTerminalScanlineGap());
+        std::set<std::string> changes;
+        parent->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineThickness":4,"experimental.retroTerminalScanlineGap":5})"));
+        parent->LogSettingChanges(changes, "profile");
+        VERIFY_IS_TRUE(changes.empty());
     }
 
     void SerializationTests::GlobalSettings()

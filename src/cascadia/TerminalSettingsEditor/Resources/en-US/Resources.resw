@@ -2843,4 +2843,16 @@
   <data name="Profile_SshInvalid/Text" xml:space="preserve">
     <value>Command rejected. Custom must be nonempty and cannot contain NUL, newlines, or percent signs.</value>
   </data>
+  <data name="Profile_RetroTerminalScanlineThickness.Header" xml:space="preserve"><value>Dark scanline thickness (DIP)</value></data>
+  <data name="Profile_RetroTerminalScanlineThickness.HelpText" xml:space="preserve"><value>Width of each dark band in device-independent pixels. System display scaling is applied automatically. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalScanlineThicknessSlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dark scanline thickness (DIP)</value></data>
+  <data name="Profile_RetroTerminalScanlineGap.Header" xml:space="preserve"><value>Clear gap between scanlines (DIP)</value></data>
+  <data name="Profile_RetroTerminalScanlineGap.HelpText" xml:space="preserve"><value>Width of the clear space between dark bands in device-independent pixels. Zero gives uniform dimming. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalScanlineGapSlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Clear gap between scanlines (DIP)</value></data>
+  <data name="Profile_RetroTerminalTintColor.Header" xml:space="preserve"><value>Screen phosphor color</value></data>
+  <data name="Profile_RetroTerminalTintColor.HelpText" xml:space="preserve"><value>Colors terminal text, cell backgrounds, cursor and selection. Background images, acrylic, bezel and tabs keep their colors. Enable Retro terminal effects and increase tint intensity. A custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalTintColorPicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Screen phosphor color</value></data>
+  <data name="Profile_RetroTerminalTintIntensity.Header" xml:space="preserve"><value>Screen tint intensity</value></data>
+  <data name="Profile_RetroTerminalTintIntensity.HelpText" xml:space="preserve"><value>Zero preserves original colors. At full strength, ANSI hue distinctions become a phosphor tonal ramp from black through the chosen color to white, preserving luminance on dark and light backgrounds. Highlights may become white; black or white phosphor gives grayscale.</value></data>
+  <data name="Profile_RetroTerminalTintIntensitySlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Screen tint intensity</value></data>
 </root>

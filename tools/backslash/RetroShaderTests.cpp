@@ -1,10 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 // Standalone WARP checks for the production built-in retro shader. No app registration.
+#define NOMINMAX
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
@@ -14,14 +16,14 @@ static void Check(HRESULT hr) { if (FAILED(hr)) { throw std::runtime_error("D3D 
 static ComPtr<ID3DBlob> Compile(const wchar_t* path, const char* target)
 {
     ComPtr<ID3DBlob> code, errors;
-    const auto hr = D3DCompileFromFile(path, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", target, D3DCOMPILE_ENABLE_STRICTNESS, 0, &code, &errors);
+    const auto hr = D3DCompileFromFile(path, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", target, D3DCOMPILE_ENABLE_STRICTNESS | D3DCOMPILE_WARNINGS_ARE_ERRORS, 0, &code, &errors);
     if (FAILED(hr) && errors) { std::fprintf(stderr, "%s", static_cast<const char*>(errors->GetBufferPointer())); }
     Check(hr);
     return code;
 }
 static void Near(float actual, float expected, const char* label)
 {
-    if (std::abs(actual - expected) > 0.00001f) { std::fprintf(stderr, "%s: got %g, expected %g\n", label, actual, expected); throw std::runtime_error(label); }
+    if (!std::isfinite(actual) || std::abs(actual - expected) > 0.00001f) { std::fprintf(stderr, "%s: got %g, expected %g\n", label, actual, expected); throw std::runtime_error(label); }
     std::printf("PASS: %s (%g)\n", label, actual);
 }
 int wmain(int argc, wchar_t** argv)
@@ -32,7 +34,7 @@ try
     const auto psCode = Compile(argv[2], "ps_4_0");
     ComPtr<ID3D11ShaderReflection> reflection;
     Check(D3DReflect(psCode->GetBufferPointer(), psCode->GetBufferSize(), IID_PPV_ARGS(&reflection)));
-    for (const auto& entry : std::array<std::pair<const char*, UINT>, 2>{{ {"PixelShaderSettings",32}, {"RetroShaderSettings",16} }})
+    for (const auto& entry : std::array<std::pair<const char*, UINT>, 2>{{ {"PixelShaderSettings",32}, {"RetroShaderSettings",32} }})
     {
         D3D11_SHADER_BUFFER_DESC desc{};
         Check(reflection->GetConstantBufferByName(entry.first)->GetDesc(&desc));
@@ -68,7 +70,7 @@ try
     D3D11_SUBRESOURCE_DATA bufferInitial{b0Data,0,0};
     ComPtr<ID3D11Buffer> b0,b1;
     Check(device->CreateBuffer(&bufferDesc,&bufferInitial,&b0));
-    bufferDesc.ByteWidth=16;
+    bufferDesc.ByteWidth=32;
     Check(device->CreateBuffer(&bufferDesc,nullptr,&b1));
     D3D11_SAMPLER_DESC samplerDesc{};
     samplerDesc.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -89,8 +91,10 @@ try
     context->PSSetSamplers(0,1,sampler.GetAddressOf());
     ID3D11Buffer* buffers[]{b0.Get(),b1.Get()};
     context->PSSetConstantBuffers(0,2,buffers);
-    auto render=[&](float glow,float scanline) {
-        const float values[4]{glow,scanline,0,0};
+    auto render=[&](float glow,float scanline,float thickness=1.0f,float gap=1.0f,float dpiScale=1.0f,float tint=0.0f,std::array<float,3> phosphor={0,1,65.0f/255.0f}) {
+        const float settings[8]{0,dpiScale,size,size,0,0,0,1};
+        context->UpdateSubresource(b0.Get(),0,nullptr,settings,0,0);
+        const float values[8]{glow,scanline,thickness,gap,phosphor[0],phosphor[1],phosphor[2],tint};
         context->UpdateSubresource(b1.Get(),0,nullptr,values,0,0);
         context->OMSetRenderTargets(1,rtv.GetAddressOf(),nullptr);
         context->Draw(4,0);
@@ -99,7 +103,14 @@ try
         D3D11_MAPPED_SUBRESOURCE mapped{};
         Check(context->Map(readback.Get(),0,D3D11_MAP_READ,0,&mapped));
         const auto row=[&](UINT y) { return reinterpret_cast<const float*>(static_cast<const char*>(mapped.pData)+y*mapped.RowPitch)[16*4]; };
-        const std::array<float,2> result{row(16),row(17)};
+        std::array<float,2+size*6> result{};
+        result[0]=row(16); result[1]=row(17);
+        for(UINT y=0;y<size;++y) {
+            const auto pixels=reinterpret_cast<const float*>(static_cast<const char*>(mapped.pData)+y*mapped.RowPitch);
+            result[2+y]=pixels[16*4];
+            result[2+size+y]=pixels[16*4+3];
+            for(UINT channel=0;channel<4;++channel) { result[2+size*2+y*4+channel]=pixels[16*4+channel]; }
+        }
         context->Unmap(readback.Get(),0);
         return result;
     };
@@ -118,6 +129,103 @@ try
     Near(defaults[1],glow[1]*0.5f,"Default scanline halves glow row");
     Near(render(1,0)[0]-0.25f,(glow[0]-0.25f)/0.3f,"Glow scales linearly through same shader");
     Near(render(0,0)[1],0.25f,"Live parameter reset restores neutral output");
+    auto coverage=[](double y,double thickness,double gap,double scale) {
+        const double dark=thickness*scale, clear=gap*scale, period=dark+clear;
+        auto integral=[&](double x) { const auto cycles=std::floor(x/period); return cycles*dark+std::clamp(x-cycles*period-clear,0.0,dark); };
+        return integral(y+0.5)-integral(y-0.5);
+    };
+    for(const auto scale:std::array<float,5>{0.75f,1.0f,1.25f,1.5f,2.0f}) {
+        for(const auto dimensions:std::array<std::array<float,2>,6>{{{1,1},{0.5f,0.5f},{0.5f,3},{4,1},{8,16},{8,0}}}) {
+            const auto patternResult=render(0,0.5f,dimensions[0],dimensions[1],scale);
+            for(UINT y=0;y<size;++y) {
+                const auto mask=static_cast<float>(coverage(y+0.5,dimensions[0],dimensions[1],scale));
+                Near(patternResult[2+y],0.25f*(1.0f-mask*0.5f),"Filtered scanline RGB matches pixel coverage");
+                Near(patternResult[2+size+y],1.0f-mask*0.5f,"Filtered scanline retains legacy alpha modulation");
+            }
+            const auto zero=render(0,0,dimensions[0],dimensions[1],scale);
+            for(UINT y=0;y<size;++y) { Near(zero[2+y],0.25f,"Zero intensity is identity for all dimensions/DPI"); }
+        }
+    }
+    for(const auto scale:std::array<float,2>{1.0f,2.0f}) {
+        const auto patternResult=render(0,0.5f,1,1,scale);
+        for(UINT y=0;y<size;++y) { Near(patternResult[2+y],0.25f*(1.0f-(static_cast<int>((y+0.5f)/scale)%2)*0.5f),"Default integer-DPI pattern preserves legacy output"); }
+    }
+    const auto fractional=render(0,1,1,1,1.25f);
+    Near(fractional[3],0.25f*0.25f,"125 percent DPI integrates partial dark band");
+    Near(render(0,0.5f,8,0,1.5f)[0],0.125f,"Zero gap gives uniform dimming");
+    auto setInput=[&](const std::array<float,4>& pixel) {
+        std::fill(source.begin(),source.end(),pixel);
+        context->UpdateSubresource(input.Get(),0,nullptr,source.data(),size*16,0);
+    };
+    auto linear=[](double c) { return c<=0.04045 ? c/12.92 : std::pow((c+0.055)/1.055,2.4); };
+    auto encoded=[](double c) { return c<=0.0031308 ? 12.92*c : 1.055*std::pow(c,1.0/2.4)-0.055; };
+    auto oracle=[&](const std::array<float,4>& pixel,float strength,const std::array<float,3>& phosphor) {
+        if(strength==0) { return pixel; }
+        if(pixel[3]<=0) { return std::array<float,4>{0,0,0,pixel[3]}; }
+        std::array<double,3> original{}, chosen{};
+        const std::array<double,3> weights{0.2126,0.7152,0.0722};
+        double luminance=0,chosenLuminance=0;
+        for(UINT c=0;c<3;++c) {
+            original[c]=linear(std::clamp(static_cast<double>(pixel[c])/std::max(static_cast<double>(pixel[3]),0.000001),0.0,1.0));
+            chosen[c]=linear(phosphor[c]); luminance+=original[c]*weights[c];chosenLuminance+=chosen[c]*weights[c];
+        }
+        std::array<float,4> expected{0,0,0,pixel[3]};
+        for(UINT c=0;c<3;++c) {
+            const auto mapped=chosenLuminance>0 && luminance<=chosenLuminance ? chosen[c]*luminance/chosenLuminance : chosen[c]+(1-chosen[c])*(luminance-chosenLuminance)/std::max(1-chosenLuminance,0.000001);
+            expected[c]=static_cast<float>(encoded(std::clamp(original[c]+(std::clamp(mapped,0.0,1.0)-original[c])*strength,0.0,1.0))*pixel[3]);
+        }
+        return expected;
+    };
+    auto sample=[&](const auto& result,UINT row) {
+        std::array<float,4> value{};
+        for(UINT c=0;c<4;++c) { value[c]=result[2+size*2+row*4+c]; }
+        return value;
+    };
+    unsigned int tintCases=0;
+    for(const auto rgb:std::array<std::array<float,3>,10>{{{0,0,0},{1,1,1},{0.02f,0.02f,0.02f},{0.25f,0.25f,0.25f},{0.9f,0.9f,0.9f},{1,0,0},{0,1,0},{0,0,1},{1,1,0},{0.1f,0.2f,0.6f}}}) {
+        for(const auto phosphor:std::array<std::array<float,3>,6>{{{0,1,65.0f/255},{1,176.0f/255,0},{0,0,1},{0.1f,0.1f,0.1f},{0,0,0},{1,1,1}}}) {
+            for(const auto alpha:std::array<float,5>{0,0.00000001f,0.000001f,0.4f,1}) {
+                const std::array<float,4> pixel{rgb[0]*alpha,rgb[1]*alpha,rgb[2]*alpha,alpha};
+                setInput(pixel);
+                for(const auto strength:std::array<float,4>{0,0.25f,0.5f,1}) {
+                    const auto actual=sample(render(0,0,1,1,1,strength,phosphor),16);
+                    const auto expected=oracle(pixel,strength,phosphor);
+                    for(UINT c=0;c<4;++c) {
+                        if(!std::isfinite(actual[c]) || std::abs(actual[c]-expected[c])>0.00001f || (strength==0 && actual[c]!=pixel[c]) || (c==3 && actual[c]!=pixel[c])) { throw std::runtime_error("Tint pixel/oracle, exact zero identity, or alpha mismatch"); }
+                    }
+                    if(alpha>=0.000001f) {
+                        double before=0,after=0;
+                        for(UINT c=0;c<3;++c) { const auto weight=std::array<double,3>{0.2126,0.7152,0.0722}[c];before+=linear(rgb[c])*weight;after+=linear(actual[c]/alpha)*weight; }
+                        if(std::abs(after-before)>0.00002) { throw std::runtime_error("Tint changed luminance/contrast of dark, light or saturated colors"); }
+                    }
+                    ++tintCases;
+                }
+            }
+        }
+    }
+    // Zero strength also returns otherwise invalid hidden RGB at alpha zero as-is.
+    setInput({0.25f,0.1f,0.5f,0});
+    const auto zeroHidden=sample(render(0,0),16);
+    if(zeroHidden!=std::array<float,4>{0.25f,0.1f,0.5f,0}) { throw std::runtime_error("Zero tint must not clamp hidden RGB"); }
+    setInput({0.1f,0.05f,0.2f,0.4f});
+    for(const auto dpi:std::array<float,3>{1,1.25f,2}) {
+        for(const auto glowStrength:std::array<float,3>{0,0.3f,1}) {
+            for(const auto scanStrength:std::array<float,3>{0,0.5f,1}) {
+                const auto before=render(glowStrength,scanStrength,0.5f,3,dpi);
+                const auto after=render(glowStrength,scanStrength,0.5f,3,dpi,0.65f);
+                for(UINT row=0;row<size;++row) {
+                    const auto original=sample(before,row),actual=sample(after,row);
+                    const auto expected=oracle(original,0.65f,{0,1,65.0f/255});
+                    for(UINT c=0;c<4;++c) { if(!std::isfinite(actual[c]) || std::abs(actual[c]-expected[c])>0.00002f || (c==3 && actual[c]!=original[c])) { throw std::runtime_error("Tint with glow/filtered scanlines altered alpha or RGB mapping"); } }
+                }
+            }
+        }
+    }
+    std::printf("PASS: %u tint cases: exact zero, RGB oracle, luminance/readability, opaque/partial/near-zero alpha, endpoints and combined CRT\n",tintCases);
+    auto* timeVar=reflection->GetConstantBufferByName("PixelShaderSettings")->GetVariableByName("time");
+    D3D11_SHADER_VARIABLE_DESC timeDesc{}; Check(timeVar->GetDesc(&timeDesc));
+    if(timeDesc.uFlags&D3D_SVF_USED) { throw std::runtime_error("Static scanlines must not use Time"); }
+    std::puts("PASS: Static scanline shader does not use Time");
     std::puts("WARP retro shader tests passed");
     return 0;
 }

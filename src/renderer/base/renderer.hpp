@@ -6,6 +6,8 @@
 #include "../../buffer/out/textBuffer.hpp"
 #include "../inc/IRenderEngine.hpp"
 #include "../inc/RenderSettings.hpp"
+#include "RenderVisibility.h"
+#include "RenderDiagnostics.h"
 
 namespace Microsoft::Console::Render
 {
@@ -65,6 +67,9 @@ namespace Microsoft::Console::Render
         bool IsGlyphWideByFont(const std::wstring_view glyph);
 
         void EnablePainting();
+        void SetRenderingVisible(bool visible) noexcept;
+        bool IsRenderingVisible() const noexcept { return _visibility.IsVisible(); }
+        const std::shared_ptr<RenderDiagnostics>& Diagnostics() const noexcept { return _diagnostics; }
 
         void AddRenderEngine(_In_ IRenderEngine* const pEngine);
         void RemoveRenderEngine(_In_ IRenderEngine* const pEngine);
@@ -147,6 +152,8 @@ namespace Microsoft::Console::Render
         wil::unique_handle _thread;
         wil::unique_event _shutdownEvent;
         wil::slim_event_manual_reset _enable;
+        RenderVisibility _visibility;
+        std::shared_ptr<RenderDiagnostics> _diagnostics;
         std::atomic<bool> _redraw;
         std::atomic<bool> _threadKeepRunning{ false };
         til::small_vector<IRenderEngine*, 2> _engines;

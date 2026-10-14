@@ -63,7 +63,7 @@
   <!-- ====================== Compiler & Linker Flags ===================== -->
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(OpenConsoleDir)src\inc;$(OpenConsoleDir)src\cascadia\inc;$(OpenConsoleDir)src\inc\test;$(WinRT_IncludePath)\..\cppwinrt\winrt;"$(OpenConsoleDir)\src\cascadia\TerminalControl\Generated Files";%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(OpenConsoleDir)oss\stb;$(OpenConsoleDir)src\inc;$(OpenConsoleDir)src\cascadia\inc;$(OpenConsoleDir)src\inc\test;$(WinRT_IncludePath)\..\cppwinrt\winrt;"$(OpenConsoleDir)\src\cascadia\TerminalControl\Generated Files";%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
 
       <!-- Manually disable unreachable code warning, because jconcpp has a ton of that. -->

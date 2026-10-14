@@ -18,6 +18,10 @@ namespace Microsoft.Terminal.Control
         Boolean RetroTerminalEffect { get; };
         Single RetroTerminalGlowIntensity { get; };
         Single RetroTerminalScanlineIntensity { get; };
+        Single RetroTerminalScanlineThickness { get; };
+        Single RetroTerminalScanlineGap { get; };
+        Single RetroTerminalTintIntensity { get; };
+        Microsoft.Terminal.Core.Color RetroTerminalTintColor { get; };
 
         String PixelShaderPath { get; };
         String PixelShaderImagePath { get; };

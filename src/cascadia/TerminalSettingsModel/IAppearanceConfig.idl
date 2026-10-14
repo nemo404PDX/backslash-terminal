@@ -52,6 +52,10 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalGlowIntensity);
         INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);
+        INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalScanlineThickness);
+        INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalScanlineGap);
+        INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalTintIntensity);
+        INHERITABLE_APPEARANCE_SETTING(Microsoft.Terminal.Core.Color, RetroTerminalTintColor);
 
         INHERITABLE_APPEARANCE_SETTING(IMediaResource, PixelShaderPath);
         INHERITABLE_APPEARANCE_SETTING(IMediaResource, PixelShaderImagePath);

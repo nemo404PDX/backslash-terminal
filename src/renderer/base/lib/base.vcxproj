@@ -38,6 +38,8 @@
     <ClInclude Include="..\FontCache.h" />
     <ClInclude Include="..\precomp.h" />
     <ClInclude Include="..\renderer.hpp" />
+    <ClInclude Include="..\RenderVisibility.h" />
+    <ClInclude Include="..\RenderDiagnostics.h" />
   </ItemGroup>
   <!-- Careful reordering these. Some default props (contained in these files) are order sensitive. -->
   <Import Project="$(SolutionDir)src\common.build.post.props" />

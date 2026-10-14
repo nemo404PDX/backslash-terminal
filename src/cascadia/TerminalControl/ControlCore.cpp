@@ -390,6 +390,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             }
 
             _renderEngine = std::make_unique<::Microsoft::Console::Render::AtlasEngine>();
+            _renderEngine->SetDiagnostics(_renderer->Diagnostics());
             _renderer->AddRenderEngine(_renderEngine.get());
 
             // Hook up the warnings callback as early as possible so that we catch everything.
@@ -441,6 +442,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _renderEngine->SetRetroTerminalEffect(_settings.RetroTerminalEffect());
             _renderEngine->SetRetroTerminalGlowIntensity(_settings.RetroTerminalGlowIntensity());
             _renderEngine->SetRetroTerminalScanlineIntensity(_settings.RetroTerminalScanlineIntensity());
+            _renderEngine->SetRetroTerminalScanlineThickness(_settings.RetroTerminalScanlineThickness());
+            _renderEngine->SetRetroTerminalScanlineGap(_settings.RetroTerminalScanlineGap());
+            _renderEngine->SetRetroTerminalTintIntensity(_settings.RetroTerminalTintIntensity());
+            _renderEngine->SetRetroTerminalTintColor(static_cast<COLORREF>(til::color{ _settings.RetroTerminalTintColor() }));
 
             _renderEngine->SetPixelShaderPath(_settings.PixelShaderPath());
             _renderEngine->SetPixelShaderImagePath(_settings.PixelShaderImagePath());
@@ -468,6 +473,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // - <none>
     // Return Value:
     // - <none>
+    void ControlCore::SetRenderingVisible(const bool visible) noexcept
+    {
+        _renderer->SetRenderingVisible(visible && !_IsClosing());
+    }
+
     void ControlCore::EnablePainting()
     {
         if (_initializedTerminal.load(std::memory_order_relaxed))
@@ -991,6 +1001,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _renderEngine->SetRetroTerminalEffect(newAppearance.RetroTerminalEffect());
             _renderEngine->SetRetroTerminalGlowIntensity(newAppearance.RetroTerminalGlowIntensity());
             _renderEngine->SetRetroTerminalScanlineIntensity(newAppearance.RetroTerminalScanlineIntensity());
+            _renderEngine->SetRetroTerminalScanlineThickness(newAppearance.RetroTerminalScanlineThickness());
+            _renderEngine->SetRetroTerminalScanlineGap(newAppearance.RetroTerminalScanlineGap());
+            _renderEngine->SetRetroTerminalTintIntensity(newAppearance.RetroTerminalTintIntensity());
+            _renderEngine->SetRetroTerminalTintColor(static_cast<COLORREF>(til::color{ newAppearance.RetroTerminalTintColor() }));
 
             _renderEngine->SetPixelShaderPath(newAppearance.PixelShaderPath());
             _renderEngine->SetPixelShaderImagePath(newAppearance.PixelShaderImagePath());
@@ -1855,6 +1869,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void ControlCore::Close()
     {
+        // Closed controls can be retained by XAML; stop rendering without relying on destruction.
+        _renderer->SetRenderingVisible(false);
         if (!_IsClosing())
         {
             _closing = true;
@@ -2282,6 +2298,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             {
                 const auto lock = _terminal->LockForWriting();
                 _terminal->Write(winrt_array_to_wstring_view(str));
+                if (const auto& diagnostics = _renderer->Diagnostics())
+                {
+                    diagnostics->outputCharacters.fetch_add(str.size(), std::memory_order_relaxed);
+                }
             }
 
             if (!_pendingResponses.empty())

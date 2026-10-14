@@ -66,7 +66,8 @@ static u64 queryPerfCount() noexcept
     return std::bit_cast<u64>(li.QuadPart);
 }
 
-BackendD3D::BackendD3D(const RenderingPayload& p)
+BackendD3D::BackendD3D(const RenderingPayload& p) :
+    _diagnostics{ p.diagnostics }
 {
     THROW_IF_FAILED(p.device->CreateVertexShader(&shader_vs[0], sizeof(shader_vs), nullptr, _vertexShader.addressof()));
     THROW_IF_FAILED(p.device->CreatePixelShader(&shader_ps[0], sizeof(shader_ps), nullptr, _pixelShader.addressof()));
@@ -192,12 +193,59 @@ BackendD3D::BackendD3D(const RenderingPayload& p)
 #pragma warning(suppress : 26432) // If you define or delete any default operation in the type '...', define or delete them all (c.21).
 BackendD3D::~BackendD3D()
 {
+    _releaseDiagnosticTexture();
+    _releaseCustomShaderImage();
     // In case an exception is thrown for some reason between BeginDraw() and EndDraw()
     // we still technically need to call EndDraw() before releasing any resources.
     if (_d2dBeganDrawing)
     {
 #pragma warning(suppress : 26447) // The function is declared 'noexcept' but calls function '...' which may throw exceptions (f.6).
         LOG_IF_FAILED(_d2dRenderTarget->EndDraw());
+    }
+}
+
+void BackendD3D::_releaseDiagnosticTexture() noexcept
+{
+    if (_diagnostics && _customOffscreenTexture)
+    {
+        _diagnostics->textureReleases.fetch_add(1, std::memory_order_relaxed);
+        _diagnostics->offscreenBytes.store(0, std::memory_order_relaxed);
+    }
+}
+
+void BackendD3D::_releaseCustomRenderTarget() noexcept
+{
+    _customRenderTargetView.reset();
+    _releaseDiagnosticTexture();
+    _customOffscreenTextureView.reset();
+    _customOffscreenTexture.reset();
+    _customOffscreenSize = {};
+}
+
+void BackendD3D::_releaseCustomShaderImage() noexcept
+{
+    if (_diagnostics && _customShaderTexture) { _diagnostics->shaderImageReleases.fetch_add(1, std::memory_order_relaxed); }
+    _customShaderTextureView.reset();
+    _customShaderTexture.reset();
+}
+
+void BackendD3D::_updateCustomShaderImage(const RenderingPayload& p)
+{
+    _releaseCustomShaderImage();
+    _customShaderImageReady = true;
+    if (!p.s->misc->customPixelShaderPath.empty() && !p.s->misc->customPixelShaderImagePath.empty())
+    {
+        try
+        {
+            if (_diagnostics) { _diagnostics->shaderImageLoads.fetch_add(1, std::memory_order_relaxed); }
+            WIC::LoadTextureFromFile(p.device.get(), p.s->misc->customPixelShaderImagePath.c_str(), _customShaderTexture.addressof(), _customShaderTextureView.addressof());
+        }
+        catch (...)
+        {
+            LOG_CAUGHT_EXCEPTION();
+            _customShaderImageReady = false;
+            if (p.warningCallback) { p.warningCallback(D2DERR_SHADER_COMPILE_FAILED, p.s->misc->customPixelShaderImagePath); }
+        }
     }
 }
 
@@ -235,7 +283,7 @@ void BackendD3D::Render(RenderingPayload& p)
     _debugShowDirty(p);
     _flushQuads(p);
 
-    if (_customPixelShader)
+    if (_customPixelShader && _customShaderImageReady)
     {
         _executeCustomShader(p);
     }
@@ -245,7 +293,7 @@ void BackendD3D::Render(RenderingPayload& p)
 
 bool BackendD3D::RequiresContinuousRedraw() noexcept
 {
-    return _requiresContinuousRedraw;
+    return _customPixelShader && _customShaderImageReady && _requiresContinuousRedraw;
 }
 
 void BackendD3D::_handleSettingsUpdate(const RenderingPayload& p)
@@ -265,9 +313,30 @@ void BackendD3D::_handleSettingsUpdate(const RenderingPayload& p)
     {
         _updateFontDependents(p);
     }
-    if (miscChanged)
+#if TIL_FEATURE_CONHOSTATLASENGINECUSTOMSHADERS_ENABLED
+    const auto mode = SelectPostProcess(p.s->misc->customPixelShaderPath, p.s->misc->useRetroTerminalEffect,
+        p.s->retroTerminalGlowIntensity, p.s->retroTerminalScanlineIntensity, p.s->retroTerminalTintIntensity);
+#else
+    constexpr auto mode = PostProcessMode::None;
+#endif
+    const std::wstring emptyPath;
+    const auto& shaderPath = mode == PostProcessMode::Custom ? p.s->misc->customPixelShaderPath : emptyPath;
+    const auto& imagePath = mode == PostProcessMode::Custom ? p.s->misc->customPixelShaderImagePath : emptyPath;
+    const auto shaderStamp = mode == PostProcessMode::Custom && (miscChanged || shaderPath != _customShaderPath) ? GetShaderFileStamp(shaderPath) : _customShaderStamp;
+    const auto imageStamp = mode == PostProcessMode::Custom && (miscChanged || imagePath != _customImagePath) ? GetShaderFileStamp(imagePath) : _customImageStamp;
+
+    if (mode != _postProcessMode || shaderPath != _customShaderPath || shaderStamp != _customShaderStamp)
     {
         _recreateCustomShader(p);
+        _postProcessMode = mode;
+        _customShaderPath = shaderPath;
+        _customShaderStamp = mode == PostProcessMode::Custom ? shaderStamp : ShaderFileStamp{};
+    }
+    if (imagePath != _customImagePath || imageStamp != _customImageStamp)
+    {
+        _updateCustomShaderImage(p);
+        _customImagePath = imagePath;
+        _customImageStamp = mode == PostProcessMode::Custom ? imageStamp : ShaderFileStamp{};
     }
     if (cellCountChanged)
     {
@@ -276,7 +345,11 @@ void BackendD3D::_handleSettingsUpdate(const RenderingPayload& p)
 
     // Similar to _renderTargetView above, we might have to recreate the _customRenderTargetView whenever _swapChainManager
     // resets it. We only do it after calling _recreateCustomShader however, since that sets the _customPixelShader.
-    if (_customPixelShader && !_customRenderTargetView)
+    if (!_customPixelShader || !_customShaderImageReady)
+    {
+        _releaseCustomRenderTarget();
+    }
+    else if (!_customRenderTargetView || _customOffscreenSize != p.s->targetSize)
     {
         _recreateCustomRenderTargetView(p);
     }
@@ -368,19 +441,25 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
     UNREFERENCED_PARAMETER(p);
 
 #if TIL_FEATURE_CONHOSTATLASENGINECUSTOMSHADERS_ENABLED
-    _customRenderTargetView.reset();
-    _customOffscreenTexture.reset();
-    _customOffscreenTextureView.reset();
-    _customVertexShader.reset();
     _customPixelShader.reset();
-    _customShaderConstantBuffer.reset();
     _retroShaderConstantBuffer.reset();
-    _customShaderSamplerState.reset();
-    _customShaderTexture.reset();
-    _customShaderTextureView.reset();
     _requiresContinuousRedraw = false;
+    if (_diagnostics) { _diagnostics->shaderRecreates.fetch_add(1, std::memory_order_relaxed); }
 
-    if (!p.s->misc->customPixelShaderPath.empty())
+    const auto mode = SelectPostProcess(p.s->misc->customPixelShaderPath, p.s->misc->useRetroTerminalEffect,
+        p.s->retroTerminalGlowIntensity, p.s->retroTerminalScanlineIntensity, p.s->retroTerminalTintIntensity);
+    if (mode == PostProcessMode::None)
+    {
+        _releaseCustomRenderTarget();
+        _releaseCustomShaderImage();
+        _customShaderImageReady = true;
+        _customVertexShader.reset();
+        _customShaderConstantBuffer.reset();
+        _customShaderSamplerState.reset();
+        return;
+    }
+
+    if (mode == PostProcessMode::Custom)
     {
         const char* target = nullptr;
         switch (p.device->GetFeatureLevel())
@@ -412,6 +491,7 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
 
         wil::com_ptr<ID3DBlob> error;
         wil::com_ptr<ID3DBlob> blob;
+        if (_diagnostics) { _diagnostics->shaderCompiles.fetch_add(1, std::memory_order_relaxed); }
         const auto hr = D3DCompileFromFile(
             /* pFileName   */ p.s->misc->customPixelShaderPath.c_str(),
             /* pDefines    */ nullptr,
@@ -476,24 +556,8 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
             }
         }
 
-        if (!p.s->misc->customPixelShaderImagePath.empty())
-        {
-            try
-            {
-                WIC::LoadTextureFromFile(p.device.get(), p.s->misc->customPixelShaderImagePath.c_str(), _customShaderTexture.addressof(), _customShaderTextureView.addressof());
-            }
-            catch (...)
-            {
-                LOG_CAUGHT_EXCEPTION();
-                _customPixelShader.reset();
-                if (p.warningCallback)
-                {
-                    p.warningCallback(D2DERR_SHADER_COMPILE_FAILED, p.s->misc->customPixelShaderImagePath);
-                }
-            }
-        }
     }
-    else if (p.s->misc->useRetroTerminalEffect)
+    else if (mode == PostProcessMode::Retro)
     {
         THROW_IF_FAILED(p.device->CreatePixelShader(&custom_shader_ps[0], sizeof(custom_shader_ps), nullptr, _customPixelShader.put()));
         static constexpr D3D11_BUFFER_DESC desc{
@@ -507,7 +571,7 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
 
     if (_customPixelShader)
     {
-        THROW_IF_FAILED(p.device->CreateVertexShader(&custom_shader_vs[0], sizeof(custom_shader_vs), nullptr, _customVertexShader.put()));
+        if (!_customVertexShader) { THROW_IF_FAILED(p.device->CreateVertexShader(&custom_shader_vs[0], sizeof(custom_shader_vs), nullptr, _customVertexShader.put())); }
 
         {
             static constexpr D3D11_BUFFER_DESC desc{
@@ -516,7 +580,7 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
                 .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
                 .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE,
             };
-            THROW_IF_FAILED(p.device->CreateBuffer(&desc, nullptr, _customShaderConstantBuffer.put()));
+            if (!_customShaderConstantBuffer) { THROW_IF_FAILED(p.device->CreateBuffer(&desc, nullptr, _customShaderConstantBuffer.put())); }
         }
 
         {
@@ -529,7 +593,7 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
                 .ComparisonFunc = D3D11_COMPARISON_ALWAYS,
                 .MaxLOD = D3D11_FLOAT32_MAX,
             };
-            THROW_IF_FAILED(p.device->CreateSamplerState(&desc, _customShaderSamplerState.put()));
+            if (!_customShaderSamplerState) { THROW_IF_FAILED(p.device->CreateSamplerState(&desc, _customShaderSamplerState.put())); }
         }
 
         // Since floats are imprecise we need to constrain the time value into a range that can be accurately represented.
@@ -546,22 +610,35 @@ void BackendD3D::_recreateCustomShader(const RenderingPayload& p)
 
 void BackendD3D::_recreateCustomRenderTargetView(const RenderingPayload& p)
 {
-    // Avoid memory usage spikes by releasing memory first.
-    _customOffscreenTexture.reset();
-    _customOffscreenTextureView.reset();
-
-    const D3D11_TEXTURE2D_DESC desc{
-        .Width = p.s->targetSize.x,
-        .Height = p.s->targetSize.y,
-        .MipLevels = 1,
-        .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-        .SampleDesc = { 1, 0 },
-        .BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
-    };
-    THROW_IF_FAILED(p.device->CreateTexture2D(&desc, nullptr, _customOffscreenTexture.addressof()));
-    THROW_IF_FAILED(p.device->CreateShaderResourceView(_customOffscreenTexture.get(), nullptr, _customOffscreenTextureView.addressof()));
-    THROW_IF_FAILED(p.device->CreateRenderTargetView(_customOffscreenTexture.get(), nullptr, _customRenderTargetView.addressof()));
+    if (!_customOffscreenTexture || _customOffscreenSize != p.s->targetSize)
+    {
+        // Release the previous owned target before allocating a different size.
+        _releaseCustomRenderTarget();
+        const D3D11_TEXTURE2D_DESC desc{
+            .Width = p.s->targetSize.x,
+            .Height = p.s->targetSize.y,
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .SampleDesc = { 1, 0 },
+            .BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET,
+        };
+        THROW_IF_FAILED(p.device->CreateTexture2D(&desc, nullptr, _customOffscreenTexture.addressof()));
+        _customOffscreenSize = p.s->targetSize;
+        if (_diagnostics)
+        {
+            _diagnostics->textureCreates.fetch_add(1, std::memory_order_relaxed);
+            _diagnostics->offscreenBytes.store(static_cast<uint64_t>(desc.Width) * desc.Height * 4, std::memory_order_relaxed);
+        }
+    }
+    if (!_customOffscreenTextureView)
+    {
+        THROW_IF_FAILED(p.device->CreateShaderResourceView(_customOffscreenTexture.get(), nullptr, _customOffscreenTextureView.addressof()));
+    }
+    if (!_customRenderTargetView)
+    {
+        THROW_IF_FAILED(p.device->CreateRenderTargetView(_customOffscreenTexture.get(), nullptr, _customRenderTargetView.addressof()));
+    }
 }
 
 void BackendD3D::_recreateBackgroundColorBitmap(const RenderingPayload& p)
@@ -664,9 +741,10 @@ void BackendD3D::_debugUpdateShaders(const RenderingPayload& p) noexcept
 #endif
             ;
 
-        static const auto compile = [](const std::filesystem::path& path, const char* target) {
+        const auto compile = [this](const std::filesystem::path& path, const char* target) {
             wil::com_ptr<ID3DBlob> error;
             wil::com_ptr<ID3DBlob> blob;
+            if (_diagnostics) { _diagnostics->shaderCompiles.fetch_add(1, std::memory_order_relaxed); }
             const auto hr = D3DCompileFromFile(
                 /* pFileName   */ path.c_str(),
                 /* pDefines    */ nullptr,
@@ -2378,6 +2456,14 @@ void BackendD3D::_executeCustomShader(RenderingPayload& p)
             const RetroConstBuffer data{
                 .glowIntensity = p.s->retroTerminalGlowIntensity,
                 .scanlineIntensity = p.s->retroTerminalScanlineIntensity,
+                .scanlineThickness = p.s->retroTerminalScanlineThickness,
+                .scanlineGap = p.s->retroTerminalScanlineGap,
+                .tintColorAndIntensity = {
+                    static_cast<f32>(p.s->retroTerminalTintColor & 255) / 255.0f,
+                    static_cast<f32>((p.s->retroTerminalTintColor >> 8) & 255) / 255.0f,
+                    static_cast<f32>((p.s->retroTerminalTintColor >> 16) & 255) / 255.0f,
+                    p.s->retroTerminalTintIntensity,
+                },
             };
             D3D11_MAPPED_SUBRESOURCE mapped{};
             THROW_IF_FAILED(p.deviceContext->Map(_retroShaderConstantBuffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
@@ -2397,6 +2483,7 @@ void BackendD3D::_executeCustomShader(RenderingPayload& p)
         p.deviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
     }
 
+    if (_diagnostics) { _diagnostics->postprocessDraws.fetch_add(1, std::memory_order_relaxed); }
     p.deviceContext->Draw(4, 0);
 
     {

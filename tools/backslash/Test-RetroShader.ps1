@@ -8,7 +8,7 @@ $evidence = (Resolve-Path -LiteralPath $EvidenceDirectory).Path
 $asm = Join-Path $evidence 'retro-shader.asm'
 $cso = Join-Path $evidence 'retro-shader.cso'
 if ((Test-Path -LiteralPath $asm) -or (Test-Path -LiteralPath $cso)) { throw 'Fresh shader evidence paths required.' }
-& $FxcPath /nologo /T ps_4_0 /E main /Fo $cso /Fc $asm (Join-Path $repo 'src\renderer\atlas\custom_shader_ps.hlsl')
+& $FxcPath /nologo /WX /T ps_4_0 /E main /Fo $cso /Fc $asm (Join-Path $repo 'src\renderer\atlas\custom_shader_ps.hlsl')
 if ($LASTEXITCODE -ne 0) { throw "Shader compiler failed: $LASTEXITCODE" }
 $text = Get-Content -LiteralPath $asm -Raw
 function Require([string]$Pattern,[string]$Message) {
@@ -23,7 +23,9 @@ Require 'float2 resolution;\s+// Offset:\s+8 Size:\s+8' 'b0 resolution offset 8'
 Require 'float4 background;\s+// Offset:\s+16 Size:\s+16' 'b0 background ends at byte 32'
 Require 'float glowIntensity;\s+// Offset:\s+0 Size:\s+4' 'b1 glow offset 0'
 Require 'float scanlineIntensity;\s+// Offset:\s+4 Size:\s+4' 'b1 scanline offset 4'
-Require 'float2 retroPadding;\s+// Offset:\s+8 Size:\s+8' 'b1 padding ends at byte 16'
+Require 'float scanlineThickness;\s+// Offset:\s+8 Size:\s+4' 'b1 thickness offset 8'
+Require 'float scanlineGap;\s+// Offset:\s+12 Size:\s+4' 'b1 gap offset 12'
+Require 'float4 tintColorAndIntensity;\s+// Offset:\s+16 Size:\s+16' 'Built-in tint occupies bytes 16 through 31'
 Require 'if_nz' 'Compiled shader retains conditional effect branches'
 
 if ($Runtime) {

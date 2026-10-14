@@ -7,6 +7,7 @@
 #include <til/flat_set.h>
 
 #include "Backend.h"
+#include "PostProcessState.h"
 
 namespace Microsoft::Console::Render::Atlas
 {
@@ -63,9 +64,11 @@ namespace Microsoft::Console::Render::Atlas
         {
             f32 glowIntensity;
             f32 scanlineIntensity;
-            f32 padding[2]{};
+            f32 scanlineThickness = 1.0f;
+            f32 scanlineGap = 1.0f;
+            f32x4 tintColorAndIntensity;
         };
-        static_assert(sizeof(RetroConstBuffer) == 16);
+        static_assert(sizeof(RetroConstBuffer) == 32);
 
         enum class ShadingType : u8 // u8 so that it packs perfectly into AtlasGlyphEntry
         {
@@ -286,6 +289,18 @@ namespace Microsoft::Console::Render::Atlas
         Buffer<QuadInstance, 32> _instances;
         size_t _instancesCount = 0;
 
+        std::shared_ptr<RenderDiagnostics> _diagnostics;
+        void _releaseDiagnosticTexture() noexcept;
+        void _releaseCustomRenderTarget() noexcept;
+        void _releaseCustomShaderImage() noexcept;
+        void _updateCustomShaderImage(const RenderingPayload& p);
+        PostProcessMode _postProcessMode = PostProcessMode::None;
+        std::wstring _customShaderPath;
+        ShaderFileStamp _customShaderStamp;
+        std::wstring _customImagePath;
+        ShaderFileStamp _customImageStamp;
+        bool _customShaderImageReady = true;
+        u16x2 _customOffscreenSize{};
         wil::com_ptr<ID3D11RenderTargetView> _customRenderTargetView;
         wil::com_ptr<ID3D11Texture2D> _customOffscreenTexture;
         wil::com_ptr<ID3D11ShaderResourceView> _customOffscreenTextureView;
