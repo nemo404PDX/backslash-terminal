@@ -7,10 +7,10 @@ namespace Microsoft::Terminal::Backslash
     // The surround is separate from the terminal's opacity/acrylic brush.
     constexpr unsigned int BezelSurroundArgb = 0xff000000;
     constexpr float BezelOuterRadius = 0; // External casing silhouette stays square.
-    constexpr float BezelRecessOuterRadius = 3;
-    constexpr float BezelInnerRadius = 6;
+    constexpr float BezelRecessOuterRadius = 6;
+    constexpr float BezelInnerRadius = 16;
     constexpr float BezelInnerClearance = 6;
-    constexpr float BezelRecessThickness = 3;
+    constexpr float BezelRecessThickness = 18;
     constexpr float BezelOuterRimThickness = 2;
     constexpr float BezelBadgeHeight = 22;
 
@@ -39,7 +39,15 @@ namespace Microsoft::Terminal::Backslash
         const auto shoulder = sideInset - BezelInnerClearance - BezelRecessThickness;
         return (BezelOuterRimThickness + shoulder - BezelBadgeHeight) / 2;
     }
-    static_assert(BezelInnerClearance >= BezelInnerRadius); // Arc never covers terminal cells.
+    // The actual screen corner lies clearance DIPs inside both opening edges.
+    // When radius exceeds clearance, that corner must still lie inside the arc.
+    constexpr bool BezelOpeningContainsInsetCorner(float radius, float clearance) noexcept
+    {
+        if (radius <= clearance) { return true; }
+        const auto delta = radius - clearance;
+        return 2 * delta * delta <= radius * radius;
+    }
+    static_assert(BezelOpeningContainsInsetCorner(BezelInnerRadius, BezelInnerClearance));
 
     // DIPs, independent of terminal text padding and renderer pixels.
     struct BezelInsets
@@ -49,10 +57,16 @@ namespace Microsoft::Terminal::Backslash
         constexpr float Height() const noexcept { return top + bottom; }
     };
 
+    // This preset describes visible casing, outside the separately sized recess.
+    constexpr float GetVisibleBezelCasingWidth(int size) noexcept
+    {
+        return size == 0 ? 40.0f : size == 2 ? 72.0f : 56.0f;
+    }
+
     constexpr BezelInsets GetBezelInsets(bool enabled, int size, int badge, bool balance = false) noexcept
     {
         if (!enabled) { return {}; }
-        const auto edge = size == 0 ? 18.0f : size == 2 ? 40.0f : 28.0f;
+        const auto edge = GetVisibleBezelCasingWidth(size) + BezelRecessThickness + BezelInnerClearance;
         BezelInsets result{ edge, edge, edge, edge };
         constexpr auto chin = 28.0f;
         if (badge == 1) { result.bottom += chin; if (balance) { result.top += chin; } }
@@ -71,6 +85,21 @@ namespace Microsoft::Terminal::Backslash
     constexpr BezelScreenBounds GetBezelScreenBounds(float width, float height, BezelInsets insets) noexcept
     {
         return { insets.left, insets.top, width - insets.right, height - insets.bottom };
+    }
+
+    struct BezelApertureBounds
+    {
+        BezelScreenBounds screen, opening, recess;
+    };
+
+    constexpr BezelApertureBounds GetBezelApertureBounds(float width, float height, BezelInsets insets) noexcept
+    {
+        const auto screen = GetBezelScreenBounds(width, height, insets);
+        const BezelScreenBounds opening{ screen.left - BezelInnerClearance, screen.top - BezelInnerClearance,
+                                         screen.right + BezelInnerClearance, screen.bottom + BezelInnerClearance };
+        const BezelScreenBounds recess{ opening.left - BezelRecessThickness, opening.top - BezelRecessThickness,
+                                        opening.right + BezelRecessThickness, opening.bottom + BezelRecessThickness };
+        return { screen, opening, recess };
     }
 
     // Window mode is an input only: changing the profile setting cannot change it.

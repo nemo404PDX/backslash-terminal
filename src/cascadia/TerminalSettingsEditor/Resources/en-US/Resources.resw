@@ -2759,20 +2759,21 @@
   <data name="Profile_RetroTerminalScanlineIntensity.Header" xml:space="preserve"><value>Retro scanline intensity</value></data>
   <data name="Profile_RetroTerminalScanlineIntensity.HelpText" xml:space="preserve"><value>Adjusts the built-in retro effect. Enable Retro terminal effects to see it. A custom pixel shader takes precedence.</value></data>
   <data name="Profile_RetroTerminalScanlineIntensitySlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retro scanline intensity</value></data>
+  <data name="Profile_AppearancePreviewViewport.AutomationProperties.Name" xml:space="preserve"><value>Appearance preview</value></data>
   <data name="Profile_RetroBezelHeader.Text" xml:space="preserve"><value>Retro bezel</value></data>
   <data name="Profile_RetroBezelEnabled.Header" xml:space="preserve"><value>Retro bezel</value></data>
   <data name="Profile_RetroBezelEnabled.HelpText" xml:space="preserve"><value>Add a plastic frame around the terminal. Terminal colors and text padding stay independent.</value></data>
-  <data name="Profile_RetroBezelSize.Header" xml:space="preserve"><value>Frame width</value></data>
-  <data name="Profile_RetroBezelSize.HelpText" xml:space="preserve"><value>Choose a width in device-independent pixels. The frame follows the pane size.</value></data>
+  <data name="Profile_RetroBezelSize.Header" xml:space="preserve"><value>Casing width</value></data>
+  <data name="Profile_RetroBezelSize.HelpText" xml:space="preserve"><value>Visible casing width. A separate 18 DIP recessed band and 6 DIP black surround sit inside it.</value></data>
   <data name="Profile_RetroBezelColor.Header" xml:space="preserve"><value>Casing finish</value></data>
   <data name="Profile_RetroBezelColor.HelpText" xml:space="preserve"><value>Choose a casing finish. Terminal colors and transparency stay independent.</value></data>
   <data name="Profile_RetroBezelBadge.Header" xml:space="preserve"><value>Backslash badge</value></data>
   <data name="Profile_RetroBezelBadge.HelpText" xml:space="preserve"><value>Place the temporary Backslash text badge above or below the aperture, or omit it.</value></data>
   <data name="Profile_RetroBezelCenterFullscreen.Header" xml:space="preserve"><value>Center aperture in fullscreen</value></data>
   <data name="Profile_RetroBezelCenterFullscreen.HelpText" xml:space="preserve"><value>Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows.</value></data>
-  <data name="Profile_RetroBezelSizeSlim.Content" xml:space="preserve"><value>Slim (18 DIP)</value></data>
-  <data name="Profile_RetroBezelSizeMedium.Content" xml:space="preserve"><value>Medium (28 DIP)</value></data>
-  <data name="Profile_RetroBezelSizeWide.Content" xml:space="preserve"><value>Wide (40 DIP)</value></data>
+  <data name="Profile_RetroBezelSizeSlim.Content" xml:space="preserve"><value>Slim (40 DIP casing)</value></data>
+  <data name="Profile_RetroBezelSizeMedium.Content" xml:space="preserve"><value>Medium (56 DIP casing)</value></data>
+  <data name="Profile_RetroBezelSizeWide.Content" xml:space="preserve"><value>Wide (72 DIP casing)</value></data>
   <data name="Profile_RetroBezelColorOffWhite.Content" xml:space="preserve"><value>Fresh off-white</value></data>
   <data name="Profile_RetroBezelColorCream.Content" xml:space="preserve"><value>Cream</value></data>
   <data name="Profile_RetroBezelColorLightYellow.Content" xml:space="preserve"><value>Lightly yellowed</value></data>

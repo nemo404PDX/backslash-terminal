@@ -28,12 +28,12 @@ namespace Microsoft::Terminal::Backslash
         bool _enabled = false;
         winrt::Windows::UI::Xaml::FrameworkElement _content{ nullptr };
 
-        static auto _gradient(Color first, Color last)
+        static auto _gradient(Color first, Color last, BezelGradientDirection direction = { 0, 0, 1, 1 })
         {
             using namespace winrt::Windows::UI::Xaml::Media;
             LinearGradientBrush brush;
-            brush.StartPoint({ 0, 0 });
-            brush.EndPoint({ 1, 1 });
+            brush.StartPoint({ direction.startX, direction.startY });
+            brush.EndPoint({ direction.endX, direction.endY });
             GradientStop a, b;
             a.Offset(0); a.Color(first);
             b.Offset(1); b.Color(last);
@@ -77,11 +77,11 @@ namespace Microsoft::Terminal::Backslash
                 return figure;
             };
             // The entire curved inner edge stays outside rectangular terminal cells.
-            const auto screen = GetBezelScreenBounds(width, height, _frameInsets);
-            const auto left = screen.left - BezelInnerClearance;
-            const auto top = screen.top - BezelInnerClearance;
-            const auto right = screen.right + BezelInnerClearance;
-            const auto bottom = screen.bottom + BezelInnerClearance;
+            const auto aperture = GetBezelApertureBounds(width, height, _frameInsets);
+            const auto left = aperture.opening.left;
+            const auto top = aperture.opening.top;
+            const auto right = aperture.opening.right;
+            const auto bottom = aperture.opening.bottom;
             const auto radii = GetBezelRecessRadii(right - left, bottom - top);
             auto roundedRectangle = [&](float x1, float y1, float x2, float y2, float requestedRadius) {
                 const auto radius = ClampBezelCornerRadius(requestedRadius, x2 - x1, y2 - y1);
@@ -116,8 +116,8 @@ namespace Microsoft::Terminal::Backslash
                 {
                     // Small outer dark-band corners, larger inner opening corners.
                     // The external casing and terminal rectangle are unchanged.
-                    recess.Figures().Append(roundedRectangle(left - BezelRecessThickness, top - BezelRecessThickness,
-                                                            right + BezelRecessThickness, bottom + BezelRecessThickness,
+                    recess.Figures().Append(roundedRectangle(aperture.recess.left, aperture.recess.top,
+                                                            aperture.recess.right, aperture.recess.bottom,
                                                             radii.outer));
                     casing.Figures().Append(roundedRectangle(left, top, right, bottom, radii.inner));
                     recess.Figures().Append(roundedRectangle(left, top, right, bottom, radii.inner));
@@ -221,22 +221,23 @@ namespace Microsoft::Terminal::Backslash
                                          GetBezelBadgeOuterOffset(badge == 2 ? frame.top : frame.bottom) : 0;
             _badge.Margin({ frame.left, badgeOffset, frame.right, badgeOffset });
 
-            // A hollow material ring keeps casing out of translucent terminal backgrounds.
+            // One continuous brush per hollow ring keeps corners seamless and
+            // leaves the rectangular terminal content outside all material paint.
+            const auto flat = GetBezelCasingMaterial(color);
+            _shell.Fill(_gradient(_color(flat.leftShadow), _color(flat.rightHighlight), BezelCasingGradient));
             if (IsDarkBezelPalette(color))
             {
                 const auto casing = GetDarkBezelCasingMaterial(color);
-                _shell.Fill(_gradient(_color(casing.top), _color(casing.bottom)));
                 _rim.BorderBrush(_gradient(_color(casing.rimTop), _color(casing.rimBottom)));
-                _aperture.Fill(_gradient(_color(casing.recessTop), _color(casing.recessBottom)));
             }
             else
             {
-                // Preserve the exact existing light-plastic shading path.
+                // Retain the existing light-plastic outer-rim tones.
                 const auto base = PaletteColor(color);
-                _shell.Fill(_gradient(_mix(base, 255, 0.14f), _mix(base, 0, 0.09f)));
                 _rim.BorderBrush(_gradient(_mix(base, 255, 0.65f), _mix(base, 0, 0.48f)));
-                _aperture.Fill(_gradient(_mix(base, 0, 0.63f), _mix(base, 255, 0.52f)));
             }
+            const auto band = GetBezelRecessMaterial(color);
+            _aperture.Fill(_gradient(_color(band.highlight), _color(band.shadow), BezelRecessGradient));
             const auto plate = GetBezelBadgeMaterial(color);
             _badgeLabel.Foreground(Media::SolidColorBrush{ _color(plate.lettering) });
             _badge.Background(winrt::Windows::UI::Xaml::Media::SolidColorBrush{ _color(plate.face) });

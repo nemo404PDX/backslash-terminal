@@ -2745,7 +2745,7 @@
       "type": "object",
       "properties": {
         "experimental.retroBezelEnabled": { "type": ["boolean", "null"], "default": false, "description": "Add a plastic frame around the terminal. Terminal colors and text padding stay independent." },
-        "experimental.retroBezelSize": { "enum": ["slim", "medium", "wide", null], "default": "medium", "description": "Choose a width in device-independent pixels. The frame follows the pane size." },
+        "experimental.retroBezelSize": { "enum": ["slim", "medium", "wide", null], "default": "medium", "description": "Visible casing width: Slim 40, Medium 56, Wide 72 DIP. The 18 DIP recess and 6 DIP black surround are additional; total per-side insets are 64, 80, 96 DIP before badge chin." },
         "experimental.retroBezelColor": { "enum": ["offWhite", "cream", "lightYellow", "agedYellow", "graphite", "charcoal", "nearBlack", "slateBlue", "mutedOlive", null], "default": "offWhite", "description": "Choose a casing finish. Terminal colors and transparency stay independent." },
         "experimental.retroBezelBadge": { "enum": ["none", "bottom", "top", null], "default": "bottom", "description": "Place the temporary Backslash text badge above or below the aperture, or omit it." },
         "experimental.retroBezelCenterFullscreen": { "type": ["boolean", "null"], "default": true, "description": "Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows." },

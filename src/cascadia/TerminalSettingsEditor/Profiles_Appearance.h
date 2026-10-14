@@ -8,6 +8,7 @@
 #include "Profiles_Appearance.g.h"
 #include "PreviewConnection.h"
 #include "../inc/RetroBezel.h"
+#include "../inc/AppearancePreviewLayout.h"
 #include "Utils.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
@@ -23,6 +24,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void CreateUnfocusedAppearance_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
         void DeleteUnfocusedAppearance_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
 
+        void PreviewViewport_Loaded(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void PreviewViewport_SizeChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::SizeChangedEventArgs&);
+
         Editor::IHostedInWindow WindowRoot() const noexcept { return _weakWindowRoot.get(); };
 
         til::property_changed_event PropertyChanged;
@@ -35,6 +39,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Microsoft::Terminal::Control::TermControl _previewControl{ nullptr };
         ::Microsoft::Terminal::Backslash::RetroBezel _previewBezel;
         void _updateBezelPreview();
+        void _updatePreviewLayout();
+        void _subscribePreviewRootChanges();
+        Windows::UI::Xaml::XamlRoot::Changed_revoker _previewRootChangedRevoker;
         std::shared_ptr<ThrottledFunc<>> _updatePreviewControl;
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _ViewModelChangedRevoker;
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _AppearanceViewModelChangedRevoker;

@@ -11,7 +11,7 @@ The frame is disabled by default. Settings → Profiles → a profile (or Defaul
 | Profile JSON property | Default | Supported values |
 | --- | --- | --- |
 | `experimental.retroBezelEnabled` | `false` | Boolean |
-| `experimental.retroBezelSize` | `"medium"` | `"slim"` (18 DIP), `"medium"` (28 DIP), `"wide"` (40 DIP) |
+| `experimental.retroBezelSize` | `"medium"` | `"slim"` (40 DIP casing), `"medium"` (56 DIP casing), `"wide"` (72 DIP casing) |
 | `experimental.retroBezelColor` | `"offWhite"` | `"offWhite"` (#E8E8DD), `"cream"` (#E5DABD), `"lightYellow"` (#D9C796), `"agedYellow"` (#C4AB68), `"graphite"`, `"charcoal"`, `"nearBlack"`, `"slateBlue"`, `"mutedOlive" |
 | `experimental.retroBezelBadge` | `"bottom"` | `"none"`, `"bottom"`, `"top"` |
 | `experimental.retroBezelCenterFullscreen` | `true` | Boolean; effective only with an enabled frame in fullscreen |
@@ -361,3 +361,84 @@ SHA256: **`AA5BE5C8E61DED9C1703AF804FF137C7A893117DD1D62B4C7E76C21765104D66`**.
 Changed files for this slice: `TerminalSettingsModel/Profile.idl`, `TerminalSettingsSerializationHelpers.h`, `inc/BezelBadgeMaterial.h`, `RetroBezel.h`, `TerminalSettingsEditor/Resources/en-US/Resources.resw`, `doc/cascadia/profiles.schema.json`, `UnitTests_SettingsModel/ProfileTests.cpp`, `ProfileSourceTests.cpp`, `TerminalSettingsTests.cpp`, and this document. Source diff/status/preservation and the full uncommitted source checkpoint are retained in evidence.
 
 **Manual checklist:** choose all nine finishes and switch light-to-dark-to-light in the settings preview and a live pane; inspect top/bottom/omitted badge, readable lettering and inset seam, dark recess separation/continuous 3/6 DIP corners and opaque black gutter with opaque/transparent/acrylic terminal screens; compare Slim/Medium/Wide at 100/125/150/200% DPI and narrow/split/fullscreen panes. Native XAML appearance, font antialiasing, fractional-DPI pixel quality and interactive accessibility checks remain unrun because node_repl/native Computer Use is unavailable (CUA native APIs disabled). Mathematical color contrast and startup/grid checks do not establish native appearance. No new slider, group implementation, user settings edit, SSH connection, installation/registration, security change, commit or push occurred.
+
+### Substantial visible casing and recessed band
+
+The user rejects the prior thin frame: Slim's old total 18 DIP inset contained a 3 DIP recess and 6 DIP black gutter, leaving only **9 DIP of visible casing**. The green-check reference (reattached `libfile_b2501d926f108191acfcccde226e51ae`, inspected by the root task) requires a broad dark inset band as well as a broad casing. The reference file was identified here, but Library image access became unavailable before pixels could be loaded; no native visual match is claimed.
+
+Presets now describe **visible casing**, independently of the recessed band and black screen gutter:
+
+| Preset | Visible casing | Dark recessed band | Black gutter | Total per-side inset |
+| --- | --- | --- | --- | --- |
+| Slim | 40 DIP | 18 DIP | 6 DIP | 64 DIP |
+| Medium | 56 DIP | 18 DIP | 6 DIP | 80 DIP |
+| Wide | 72 DIP | 18 DIP | 6 DIP | 96 DIP |
+
+The recess grows from **3 to 18 DIP** on every side. It is additional to casing width, so the broad band does not consume the flat casing. The outer 2 DIP rim is part of the casing width. All nine casing palette base RGB values remain unchanged. The broad band uses shadowed tones at both edges for the four lighter shades; the existing dark-finish recess colors are retained. Badge face/seam/lettering and the separate opaque-black surround remain independent of the terminal's colors/transparency.
+
+The band has a modest **6 DIP outer radius** and a larger **16 DIP inner black-opening radius**, with symmetry/clamping retained. The 6 DIP gutter still protects the full rectangular TermControl: its corner is inside the rounded opening because `2 * (16 - 6)^2 = 200 < 16^2 = 256`. The normal corner has over one DIP of arc clearance; tiny openings clamp both radii proportionally. Empty/pre-layout handling remains bounded. Shared opening/recess bounds are now used directly by both geometry construction and tests.
+
+The 22 DIP badge plate and 28 DIP optional chin remain. Bottom/top badge-side total insets become 92/108/124 DIP; the centered plate offsets are 24/32/40 DIP within the preserved flat chin. Fullscreen centering still adds 28 DIP opposite the badge only. Initial-window/VT requested grids and pane minimum/snapping use the same total-inset helper, scaled once in the existing DPI path. Font size and user text padding remain unchanged. Preset enum/string meanings and their order are retained; labels/schema explicitly distinguish casing width and the additional band/gutter. Fixed-size panes naturally have less terminal area.
+
+New coverage checks casing/band/gutter dimensions on all four sides, all sizes/badges/window modes, 100/125/150/200% mathematical scaling, normal/minimum arc clearance, broad shadowed recess material, existing opaque cutout and badge/palette/SSH/WSL/tab regressions. Native rendered thickness, reference match, corner antialiasing and interactive DPI checks remain manual. Tint and scanline thickness/spacing are separate investigations only; no renderer/shader setting is added in this geometry slice. Final build/package/startup evidence follows validation.
+
+### Substantial frame: verified portable delivery
+
+Evidence: `artifacts/build/20261013-224321-711-Release-x64-61daa729`. Base checkpoint is **`36f73ecfad0eddd682c0b52061446e551d039992`**. This geometry slice is uncommitted; no commit or push was made.
+
+- Release/x64 app build: **0 errors, 134 warnings**, **1m46.53s**. Settings DLL: **0 errors, 8 warnings**, **25.38s**. Existing resource/package/link warning categories remain.
+- Adjacent-resource TAEF (`TE.exe`, DLL and `resources.pri` together): focused **16/16**, full settings suite **167/167**, no failed/blocked/skipped/not-run tests. New/shared geometry coverage distinguishes visible casing, 18 DIP band and 6 DIP gutter on all four sides; verifies larger inner corners protect the rectangular screen; and retains preset/badge/DPI/centering/palette/profile/SSH/WSL/CRT regressions. Shader ABI/reflection and WARP pixel regressions passed without shader changes.
+- Fresh portable assembly and isolation passed. **34 hidden startup cases, 136 centering reloads and ten palette reloads passed**. Windowed initial 80x24 and VT resize 90x30 grids remain correct despite larger total insets; fullscreen/maximized grids remain usable and repeated center toggles restore the same dimensions. All nine finishes and opaque/transparent/acrylic modes are covered. Modern Ubuntu-24.04 appears once, utility distributions stay excluded, and no WSL or SSH command was executed.
+- **4 known installed/user-portable settings/state hashes unchanged**; only 34 exact-path owned processes stopped. Smoke settings moved to evidence, leaving the delivery clean. **66 source/docs/assets and six prior artifacts unchanged** outside eight scoped files, including all renderer/shader hooks investigated for tint/scanlines, profile/tab/SSH/WSL code, user artwork, FILE-TRANSFER design, README/screenshot guide and older ZIPs/source snapshots.
+
+**Geometry:** visible casing 40/56/72 DIP (flat portion 38/54/70 after the 2 DIP rim), separate recessed band 18 DIP, black gutter 6 DIP; total per-side insets 64/80/96 DIP. Optional badge chin adds 28 DIP on its side, or both top/bottom with fullscreen centering. Outer dark-band radius 6 DIP, inner black-opening radius 16 DIP, both clamped for small layouts. These values replace the earlier thin 18/28/40 total-inset geometry.
+
+**Executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-224321-711-Release-x64-61daa729\WindowsTerminal.exe`.
+
+**ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-BroadRecess-x64-61daa729.zip` (258 entries, `.portable` present, smoke settings excluded).
+
+SHA256: **`85A953964066857E9A548780A6C207A9C24D513558DFF35F7C1388AA3CA76665`**.
+
+Changed files: `src/cascadia/inc/RetroBezelGeometry.h`, `RetroBezel.h`, `BezelBadgeMaterial.h`, `TerminalSettingsEditor/Resources/en-US/Resources.resw`, `doc/cascadia/profiles.schema.json`, `UnitTests_SettingsModel/ProfileTests.cpp`, `ProfileSourceTests.cpp`, and this document. Tracked diff, full source checkpoint, preservation and startup evidence are in the build directory. `crt-tint-scanline-investigation.json` records read-only hooks/plan, the pending tint scope question and alpha caveat; neither requested CRT extension is implemented here.
+
+**Manual check still required:** compare the actual native broad band/casing to the green-check reference; inspect all four corners, broad recessed tone, black gutter and uncut rectangular terminal at 100/125/150/200% DPI; check narrow/split panes, top/bottom/off badges, all nine finishes and windowed/maximized/fullscreen tabs/centering with transparent/acrylic screens. Native XAML pixels, reference match, antialiasing and interaction/accessibility remain unrun because node_repl/native Computer Use is unavailable (CUA native APIs disabled). The root task inspected the image; this worker identified it but Library image access became unavailable before local pixels could be obtained. Numerical geometry, shader checks and startup/grid behavior do not establish a native visual match. No user settings, installed Terminal, SSH configuration, security setting, registration or installation was changed.
+
+### Appearance preview reserves a readable terminal viewport
+
+The reported Defaults > Appearance preview used a fixed **400x180 DIP** outer border (600x270 physical pixels at 150% DPI). Medium/bottom broad bezel needs 188 DIP vertically before terminal content and the 2 DIP preview stroke, collapsing the aperture. Production casing/band/gutter dimensions and saved values are retained.
+
+A preview-only layout helper now reserves at least **320x220 DIP of terminal sample** and the space needed for **40 columns x 10 rows** at the chosen font, padding and scrollbar settings, then adds the full effective bezel/badge insets and 1 DIP stroke per side. The normal 640-DIP-wide medium/bottom preview is at least **640x410 DIP**, with a 478x220 terminal surface; Wide with a badge is at least 442 DIP tall. Font/padding requirements can enlarge it further. Preview has normal, non-fullscreen badge geometry, so fullscreen centering does not add a second chin here.
+
+The preview uses available settings width up to the existing 1000 DIP settings limit. On narrow pages a dedicated **horizontal preview scroll viewer** preserves the minimum sample and entire frame rather than clipping or crushing it; the existing settings scroll viewer handles page height. No Viewbox, terminal-font reduction, production-bezel scaling or persisted property is introduced. All pixels remain normal XAML DIPs. GetProposedDimensions uses current DPI, and the helper divides once back to DIPs; profile/default/live changes, host width changes, loading and XamlRoot DPI changes recalculate the layout. Unchanged dimension guards avoid feedback loops and initial NaN/Auto sizes are handled. The existing 100 ms debounced settings-preview update is retained.
+
+Regressions cover enabled/disabled, all presets, top/bottom/off badge, narrow/wide/prelayout hosts, 100/125/150/200% scaling, large-font/padding sample requirements, invalid/uninitialized inputs, defaults/inherited/local overrides and live changes/reset. Native preview appearance, actual scrollbar gestures and monitor-DPI transitions remain manual because native Computer Use is unavailable. Root inspected the reported screenshot; this worker used the confirmed dimensions and source cause. Tint/scanline extensions remain outside this preview fix. Final build/package results follow validation.
+
+### Separate casing and recess lighting directions
+
+The user supplied a beige CRT hardware reference with arrows (`libfile_5f7e42a7eb988191a017107f257b0257`, root inspected): the broad flat casing is **lighter toward the right, darker toward the left**, while the recessed chamfer is **bright along left/bottom and dark along top/right**. These are separate lighting directions. A horizontal casing brush now runs left-shadow to right-highlight; the recessed band's diagonal brush runs bottom-left highlight to top-right shadow. Each hollow ring uses one continuous brush across all four curved corners, avoiding per-edge discontinuities.
+
+All nine base palette values remain stable and the endpoints are relative to each casing color. Existing badge face/seam/lettering, outer-rim tones, opaque black gutter and screen transparency are retained. Geometry remains 40/56/72 DIP visible casing with a separate 18 DIP band, 6 DIP gutter, and outer6/inner16 radii. Gradients paint only hollow casing/recess shapes; no tint or gradient is applied to terminal content. Physical buttons, texture, perspective and glass curvature are outside scope.
+
+Directional math tests cover light-right casing and light-left/bottom recess ordering across wide/tall rectangles and all nine opaque palette pairs, alongside preview viewport/geometry regressions. This establishes color/direction/geometry math; photo matching and native rendered gradients/corner smoothness remain unverified because native Computer Use is unavailable. The preview fix passed its 169-test full suite before this separately authorized lighting refinement; that successful preview-only intermediate build/package directory is preserved. A fresh integrated build and final validation follow.
+
+### Preview sizing and directional lighting: verified delivery
+
+Evidence: `artifacts/build/20261013-232956-608-Release-x64-974bfbf6`. Base commit remains `36f73ecfad0eddd682c0b52061446e551d039992`; the earlier broad-recess slice and this integrated follow-up remain uncommitted. No commit/push occurred.
+
+- Final integrated app build: **0 errors, 134 warnings**, **1m20.84s**. Settings DLL: **0 errors, 8 warnings**, **22.54s**. The successful preview-only intermediate `20261013-231944-511-Release-x64-2a74b963` remains preserved (app 0 errors/134 warnings, 169 full / 18 focused passed), along with its assembled portable directory. Lighting was added only after preview sizing was sound.
+- Adjacent-resource TAEF: focused **19/19**, full settings suite **170/170**, no failed/blocked/skipped/not-run tests. Coverage includes minimum preview viewport and effective bezel/badge insets, font/padding sample requirements, narrow/wide/prelayout hosts, defaults/inherited/local overrides and live reset, mathematical 100/125/150/200% DPI, and separate casing/recess light directions across rectangle aspect ratios/all nine opaque palettes. Existing geometry, badge, palette, profile/SSH/WSL and CRT regressions passed. Shader ABI/reflection and WARP pixel-output regressions passed.
+- Static XAML integration passed: fixed 400x180 bounds removed; auto horizontal preview scrolling, retained vertical settings scrolling, font-aware proposed dimensions, current DPI and load/width/root-change hooks are wired. This checks source wiring and sizing math, not actual native scrolling or rendered preview pixels.
+- Fresh portable assembly/isolation passed. **34 hidden startup cases, 136 centering reload samples and ten palette reload samples passed**; windowed initial 80x24 / VT 90x30 grids, fullscreen/maximized/tab/centering and all nine finishes remain covered. Modern Ubuntu-24.04 appears once and utility distro profiles remain excluded. These startup/grid regressions do not exercise the settings page or establish a photo match.
+- **4 known installed/user-portable settings/state hashes unchanged**; only 34 exact-path test processes stopped. Smoke files moved to evidence, leaving delivery clean. **67 existing source/docs/assets and eight previous ZIP/source artifacts unchanged** outside the integrated preview/lighting files. Production `RetroBezelGeometry.h`, saved schema/model values, renderer/shader hooks, SSH/WSL/tab behavior, user artwork/FILE-TRANSFER/README guidance are retained. Badge material function is byte-identical after newline normalization.
+
+The preview reserves at least 320x220 DIP of terminal surface plus full actual bezel/badge/stroke and 40x10 cells at the chosen font/padding. Typical 640-wide medium/bottom is at least 640x410 DIP; Wide/badge is at least 442 DIP tall. It fills available settings width (up to the existing 1000 DIP limit), with horizontal scrolling when a narrow page cannot hold the minimum. Production casing 40/56/72, band 18, gutter 6 and total 64/80/96 DIP insets remain unchanged. Flat casing lights toward the right; recess lights toward left/bottom and darkens toward top/right using separate continuous brushes. No gradient paints terminal content and no tint/scanline controls are added.
+
+**Executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-232956-608-Release-x64-974bfbf6\WindowsTerminal.exe`.
+
+**ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-PreviewLighting-x64-974bfbf6.zip` (258 entries, `.portable` present, smoke settings excluded).
+
+SHA256: **`447DA43FBCFD895E1C156CC7345F5312A65DAB40A7C17C406F2FEA44855BA2FE`**.
+
+Changed files for this follow-up: new `src/cascadia/inc/AppearancePreviewLayout.h`; `TerminalSettingsEditor/Profiles_Appearance.cpp`, `.h`, `.xaml`; `Resources/en-US/Resources.resw`; `inc/RetroBezel.h`, `BezelBadgeMaterial.h`; `UnitTests_SettingsModel/ProfileSourceTests.cpp`; and this document. Full source checkpoint/diff/status, regression logs, integration and preservation evidence are in the build directory.
+
+**Manual checks:** Defaults and profile Appearance; all sizes and badge top/bottom/off; enable/disable, inherited overrides/reset, large font/padding and live changes; narrow and wide page horizontal/vertical scrolling; monitor 125/150/200% DPI changes; compare casing/recess lighting and all rounded corners to the arrow photo across nine palettes, top/bottom/off badge and transparent/acrylic screens. Native preview viewport, gesture/keyboard scrolling, font rendering, corner shading and photo matching remain unverified because node_repl/native Computer Use is unavailable (CUA native APIs disabled). Root inspected the references; this worker followed their supplied dimensions/directions. Tests establish sizing/color/geometry math and source integration, not screenshot verification. User settings, actual production bezel values, installed Terminal, SSH configuration and security/installation/registration were not changed.

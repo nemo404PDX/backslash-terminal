@@ -159,9 +159,9 @@ namespace SettingsModelUnitTests
                 VERIFY_ARE_EQUAL(frame.Height() + (badge ? 28.0f : 0.0f), centered.Height());
             }
         }
-        VERIFY_ARE_EQUAL(36.0f, GetBezelInsets(true, 0, 0).Width());
-        VERIFY_ARE_EQUAL(56.0f, GetBezelInsets(true, 1, 0).Width());
-        VERIFY_ARE_EQUAL(80.0f, GetBezelInsets(true, 2, 0).Width());
+        VERIFY_ARE_EQUAL(128.0f, GetBezelInsets(true, 0, 0).Width());
+        VERIFY_ARE_EQUAL(160.0f, GetBezelInsets(true, 1, 0).Width());
+        VERIFY_ARE_EQUAL(192.0f, GetBezelInsets(true, 2, 0).Width());
     }
 
     void ProfileTests::ProfileGeneratesGuid()

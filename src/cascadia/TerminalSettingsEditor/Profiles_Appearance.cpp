@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include <cmath>
 #include "Profiles_Appearance.h"
 #include "Appearances.h"
 
@@ -43,10 +44,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             BringIntoViewWhenLoaded(elementToFocus);
         }
 
+        const auto settings = winrt::get_self<implementation::ProfileViewModel>(_Profile)->TermSettings();
+        _previewConnection->DisplayPowerlineGlyphs(_Profile.DefaultAppearance().HasPowerlineCharacters());
         if (!_previewControl)
         {
-            const auto settings = winrt::get_self<implementation::ProfileViewModel>(_Profile)->TermSettings();
-            _previewConnection->DisplayPowerlineGlyphs(_Profile.DefaultAppearance().HasPowerlineCharacters());
             _previewControl = Control::TermControl(settings, settings, *_previewConnection);
             _previewControl.CursorVisibility(Control::CursorDisplayState::Shown);
             _previewControl.IsEnabled(false);
@@ -54,8 +55,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             _previewBezel.Content(_previewControl);
             ControlPreview().Child(_previewBezel.Root());
         }
+        else
+        {
+            _previewControl.UpdateControlSettings(settings, settings);
+        }
 
         _updateBezelPreview();
+        _subscribePreviewRootChanges();
 
         // Subscribe to some changes in the view model
         // These changes should force us to update our own set of "Current<Setting>" members,
@@ -81,6 +87,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     void Profiles_Appearance::OnNavigatedFrom(const NavigationEventArgs& /*e*/)
     {
+        _previewRootChangedRevoker.revoke();
         _ViewModelChangedRevoker.revoke();
         _AppearanceViewModelChangedRevoker.revoke();
     }
@@ -110,6 +117,49 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto appearance = _Profile.DefaultAppearance();
         _previewBezel.Update(appearance.RetroBezelEnabled(), static_cast<int>(appearance.RetroBezelSize()),
                              static_cast<int>(appearance.RetroBezelColor()), static_cast<int>(appearance.RetroBezelBadge()), false);
+        _updatePreviewLayout();
+    }
+
+    void Profiles_Appearance::PreviewViewport_Loaded(const IInspectable&, const RoutedEventArgs&)
+    {
+        _subscribePreviewRootChanges();
+        _updatePreviewLayout();
+    }
+
+    void Profiles_Appearance::PreviewViewport_SizeChanged(const IInspectable&, const SizeChangedEventArgs&)
+    {
+        _updatePreviewLayout();
+    }
+
+    void Profiles_Appearance::_subscribePreviewRootChanges()
+    {
+        if (const auto root = XamlRoot())
+        {
+            _previewRootChangedRevoker = root.Changed(winrt::auto_revoke, [weak = get_weak()](const auto&, const auto&) {
+                if (const auto page = weak.get()) { page->_updatePreviewLayout(); }
+            });
+        }
+    }
+
+    void Profiles_Appearance::_updatePreviewLayout()
+    {
+        if (!_Profile || !_previewControl) { return; }
+        using namespace ::Microsoft::Terminal::Backslash;
+        const auto root = XamlRoot();
+        const auto rawScale = root ? root.RasterizationScale() : 1.0;
+        const auto scale = std::isfinite(rawScale) && rawScale > 0 ? rawScale : 1.0;
+        const auto dpi = static_cast<uint32_t>(std::lround(scale * 96.0));
+        const auto settings = get_self<ProfileViewModel>(_Profile)->TermSettings();
+        const auto required = Control::TermControl::GetProposedDimensions(settings, dpi,
+                                                                          AppearancePreviewMinimumColumns,
+                                                                          AppearancePreviewMinimumRows);
+        const auto layout = GetAppearancePreviewLayout(static_cast<float>(PreviewViewport().ActualWidth()),
+                                                        _previewBezel.Insets, required.Width, required.Height,
+                                                        static_cast<float>(scale));
+        const auto border = ControlPreview();
+        // Width/Height start as NaN (Auto). Avoid layout feedback after setting them.
+        if (!std::isfinite(border.Width()) || std::abs(border.Width() - layout.width) > 0.1) { border.Width(layout.width); }
+        if (!std::isfinite(border.Height()) || std::abs(border.Height() - layout.height) > 0.1) { border.Height(layout.height); }
     }
 
     void Profiles_Appearance::_onProfilePropertyChanged(const IInspectable&, const PropertyChangedEventArgs&)

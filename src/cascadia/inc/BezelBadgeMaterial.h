@@ -56,6 +56,46 @@ namespace Microsoft::Terminal::Backslash
                  BlendBezelRgb(casing, 0xffa9b1a9, 16) };
     }
 
+    struct BezelGradientDirection
+    {
+        float startX, startY, endX, endY;
+    };
+    constexpr BezelGradientDirection BezelCasingGradient{ 0, 0.5f, 1, 0.5f };
+    constexpr BezelGradientDirection BezelRecessGradient{ 0, 1, 1, 0 };
+
+    struct BezelCasingMaterial
+    {
+        std::uint32_t leftShadow, rightHighlight;
+    };
+
+    constexpr BezelCasingMaterial GetBezelCasingMaterial(int color) noexcept
+    {
+        if (IsDarkBezelPalette(color))
+        {
+            const auto casing = GetDarkBezelCasingMaterial(color);
+            return { casing.bottom, casing.top };
+        }
+        const auto casing = BezelPaletteArgb(color);
+        return { BlendBezelRgb(casing, 0xff000000, 9), BlendBezelRgb(casing, 0xffffffff, 14) };
+    }
+
+    struct BezelRecessMaterial
+    {
+        std::uint32_t shadow, highlight;
+    };
+
+    constexpr BezelRecessMaterial GetBezelRecessMaterial(int color) noexcept
+    {
+        if (IsDarkBezelPalette(color))
+        {
+            const auto casing = GetDarkBezelCasingMaterial(color);
+            return { casing.recessTop, casing.recessBottom };
+        }
+        const auto casing = BezelPaletteArgb(color);
+        // A broad gap stays shadowed across its width, with a softer lower edge.
+        return { BlendBezelRgb(casing, 0xff000000, 63), BlendBezelRgb(casing, 0xff000000, 45) };
+    }
+
     struct BezelBadgeMaterial
     {
         std::uint32_t face, seam, lowerSeam, lettering;
