@@ -45,6 +45,9 @@ namespace Microsoft.Terminal.Control
         Single FontSize { get; };
         Windows.UI.Text.FontWeight FontWeight { get; };
         String Padding { get; };
+        Boolean RetroBezelEnabled { get; };
+        Int32 RetroBezelSize { get; };
+        Int32 RetroBezelBadge { get; };
         Windows.Foundation.Collections.IMap<String, Single> FontFeatures { get; };
         Windows.Foundation.Collections.IMap<String, Single> FontAxes { get; };
         Boolean EnableBuiltinGlyphs { get; };

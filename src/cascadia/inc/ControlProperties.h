@@ -65,6 +65,9 @@
 #define CONTROL_SETTINGS(X)                                                                                                                              \
     X(winrt::guid, SessionId)                                                                                                                            \
     X(bool, EnableUnfocusedAcrylic, false)                                                                                                               \
+    X(bool, RetroBezelEnabled, false) \
+    X(int32_t, RetroBezelSize, 1) \
+    X(int32_t, RetroBezelBadge, 1) \
     X(winrt::hstring, Padding, DEFAULT_PADDING)                                                                                                          \
     X(winrt::hstring, FontFace, L"Consolas")                                                                                                             \
     X(float, FontSize, DEFAULT_FONT_SIZE)                                                                                                                \

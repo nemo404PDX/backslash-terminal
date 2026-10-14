@@ -6,7 +6,9 @@
 #include "../TerminalSettingsModel/ColorScheme.h"
 #include "../TerminalSettingsModel/CascadiaSettings.h"
 #include "../TerminalSettingsModel/resource.h"
+#include "../TerminalSettingsModel/EnumMappings.h"
 #include "JsonTestClass.h"
+#include "../inc/RetroBezelGeometry.h"
 
 using namespace Microsoft::Console;
 using namespace winrt::Microsoft::Terminal::Settings::Model;
@@ -20,6 +22,9 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(ProfileTests);
 
+        TEST_METHOD(BackslashBezelModel);
+        TEST_METHOD(BackslashBezelPaletteRoundtrip);
+        TEST_METHOD(BackslashBezelGeometry);
         TEST_METHOD(ProfileGeneratesGuid);
         TEST_METHOD(LayerProfileProperties);
         TEST_METHOD(LayerProfileIcon);
@@ -32,6 +37,132 @@ namespace SettingsModelUnitTests
         TEST_METHOD(TestCorrectOldDefaultShellPaths);
         TEST_METHOD(ProfileDefaultsProhibitedSettings);
     };
+
+    void ProfileTests::BackslashBezelModel()
+    {
+        const auto defaults = winrt::make_self<implementation::Profile>();
+        VERIFY_IS_FALSE(defaults->RetroBezelEnabled());
+        VERIFY_ARE_EQUAL(RetroBezelSize::Medium, defaults->RetroBezelSize());
+        VERIFY_ARE_EQUAL(RetroBezelColor::OffWhite, defaults->RetroBezelColor());
+        VERIFY_ARE_EQUAL(RetroBezelBadge::Bottom, defaults->RetroBezelBadge());
+        VERIFY_IS_TRUE(defaults->RetroBezelCenterFullscreen());
+        defaults->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelEnabled":true,
+            "experimental.retroBezelSize":"wide", "experimental.retroBezelColor":"agedYellow",
+            "experimental.retroBezelBadge":"top", "experimental.retroBezelCenterFullscreen":false})"));
+        const auto profile = winrt::make_self<implementation::Profile>();
+        profile->AddLeastImportantParent(defaults);
+        VERIFY_IS_TRUE(profile->RetroBezelEnabled());
+        VERIFY_IS_FALSE(profile->HasRetroBezelEnabled());
+        VERIFY_ARE_EQUAL(*defaults, profile->RetroBezelColorOverrideSource());
+        VERIFY_ARE_EQUAL(RetroBezelBadge::Top, profile->RetroBezelBadge());
+        VERIFY_IS_FALSE(profile->RetroBezelCenterFullscreen());
+        const auto input = VerifyParseSucceeded(R"({"experimental.retroBezelEnabled":false,
+            "experimental.retroBezelSize":"slim", "experimental.retroBezelColor":"cream",
+            "experimental.retroBezelBadge":"none", "experimental.retroBezelCenterFullscreen":true})");
+        profile->LayerJson(input);
+        VERIFY_ARE_EQUAL(input, profile->ToJson());
+        VERIFY_IS_FALSE(profile->RetroBezelEnabled());
+        VERIFY_IS_TRUE(profile->HasRetroBezelEnabled());
+        const auto copy = profile->CopySettings();
+        VERIFY_ARE_EQUAL(input, copy->ToJson());
+        VERIFY_THROWS(profile->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelSize":"enormous"})")), std::exception);
+        VERIFY_ARE_EQUAL(RetroBezelSize::Slim, profile->RetroBezelSize());
+        VERIFY_THROWS(profile->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelColor":42})")), std::exception);
+        VERIFY_THROWS(profile->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelBadge":"manufacturer"})")), std::exception);
+        // Casing setters preserve independently owned text colors and CRT intensities.
+        profile->DefaultAppearance().DarkColorSchemeName(L"Campbell");
+        profile->DefaultAppearance().RetroTerminalGlowIntensity(0.0f);
+        profile->RetroBezelEnabled(true);
+        profile->RetroBezelColor(RetroBezelColor::LightYellow);
+        VERIFY_ARE_EQUAL(L"Campbell", profile->DefaultAppearance().DarkColorSchemeName());
+        VERIFY_ARE_EQUAL(0.0f, profile->DefaultAppearance().RetroTerminalGlowIntensity());
+        profile->ClearRetroBezelEnabled();
+        profile->ClearRetroBezelSize();
+        profile->ClearRetroBezelColor();
+        profile->ClearRetroBezelBadge();
+        profile->ClearRetroBezelCenterFullscreen();
+        VERIFY_IS_TRUE(profile->RetroBezelEnabled());
+        VERIFY_ARE_EQUAL(RetroBezelSize::Wide, profile->RetroBezelSize());
+        VERIFY_ARE_EQUAL(RetroBezelColor::AgedYellow, profile->RetroBezelColor());
+        profile->LayerJson(input);
+        profile->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelEnabled":null,
+            "experimental.retroBezelSize":null, "experimental.retroBezelColor":null,
+            "experimental.retroBezelBadge":null, "experimental.retroBezelCenterFullscreen":null})"));
+        VERIFY_IS_FALSE(profile->HasRetroBezelEnabled());
+        VERIFY_IS_FALSE(profile->HasRetroBezelColor());
+        VERIFY_IS_TRUE(profile->RetroBezelEnabled());
+        VERIFY_ARE_EQUAL(RetroBezelBadge::Top, profile->RetroBezelBadge());
+    }
+
+    void ProfileTests::BackslashBezelPaletteRoundtrip()
+    {
+        constexpr const char* names[] = { "offWhite", "cream", "lightYellow", "agedYellow", "graphite",
+                                          "charcoal", "nearBlack", "slateBlue", "mutedOlive" };
+        constexpr RetroBezelColor values[] = { RetroBezelColor::OffWhite, RetroBezelColor::Cream,
+            RetroBezelColor::LightYellow, RetroBezelColor::AgedYellow, RetroBezelColor::Graphite,
+            RetroBezelColor::Charcoal, RetroBezelColor::NearBlack, RetroBezelColor::SlateBlue, RetroBezelColor::MutedOlive };
+        const auto mappings = implementation::EnumMappings::RetroBezelColor();
+        VERIFY_ARE_EQUAL(uint32_t{ 9 }, mappings.Size());
+        auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({"profiles":[{
+            "name":"palette","guid":"{6239a42c-0000-49a3-80bd-e8fdd045185c}"}]})");
+        const auto source = settings->AllProfiles().GetAt(0);
+        for (int i = 0; i < 9; ++i)
+        {
+            VERIFY_ARE_EQUAL(i, static_cast<int>(values[i])); // Saved values 0-3 retain their meaning.
+            VERIFY_ARE_EQUAL(values[i], mappings.Lookup(winrt::to_hstring(names[i])));
+            auto input = VerifyParseSucceeded("{}");
+            input["experimental.retroBezelColor"] = names[i];
+            const auto parent = winrt::make_self<implementation::Profile>();
+            parent->LayerJson(input);
+            const auto child = winrt::make_self<implementation::Profile>();
+            child->AddLeastImportantParent(parent);
+            VERIFY_ARE_EQUAL(values[i], child->RetroBezelColor());
+            VERIFY_IS_FALSE(child->HasRetroBezelColor());
+            VERIFY_ARE_EQUAL(*parent, child->RetroBezelColorOverrideSource());
+            child->LayerJson(input);
+            VERIFY_ARE_EQUAL(input, child->ToJson());
+            const auto copied = child->CopySettings();
+            VERIFY_ARE_EQUAL(input, copied->ToJson());
+            const auto reloaded = winrt::make_self<implementation::Profile>();
+            reloaded->LayerJson(copied->ToJson());
+            VERIFY_ARE_EQUAL(values[i], reloaded->RetroBezelColor());
+            child->ClearRetroBezelColor();
+            VERIFY_IS_FALSE(child->HasRetroBezelColor());
+            VERIFY_ARE_EQUAL(values[i], child->RetroBezelColor());
+            child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelColor":null})"));
+            VERIFY_IS_FALSE(child->HasRetroBezelColor());
+            source.RetroBezelColor(values[i]);
+            const auto duplicate = settings->DuplicateProfile(source);
+            VERIFY_ARE_EQUAL(values[i], duplicate.RetroBezelColor());
+        }
+        const auto invalid = winrt::make_self<implementation::Profile>();
+        invalid->RetroBezelColor(RetroBezelColor::NearBlack);
+        VERIFY_THROWS(invalid->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelColor":"neon"})")), std::exception);
+        VERIFY_ARE_EQUAL(RetroBezelColor::NearBlack, invalid->RetroBezelColor());
+    }
+
+    void ProfileTests::BackslashBezelGeometry()
+    {
+        using namespace ::Microsoft::Terminal::Backslash;
+        // Exhaust the bounded sizes/badge modes. Insets are DIPs and do not contain text padding.
+        for (int size = 0; size < 3; ++size)
+        {
+            for (int badge = 0; badge < 3; ++badge)
+            {
+                VERIFY_ARE_EQUAL(0.0f, GetBezelInsets(false, size, badge, true).Height());
+                const auto plain = GetBezelInsets(true, size, 0);
+                const auto frame = GetBezelInsets(true, size, badge);
+                const auto centered = GetBezelInsets(true, size, badge, true);
+                VERIFY_ARE_EQUAL(plain.Width(), frame.Width());
+                VERIFY_ARE_EQUAL(plain.Height() + (badge ? 28.0f : 0.0f), frame.Height());
+                VERIFY_ARE_EQUAL(centered.top, centered.bottom);
+                VERIFY_ARE_EQUAL(frame.Height() + (badge ? 28.0f : 0.0f), centered.Height());
+            }
+        }
+        VERIFY_ARE_EQUAL(36.0f, GetBezelInsets(true, 0, 0).Width());
+        VERIFY_ARE_EQUAL(56.0f, GetBezelInsets(true, 1, 0).Width());
+        VERIFY_ARE_EQUAL(80.0f, GetBezelInsets(true, 2, 0).Width());
+    }
 
     void ProfileTests::ProfileGeneratesGuid()
     {
@@ -296,6 +427,11 @@ namespace SettingsModelUnitTests
                         "name": "profile0",
                         "guid": "{6239a42c-0000-49a3-80bd-e8fdd045185c}",
                         "backgroundImage": "file:///some/path",
+                        "experimental.retroBezelEnabled": true,
+                        "experimental.retroBezelSize": "wide",
+                        "experimental.retroBezelColor": "agedYellow",
+                        "experimental.retroBezelBadge": "top",
+                        "experimental.retroBezelCenterFullscreen": false,
                         "experimental.retroTerminalGlowIntensity": 0,
                         "experimental.retroTerminalScanlineIntensity": 0.75,
                         "hidden": false,
@@ -310,6 +446,11 @@ namespace SettingsModelUnitTests
 
         // GH#11392: Ensure duplicated profiles properly inherit the base layer, even for nested objects.
         VERIFY_ARE_EQUAL(123, duplicatedProfile.FontInfo().FontSize());
+        VERIFY_IS_TRUE(duplicatedProfile.RetroBezelEnabled());
+        VERIFY_ARE_EQUAL(RetroBezelColor::AgedYellow, duplicatedProfile.RetroBezelColor());
+        VERIFY_ARE_EQUAL(RetroBezelSize::Wide, duplicatedProfile.RetroBezelSize());
+        VERIFY_ARE_EQUAL(RetroBezelBadge::Top, duplicatedProfile.RetroBezelBadge());
+        VERIFY_IS_FALSE(duplicatedProfile.RetroBezelCenterFullscreen());
         VERIFY_IS_TRUE(duplicatedProfile.DefaultAppearance().HasRetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.0f, duplicatedProfile.DefaultAppearance().RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.75f, duplicatedProfile.DefaultAppearance().RetroTerminalScanlineIntensity());

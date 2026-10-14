@@ -49,6 +49,24 @@
                          Text="{x:Bind Profile.Name, Mode=TwoWay}" />
             </local:SettingContainer>
 
+            <StackPanel x:Name="SshShellPanel" Margin="0,0,0,12">
+                <TextBlock x:Uid="Profile_SshShellHeader" Style="{StaticResource TextBlockSubHeaderStyle}" />
+                <TextBlock x:Uid="Profile_SshShellHelp" TextWrapping="Wrap" Margin="0,4,0,8" />
+                <ComboBox x:Name="SshShellChoice" x:Uid="Profile_SshShellChoice"
+                          SelectionChanged="SshShellSelectionChanged" Style="{StaticResource ComboBoxSettingStyle}">
+                    <ComboBoxItem x:Uid="Profile_SshConfig" />
+                    <ComboBoxItem x:Uid="Profile_SshServer" />
+                    <ComboBoxItem x:Uid="Profile_SshBash" />
+                    <ComboBoxItem x:Uid="Profile_SshPwsh" />
+                    <ComboBoxItem x:Uid="Profile_SshCustom" />
+                </ComboBox>
+                <TextBox x:Name="SshCustomCommand" x:Uid="Profile_SshCustomCommand"
+                         IsSpellCheckEnabled="False" Visibility="Collapsed" Margin="0,8,0,0" />
+                <Button x:Name="ApplySshShellButton" x:Uid="Profile_ApplySshShell"
+                        Click="ApplySshShellClick" IsEnabled="False" Margin="0,8,0,0" />
+                <TextBlock x:Name="SshShellStatus" TextWrapping="Wrap" Margin="0,8,0,0" />
+            </StackPanel>
+
             <!--  Commandline  -->
             <local:SettingContainer x:Name="Commandline"
                                     x:Uid="Profile_Commandline"

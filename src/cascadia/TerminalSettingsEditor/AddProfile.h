@@ -39,6 +39,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             AddNew.raise(profile);
         }
 
+        void RequestRestoreSsh(GUID profile) { RestoreSsh.raise(profile); }
+        til::event<AddNewArgs> RestoreSsh;
         til::event<AddNewArgs> AddNew;
 
         WINRT_PROPERTY(Model::CascadiaSettings, Settings, nullptr);
@@ -54,6 +56,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void AddNewClick(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);
         void DuplicateClick(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);
         void ProfilesSelectionChanged(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);
+
+        void ScanSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void RestoreSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void SshSelectionChanged(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
 
         til::property_changed_event PropertyChanged;
         WINRT_PROPERTY(Editor::AddProfilePageNavigationState, State, nullptr);

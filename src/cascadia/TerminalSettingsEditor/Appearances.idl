@@ -79,6 +79,11 @@ namespace Microsoft.Terminal.Settings.Editor
 
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, DarkColorSchemeName);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, LightColorSchemeName);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelEnabled);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelSize, RetroBezelSize);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelColor, RetroBezelColor);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadge, RetroBezelBadge);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalGlowIntensity);
@@ -108,6 +113,13 @@ namespace Microsoft.Terminal.Settings.Editor
         IObservableVector<Font> FilteredFontList { get; };
         Boolean ShowAllFonts;
 
+        static Windows.UI.Xaml.Media.Brush BezelShadeBrush(Int32 value);
+        IInspectable CurrentRetroBezelSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelSizeList { get; };
+        IInspectable CurrentRetroBezelColor;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelColorList { get; };
+        IInspectable CurrentRetroBezelBadge;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelBadgeList { get; };
         IInspectable CurrentCursorShape;
         Boolean IsVintageCursor { get; };
         IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> CursorShapeList { get; };

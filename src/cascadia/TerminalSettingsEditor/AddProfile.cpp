@@ -39,6 +39,27 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             TelemetryPrivacyDataTag(PDT_ProductAndServiceUsage));
     }
 
+    void AddProfile::ScanSshClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        SshHosts().ItemsSource(_State.Settings().ScanSshProfiles());
+        SshHosts().SelectedIndex(-1);
+        RestoreSshButton().IsEnabled(false);
+        SshScanStatus().Text(RS_(SshHosts().Items().Size() ? L"AddProfile_SshSelect/Text" : L"AddProfile_SshEmpty/Text"));
+    }
+
+    void AddProfile::SshSelectionChanged(const IInspectable&, const RoutedEventArgs&)
+    {
+        RestoreSshButton().IsEnabled(SshHosts().SelectedItem() != nullptr);
+    }
+
+    void AddProfile::RestoreSshClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (const auto selected = SshHosts().SelectedItem())
+        {
+            _State.RequestRestoreSsh(selected.as<Model::Profile>().Guid());
+        }
+    }
+
     void AddProfile::AddNewClick(const IInspectable& /*sender*/,
                                  const Windows::UI::Xaml::RoutedEventArgs& /*eventArgs*/)
     {

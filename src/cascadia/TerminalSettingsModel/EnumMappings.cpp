@@ -45,6 +45,10 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     DEFINE_ENUM_MAP(Microsoft::Terminal::Control::WarnAboutMultiLinePaste, WarnAboutMultiLinePaste);
 
     // Profile Settings
+    DEFINE_ENUM_MAP(Model::RetroBezelSize, RetroBezelSize);
+    DEFINE_ENUM_MAP(Model::RetroBezelColor, RetroBezelColor);
+    DEFINE_ENUM_MAP(Model::RetroBezelBadge, RetroBezelBadge);
+
     DEFINE_ENUM_MAP(Model::CloseOnExitMode, CloseOnExitMode);
     DEFINE_ENUM_MAP(Microsoft::Terminal::Control::ScrollbarState, ScrollbarState);
     DEFINE_ENUM_MAP(Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode);

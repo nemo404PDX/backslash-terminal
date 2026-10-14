@@ -323,6 +323,29 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // Arguments:
     // - profileGuid: the guid of the profile we want to duplicate,
     //                can be empty to indicate that we should create a fresh profile
+    void MainPage::_RestoreSshProfileHandler(winrt::guid profileGuid)
+    {
+        if (const auto restored = _settingsClone.RestoreSshProfile(profileGuid))
+        {
+            // Replace a retained hidden/orphan navigation item as well as its VM.
+            if (const auto oldItem = _FindProfileNavItem(profileGuid))
+            {
+                uint32_t oldIndex;
+                if (_menuItemSource.IndexOf(oldItem, oldIndex))
+                {
+                    _menuItemSource.RemoveAt(oldIndex);
+                }
+                const auto oldVM = oldItem.Tag().as<Editor::ProfileViewModel>();
+                uint32_t vmIndex;
+                if (_profileVMs.IndexOf(oldVM, vmIndex))
+                {
+                    _profileVMs.RemoveAt(vmIndex);
+                }
+            }
+            _CreateAndNavigateToNewProfile(_menuItemSource.Size() - 1, restored);
+        }
+    }
+
     void MainPage::_AddProfileHandler(winrt::guid profileGuid)
     {
         uint32_t insertIndex;
@@ -677,6 +700,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             else if (*clickedItemTag == addProfileTag)
             {
                 auto addProfileState{ winrt::make<AddProfilePageNavigationState>(_settingsClone) };
+                addProfileState.RestoreSsh({ get_weak(), &MainPage::_RestoreSshProfileHandler });
                 addProfileState.AddNew({ get_weak(), &MainPage::_AddProfileHandler });
                 contentFrame().Navigate(xaml_typename<Editor::AddProfile>(), winrt::make<NavigateToPageArgs>(addProfileState, *this, elementToFocus));
                 _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Nav_AddNewProfile/Content"), BreadcrumbSubPage::None));

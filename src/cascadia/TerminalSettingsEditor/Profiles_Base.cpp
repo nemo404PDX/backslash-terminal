@@ -32,6 +32,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         const auto args = e.Parameter().as<Editor::NavigateToPageArgs>();
         _Profile = args.ViewModel().as<Editor::ProfileViewModel>();
         _weakWindowRoot = args.WindowRoot();
+        _RefreshSshShellControls();
+        _ViewModelChangedRevoker = _Profile.PropertyChanged(winrt::auto_revoke, [this](const auto&, const auto& changed) {
+            if (changed.PropertyName() == L"Commandline")
+            {
+                _RefreshSshShellControls();
+            }
+        });
         BringIntoViewWhenLoaded(args.ElementToFocus());
 
         // Check the use parent directory box if the starting directory is empty
@@ -66,6 +73,54 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             TraceLoggingValue(_Profile.Source().c_str(), "ProfileSource", "The source of the profile that was navigated to"),
             TraceLoggingKeyword(MICROSOFT_KEYWORD_MEASURES),
             TelemetryPrivacyDataTag(PDT_ProductAndServiceUsage));
+    }
+
+    void Profiles_Base::_RefreshSshShellControls()
+    {
+        // Programmatic refresh/navigation must never apply a choice or clear an override.
+        _updatingSshSelection = true;
+        const auto model = winrt::get_self<ProfileViewModel>(_Profile)->ModelProfile();
+        const auto mode = model.SshShell();
+        SshShellPanel().Visibility(model.HasSshShellSelector() ? Visibility::Visible : Visibility::Collapsed);
+        SshShellChoice().SelectedIndex(mode);
+        SshShellChoice().IsEnabled(mode >= 0);
+        SshCustomCommand().Text(model.SshCustomCommand());
+        SshCustomCommand().Visibility(mode == 4 ? Visibility::Visible : Visibility::Collapsed);
+        ApplySshShellButton().Visibility(mode == 4 ? Visibility::Visible : Visibility::Collapsed);
+        ApplySshShellButton().IsEnabled(mode == 4);
+        SshShellStatus().Text(mode < 0 ? RS_(L"Profile_SshAdvanced/Text") : L"");
+        _updatingSshSelection = false;
+    }
+
+    void Profiles_Base::SshShellSelectionChanged(const IInspectable&, const RoutedEventArgs&)
+    {
+        const auto mode = SshShellChoice().SelectedIndex();
+        SshCustomCommand().Visibility(mode == 4 ? Visibility::Visible : Visibility::Collapsed);
+        ApplySshShellButton().Visibility(mode == 4 ? Visibility::Visible : Visibility::Collapsed);
+        ApplySshShellButton().IsEnabled(mode == 4);
+        if (!_updatingSshSelection && _Profile && mode >= 0 && mode < 4)
+        {
+            _ApplySshShellMode(mode);
+        }
+    }
+
+    void Profiles_Base::ApplySshShellClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        _ApplySshShellMode(SshShellChoice().SelectedIndex());
+    }
+
+    void Profiles_Base::_ApplySshShellMode(int32_t mode)
+    {
+        const auto model = winrt::get_self<ProfileViewModel>(_Profile)->ModelProfile();
+        if (model.SetSshShell(mode, SshCustomCommand().Text()))
+        {
+            winrt::get_self<ProfileViewModel>(_Profile)->NotifySshCommandlineChanged();
+            SshShellStatus().Text(RS_(L"Profile_SshApplied/Text"));
+        }
+        else
+        {
+            SshShellStatus().Text(RS_(L"Profile_SshInvalid/Text"));
+        }
     }
 
     void Profiles_Base::OnNavigatedFrom(const NavigationEventArgs& /*e*/)

@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "TermControl.h"
+#include "../inc/RetroBezelGeometry.h"
 
 #include <DefaultSettings.h>
 #include <inputpaneinterop.h>
@@ -2833,6 +2834,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         width += scale * static_cast<float>(thickness.Left + thickness.Right);
         height += scale * static_cast<float>(thickness.Top + thickness.Bottom);
 
+        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge());
+        width += scale * bezel.Width();
+        height += scale * bezel.Height();
         return { width, height };
     }
 
@@ -2869,6 +2873,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         width += scale * static_cast<float>(thickness.Left + thickness.Right);
         height += scale * static_cast<float>(thickness.Top + thickness.Bottom);
 
+        // VT window-size requests also need the outer pane's casing insets.
+        const auto settings = _core.Settings();
+        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge());
+        width += scale * bezel.Width();
+        height += scale * bezel.Height();
         return { width, height };
     }
 

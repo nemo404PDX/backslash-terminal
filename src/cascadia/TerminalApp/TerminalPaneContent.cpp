@@ -27,6 +27,8 @@ namespace winrt::TerminalApp::implementation
         _cache{ cache },
         _profile{ profile }
     {
+        _bezel.Content(_control);
+        _updateBezel();
         _setupControlEvents();
     }
 
@@ -50,7 +52,7 @@ namespace winrt::TerminalApp::implementation
 
     winrt::Windows::UI::Xaml::FrameworkElement TerminalPaneContent::GetRoot()
     {
-        return _control;
+        return _bezel.Root();
     }
     winrt::Microsoft::Terminal::Control::TermControl TerminalPaneContent::GetTermControl()
     {
@@ -58,7 +60,10 @@ namespace winrt::TerminalApp::implementation
     }
     winrt::Windows::Foundation::Size TerminalPaneContent::MinimumSize()
     {
-        return _control.MinimumSize();
+        auto size = _control.MinimumSize();
+        size.Width += _bezel.Insets.Width();
+        size.Height += _bezel.Insets.Height();
+        return size;
     }
     void TerminalPaneContent::Focus(winrt::Windows::UI::Xaml::FocusState reason)
     {
@@ -346,6 +351,7 @@ namespace winrt::TerminalApp::implementation
         if (const auto settings{ _cache->TryLookup(_profile) })
         {
             _control.UpdateControlSettings(settings->DefaultSettings(), settings->UnfocusedSettings());
+            _updateBezel();
         }
     }
 
@@ -353,6 +359,19 @@ namespace winrt::TerminalApp::implementation
     // - Should be called when this pane is created via a default terminal handoff
     // - Finalizes our configuration given the information that we have been
     //   created via default handoff
+    void TerminalPaneContent::_updateBezel()
+    {
+        _bezel.Update(_profile.RetroBezelEnabled(), static_cast<int>(_profile.RetroBezelSize()),
+                      static_cast<int>(_profile.RetroBezelColor()), static_cast<int>(_profile.RetroBezelBadge()),
+                      _profile.RetroBezelCenterFullscreen(), _fullscreen);
+    }
+
+    void TerminalPaneContent::SetFullscreen(bool fullscreen)
+    {
+        _fullscreen = fullscreen;
+        _updateBezel();
+    }
+
     void TerminalPaneContent::MarkAsDefterm()
     {
         _isDefTermSession = true;
@@ -365,7 +384,9 @@ namespace winrt::TerminalApp::implementation
 
     float TerminalPaneContent::SnapDownToGrid(const TerminalApp::PaneSnapDirection direction, const float sizeToSnap)
     {
-        return _control.SnapDimensionToGrid(direction == PaneSnapDirection::Width, sizeToSnap);
+        const auto width = direction == PaneSnapDirection::Width;
+        const auto inset = width ? _bezel.Insets.Width() : _bezel.Insets.Height();
+        return inset + _control.SnapDimensionToGrid(width, sizeToSnap - inset);
     }
     Windows::Foundation::Size TerminalPaneContent::GridUnitSize()
     {

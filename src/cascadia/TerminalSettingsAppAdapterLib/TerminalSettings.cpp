@@ -289,6 +289,9 @@ namespace winrt::Microsoft::Terminal::Settings
     void TerminalSettings::_ApplyProfileSettings(const Model::Profile& profile)
     {
         // Fill in the Terminal Setting's CoreSettings from the profile
+        _RetroBezelEnabled = profile.RetroBezelEnabled();
+        _RetroBezelSize = static_cast<int32_t>(profile.RetroBezelSize());
+        _RetroBezelBadge = static_cast<int32_t>(profile.RetroBezelBadge());
         _HistorySize = profile.HistorySize();
         _SnapOnInput = profile.SnapOnInput();
         _AltGrAliasing = profile.AltGrAliasing();

@@ -2759,4 +2759,87 @@
   <data name="Profile_RetroTerminalScanlineIntensity.Header" xml:space="preserve"><value>Retro scanline intensity</value></data>
   <data name="Profile_RetroTerminalScanlineIntensity.HelpText" xml:space="preserve"><value>Adjusts the built-in retro effect. Enable Retro terminal effects to see it. A custom pixel shader takes precedence.</value></data>
   <data name="Profile_RetroTerminalScanlineIntensitySlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Retro scanline intensity</value></data>
+  <data name="Profile_RetroBezelHeader.Text" xml:space="preserve"><value>Retro bezel</value></data>
+  <data name="Profile_RetroBezelEnabled.Header" xml:space="preserve"><value>Retro bezel</value></data>
+  <data name="Profile_RetroBezelEnabled.HelpText" xml:space="preserve"><value>Add a plastic frame around the terminal. Terminal colors and text padding stay independent.</value></data>
+  <data name="Profile_RetroBezelSize.Header" xml:space="preserve"><value>Frame width</value></data>
+  <data name="Profile_RetroBezelSize.HelpText" xml:space="preserve"><value>Choose a width in device-independent pixels. The frame follows the pane size.</value></data>
+  <data name="Profile_RetroBezelColor.Header" xml:space="preserve"><value>Casing finish</value></data>
+  <data name="Profile_RetroBezelColor.HelpText" xml:space="preserve"><value>Choose a casing finish. Terminal colors and transparency stay independent.</value></data>
+  <data name="Profile_RetroBezelBadge.Header" xml:space="preserve"><value>Backslash badge</value></data>
+  <data name="Profile_RetroBezelBadge.HelpText" xml:space="preserve"><value>Place the temporary Backslash text badge above or below the aperture, or omit it.</value></data>
+  <data name="Profile_RetroBezelCenterFullscreen.Header" xml:space="preserve"><value>Center aperture in fullscreen</value></data>
+  <data name="Profile_RetroBezelCenterFullscreen.HelpText" xml:space="preserve"><value>Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows.</value></data>
+  <data name="Profile_RetroBezelSizeSlim.Content" xml:space="preserve"><value>Slim (18 DIP)</value></data>
+  <data name="Profile_RetroBezelSizeMedium.Content" xml:space="preserve"><value>Medium (28 DIP)</value></data>
+  <data name="Profile_RetroBezelSizeWide.Content" xml:space="preserve"><value>Wide (40 DIP)</value></data>
+  <data name="Profile_RetroBezelColorOffWhite.Content" xml:space="preserve"><value>Fresh off-white</value></data>
+  <data name="Profile_RetroBezelColorCream.Content" xml:space="preserve"><value>Cream</value></data>
+  <data name="Profile_RetroBezelColorLightYellow.Content" xml:space="preserve"><value>Lightly yellowed</value></data>
+  <data name="Profile_RetroBezelColorAgedYellow.Content" xml:space="preserve"><value>Aged yellow</value></data>
+  <data name="Profile_RetroBezelColorGraphite.Content" xml:space="preserve"><value>Graphite gray</value></data>
+  <data name="Profile_RetroBezelColorCharcoal.Content" xml:space="preserve"><value>Charcoal</value></data>
+  <data name="Profile_RetroBezelColorNearBlack.Content" xml:space="preserve"><value>Near black</value></data>
+  <data name="Profile_RetroBezelColorSlateBlue.Content" xml:space="preserve"><value>Muted slate blue</value></data>
+  <data name="Profile_RetroBezelColorMutedOlive.Content" xml:space="preserve"><value>Muted olive</value></data>
+  <data name="Profile_RetroBezelBadgeNone.Content" xml:space="preserve"><value>Omitted</value></data>
+  <data name="Profile_RetroBezelBadgeBottom.Content" xml:space="preserve"><value>Bottom</value></data>
+  <data name="Profile_RetroBezelBadgeTop.Content" xml:space="preserve"><value>Top</value></data>
+  <data name="AddProfile_ScanSsh.Content" xml:space="preserve">
+    <value>Scan SSH hosts</value>
+  </data>
+  <data name="AddProfile_SshScanStatus.Text" xml:space="preserve">
+    <value>Scan reads local SSH configuration. Select a host, Add/Restore, then Save. Cancel discards changes.</value>
+  </data>
+  <data name="AddProfile_SshSelect/Text" xml:space="preserve">
+    <value>Select a host to add it or restore its existing profile.</value>
+  </data>
+  <data name="AddProfile_SshEmpty/Text" xml:space="preserve">
+    <value>No SSH hosts found. Check local config and disabled profile sources or policy.</value>
+  </data>
+  <data name="AddProfile_SshHosts.AutomationProperties.Name" xml:space="preserve">
+    <value>Discovered SSH hosts</value>
+  </data>
+  <data name="AddProfile_RestoreSsh.Content" xml:space="preserve">
+    <value>Add / Restore</value>
+  </data>
+  <data name="Profile_SshShellHeader.Text" xml:space="preserve">
+    <value>Remote shell</value>
+  </data>
+  <data name="Profile_SshShellHelp.Text" xml:space="preserve">
+    <value>Choose a shell, Save, then open a new SSH session. Existing sessions keep their current shell. Use SSH configuration keeps RemoteCommand and RequestTTY; other choices request a terminal and clear RemoteCommand. For Custom, enter a command and Apply before Save. Custom uses the server login shell quoting syntax; no newlines, NUL, or percent signs.</value>
+  </data>
+  <data name="Profile_SshShellChoice.AutomationProperties.Name" xml:space="preserve">
+    <value>SSH remote shell</value>
+  </data>
+  <data name="Profile_SshConfig.Content" xml:space="preserve">
+    <value>Use SSH configuration (default)</value>
+  </data>
+  <data name="Profile_SshServer.Content" xml:space="preserve">
+    <value>Server default</value>
+  </data>
+  <data name="Profile_SshBash.Content" xml:space="preserve">
+    <value>Bash</value>
+  </data>
+  <data name="Profile_SshPwsh.Content" xml:space="preserve">
+    <value>PowerShell 7</value>
+  </data>
+  <data name="Profile_SshCustom.Content" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="Profile_SshCustomCommand.AutomationProperties.Name" xml:space="preserve">
+    <value>Custom remote shell command</value>
+  </data>
+  <data name="Profile_ApplySshShell.Content" xml:space="preserve">
+    <value>Apply custom command</value>
+  </data>
+  <data name="Profile_SshAdvanced/Text" xml:space="preserve">
+    <value>Advanced command line retained. Edit it below, or reset Command line to enable the shell selector.</value>
+  </data>
+  <data name="Profile_SshApplied/Text" xml:space="preserve">
+    <value>Remote shell selected. Save, then open a new SSH session. Existing sessions keep their current shell.</value>
+  </data>
+  <data name="Profile_SshInvalid/Text" xml:space="preserve">
+    <value>Command rejected. Custom must be nonempty and cannot contain NUL, newlines, or percent signs.</value>
+  </data>
 </root>

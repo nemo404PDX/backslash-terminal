@@ -42,6 +42,10 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::Microsoft::Terminal::Control::WarnAboutMultiLinePaste> WarnAboutMultiLinePaste();
 
         // Profile Settings
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelSize> RetroBezelSize();
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelColor> RetroBezelColor();
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelBadge> RetroBezelBadge();
+
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, CloseOnExitMode> CloseOnExitMode();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Microsoft::Terminal::Control::ScrollbarState> ScrollbarState();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::Windows::UI::Xaml::Media::Stretch> BackgroundImageStretchMode();

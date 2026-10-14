@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "Profile.h"
+#include "SshCommandline.h"
 #include "JsonUtils.h"
 #include "../../types/inc/Utils.hpp"
 
@@ -585,4 +586,66 @@ void Profile::LogSettingChanges(std::set<std::string>& changes, const std::strin
     {
         winrt::get_self<implementation::AppearanceConfig>(*_UnfocusedAppearance)->LogSettingChanges(changes, appContext);
     }
+}
+
+// The original generated parent supplies the target, never the editable display name.
+const Profile* Profile::_sshParent() const
+{
+    if (Source() == L"Windows.Terminal.SSH")
+    {
+        for (const auto& parent : _parents)
+        {
+            if (parent->Origin() == OriginTag::Generated && parent->Source() == Source() && parent->Guid() == Guid())
+            {
+                return parent.get();
+            }
+        }
+    }
+    return nullptr;
+}
+
+bool Profile::HasSshShellSelector() const
+{
+    std::wstring exe, host;
+    const auto parent = _sshParent();
+    return parent && SshCommandline::Base(parent->Commandline(), exe, host);
+}
+
+int32_t Profile::SshShell() const
+{
+    std::wstring custom;
+    const auto parent = _sshParent();
+    return parent ? SshCommandline::Recognize(parent->Commandline(), Commandline(), custom) : -1;
+}
+
+winrt::hstring Profile::SshCustomCommand() const
+{
+    std::wstring custom;
+    if (const auto parent = _sshParent())
+    {
+        SshCommandline::Recognize(parent->Commandline(), Commandline(), custom);
+    }
+    return hstring{ custom };
+}
+
+bool Profile::SetSshShell(int32_t mode, const hstring& customCommand)
+{
+    const auto parent = _sshParent();
+    if (!parent || SshShell() < 0)
+    {
+        return false;
+    }
+    if (const auto command = SshCommandline::Build(parent->Commandline(), mode, customCommand))
+    {
+        if (mode == 0)
+        {
+            ClearCommandline();
+        }
+        else
+        {
+            Commandline(hstring{ *command });
+        }
+        return true;
+    }
+    return false;
 }

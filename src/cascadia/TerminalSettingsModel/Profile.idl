@@ -14,6 +14,16 @@ import "FontConfig.idl";
 
 namespace Microsoft.Terminal.Settings.Model
 {
+    enum RetroBezelSize { Slim, Medium, Wide };
+
+    // Persisted/adapter values: append new finishes, never renumber existing shades.
+    enum RetroBezelColor {
+        OffWhite = 0, Cream = 1, LightYellow = 2, AgedYellow = 3,
+        Graphite = 4, Charcoal = 5, NearBlack = 6, SlateBlue = 7, MutedOlive = 8
+    };
+
+    enum RetroBezelBadge { None, Bottom, Top };
+
     enum CloseOnExitMode
     {
         Never = 0,
@@ -39,6 +49,12 @@ namespace Microsoft.Terminal.Settings.Model
         void CreateUnfocusedAppearance();
         void DeleteUnfocusedAppearance();
 
+        // These controls persist through the existing commandline override.
+        Boolean HasSshShellSelector { get; };
+        Int32 SshShell { get; };
+        String SshCustomCommand { get; };
+        Boolean SetSshShell(Int32 mode, String customCommand);
+
         // True if the user explicitly removed this Profile from settings.json.
         Boolean Deleted { get; };
         // True if the user *kept* this Profile, but it disappeared from the system.
@@ -56,6 +72,12 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_PROFILE_SETTING(Boolean, SuppressApplicationTitle);
         INHERITABLE_PROFILE_SETTING(Microsoft.Terminal.Control.ScrollbarState, ScrollState);
         INHERITABLE_PROFILE_SETTING(String, Padding);
+        INHERITABLE_PROFILE_SETTING(Boolean, RetroBezelEnabled);
+        INHERITABLE_PROFILE_SETTING(RetroBezelSize, RetroBezelSize);
+        INHERITABLE_PROFILE_SETTING(RetroBezelColor, RetroBezelColor);
+        INHERITABLE_PROFILE_SETTING(RetroBezelBadge, RetroBezelBadge);
+        INHERITABLE_PROFILE_SETTING(Boolean, RetroBezelCenterFullscreen);
+
         INHERITABLE_PROFILE_SETTING(String, Commandline);
 
         INHERITABLE_PROFILE_SETTING(String, StartingDirectory);

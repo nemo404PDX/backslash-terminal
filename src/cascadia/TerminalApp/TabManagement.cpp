@@ -9,6 +9,7 @@
 //
 
 #include "pch.h"
+#include "../inc/TerminalTabPolicy.h"
 #include "TerminalPage.h"
 #include "Utils.h"
 #include "../../types/inc/utils.hpp"
@@ -242,11 +243,10 @@ namespace winrt::TerminalApp::implementation
         // - we're not in focus mode
         // - we're not in full screen, or the user has enabled fullscreen tabs
         // - there is more than one tab, or the user has chosen to always show tabs
-        const auto isVisible = !_isInFocusMode &&
-                               (!_isFullscreen || _showTabsFullscreen) &&
-                               (_settings.GlobalSettings().ShowTabsInTitlebar() ||
-                                (_tabs.Size() > 1) ||
-                                _settings.GlobalSettings().AlwaysShowTabs());
+        const auto isVisible = ::Microsoft::Terminal::ShouldShowTerminalTabs(
+            _isInFocusMode, _isFullscreen, _showTabsFullscreen,
+            _settings.GlobalSettings().ShowTabsInTitlebar(), _tabs.Size() > 1,
+            _settings.GlobalSettings().AlwaysShowTabs());
 
         if (_tabView)
         {

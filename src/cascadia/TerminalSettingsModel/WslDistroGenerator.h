@@ -26,6 +26,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model
         std::wstring_view GetNamespace() const noexcept override;
         std::wstring_view GetDisplayName() const noexcept override;
         std::wstring_view GetIcon() const noexcept override;
+        static void GenerateForDistributions(const std::vector<std::pair<std::wstring, bool>>& names, std::vector<winrt::com_ptr<implementation::Profile>>& profiles);
         void GenerateProfiles(std::vector<winrt::com_ptr<implementation::Profile>>& profiles) const override;
     };
 };

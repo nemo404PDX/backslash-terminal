@@ -151,6 +151,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile().FontInfo(), EnableBuiltinGlyphs);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile().FontInfo(), EnableColorGlyphs);
 
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelEnabled);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelSize);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelColor);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadge);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineIntensity);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalGlowIntensity);
@@ -222,6 +227,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         WINRT_PROPERTY(Windows::Foundation::Collections::IObservableVector<Microsoft::Terminal::Settings::Editor::EnumEntry>, FontWeightList);
 
+    public:
+        static Windows::UI::Xaml::Media::Brush BezelShadeBrush(int32_t value);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelSize, Microsoft::Terminal::Settings::Model::RetroBezelSize, Appearance().RetroBezelSize);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelColor, Microsoft::Terminal::Settings::Model::RetroBezelColor, Appearance().RetroBezelColor);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelBadge, Microsoft::Terminal::Settings::Model::RetroBezelBadge, Appearance().RetroBezelBadge);
         GETSET_BINDABLE_ENUM_SETTING(CursorShape, Microsoft::Terminal::Core::CursorStyle, Appearance().CursorShape);
         GETSET_BINDABLE_ENUM_SETTING(AdjustIndistinguishableColors, Microsoft::Terminal::Core::AdjustTextMode, Appearance().AdjustIndistinguishableColors);
 

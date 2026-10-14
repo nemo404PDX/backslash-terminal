@@ -2,7 +2,71 @@
 
 [Project entry point](README.md) · [CRT Appearance design](CRT-APPEARANCE.md) · [Baseline sample map](BASELINE.md) · [Inline editor geometry research](SSH-LOCAL-EDITOR-RESEARCH.md)
 
-Research date: 2026-10-13. **New design document only.** No bezel implementation, asset creation, build, source edit or Git mutation was performed. This file is intentionally not linked into shared indexes yet because the independent identity task is editing those files.
+Research date: 2026-10-13. A limited first bezel slice is now implemented; its scope and evidence are recorded below. The remaining sections retain historical research and future options, not a promise that those features have shipped. No commit or push was made for this slice.
+
+## Implemented first slice (2026-10-13)
+
+The frame is disabled by default. Settings → Profiles → a profile (or Defaults) → Appearance now has a **Retro bezel** group with an enable toggle, three bounded frame widths, nine selectable casing finishes, an optional top/bottom/omitted badge, and fullscreen aperture centering. Each control uses the existing local-override/inheritance/reset convention; Save and Cancel use the existing editor settings copy. The preview uses the same frame helper and existing 100 ms debounced refresh as live appearance changes. Width is a small preset choice, not a free geometry editor; there is no yellowing slider.
+
+| Profile JSON property | Default | Supported values |
+| --- | --- | --- |
+| `experimental.retroBezelEnabled` | `false` | Boolean |
+| `experimental.retroBezelSize` | `"medium"` | `"slim"` (18 DIP), `"medium"` (28 DIP), `"wide"` (40 DIP) |
+| `experimental.retroBezelColor` | `"offWhite"` | `"offWhite"` (#E8E8DD), `"cream"` (#E5DABD), `"lightYellow"` (#D9C796), `"agedYellow"` (#C4AB68), `"graphite"`, `"charcoal"`, `"nearBlack"`, `"slateBlue"`, `"mutedOlive" |
+| `experimental.retroBezelBadge` | `"bottom"` | `"none"`, `"bottom"`, `"top"` |
+| `experimental.retroBezelCenterFullscreen` | `true` | Boolean; effective only with an enabled frame in fullscreen |
+
+These are **profile geometry settings**, like text padding/font metrics, rather than focused/unfocused appearance settings. Focus changes never resize the aperture. Profile defaults, explicit local false, copying, duplication, null reset and override-source lookup participate in the normal profile model. Invalid enum strings or numeric enum inputs are rejected. Bezel fields under `unfocusedAppearance` are unsupported. New English labels use existing resource fallback; translations are future work.
+
+### Rendering/layout boundary
+
+- A shared XAML `RetroBezel` wraps the existing TermControl in `TerminalPaneContent`; the Appearance preview wraps its own TermControl with the same helper. The pane root remains stable during settings reload. Pane focus notifications read the nested terminal control's focus state, preserving mouse/keyboard provenance. The renderer/shaders and terminal input coordinate code remain unchanged.
+- The casing is a **hollow** procedural Border ring with simple diagonal material shading, a bright/dark outer bevel and a recessed aperture bevel. The follow-up correction below supersedes the original outer-radius/rectangular-opening geometry. No whole-image stretching, artwork import, clip mask, time-based redraw or screen warp is introduced. Decoration is non-hit-testable.
+- The whole TermControl, including scrollbar/search/selection overlays, sits inside the aperture. Frame insets are external to TermControl. Existing `padding` remains the SwapChainPanel margin used by text and input/accessibility coordinates. Colors are frame-only; no ANSI/default-role palette or CRT intensity setting is changed. The hollow center avoids painting plastic beneath a translucent terminal background.
+- Initial window dimensions, VT requested row/column dimensions, pane minimum dimensions and pane resize snapping reserve the frame's fixed DIP insets. The terminal's normal layout/SwapChainPanel size change drives row/column resizing; the existing two-by-two cell minimum remains. Frame sizes do not change font size.
+- A badge adds a fixed **28 DIP chin** on its chosen side. In fullscreen with centering enabled, an additional 28 DIP casing inset on the opposite side centers the aperture within each pane, reducing available rows. With centering off it fills the pane asymmetrically. This is pane-local centering; window chrome is outside that contract.
+- The badge is simple original `BACKSLASH` text in a small strip, using a normal system font. It is temporary, not the final selected logo/icon. User-added raster concept references in `branding/concepts/concept-c-green.png` and `concept-a-b-c.png` are now locally verified and visually inspected; a production badge asset remains unselected. No manufacturer logos or GPL source were copied. Narrow badges use text ellipsis; that visual behavior still needs manual inspection.
+
+Texture import, wear, richer shapes/materials, radius controls, custom skins, curvature, glass reflection, additional CRT effects and SSH work remain future scope.
+
+### Verification actually performed
+
+Final evidence: `artifacts/build/20261013-152835-951-Release-x64-afe9d435`.
+
+- Repository `tools/backslash/Build.ps1`, Release/x64: **0 errors, 134 warnings**, elapsed **00:00:28.77**. Existing packaging/PRI/link warning categories remain. Earlier attempts are preserved under `20261013-151735-953-Release-x64-a96a0efb` (helper visibility error), `20261013-152030-463-Release-x64-0bc97a66` (nested x:Bind code-generation error), and `20261013-152227-773-Release-x64-3923110e` (successful intermediate before the hollow-ring change), and `20261013-152642-440-Release-x64-b0f3fa1b` (successful intermediate before preserving nested pane focus state).
+- Settings DLL compiled successfully. TAEF used `bin/x64/Release/UnitTests_SettingsModel/TE.exe /InProc`, with **resources.pri beside the host**. All **12 ProfileTests passed** and all **7 Backslash tests passed** (17 distinct tests; two bezel tests occur in both selections), with zero failed/blocked/skipped/not-run tests in those selections. New coverage includes disabled defaults, all enum storage, local false, inheritance/override source, copy, null/clear reset, invalid input retaining prior values, duplication, shade independence from text/CRT settings, fixed DIP sizing/fullscreen balancing, and focus-independent control geometry propagation. The complete settings suite was not run.
+- `tools/backslash/Test-RetroShader.ps1 -Runtime`: compiled shader ABI/reflection checks and WARP pixel-output regression cases passed. Shader source and intensity implementation are unchanged.
+- Fresh `New-PortableDistribution.ps1` assembly and `Test-PortableIsolation.ps1` passed. Earlier artifacts were preserved.
+- Hidden isolated startup smoke ran **7 cases**: disabled, medium/bottom with CRT enabled, slim/top/cream, wide/omitted/aged, fullscreen bottom/top centered, and fullscreen bottom without balancing. Each profile shell executed. All four windowed cases started at **80 columns × 24 rows** and changed to **90 × 30** after a VT size request; fullscreen cases retained a usable grid. See `bezel-portable-smoke.json` and case settings/shell evidence. This establishes startup/grid behavior, not a visual appearance check.
+- **2 existing Windows Terminal settings/state files retained identical SHA256 hashes**. Only processes whose executable path exactly matched the fresh portable executable were stopped. Smoke settings/state were moved to the evidence directory, leaving the delivery folder clean. No installed settings were written.
+- Clean ZIP: `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-Bezel-x64-afe9d435.zip`; **258 entries**, `.portable` included, smoke settings excluded. SHA256: **`CB4BABA191C73896C852946E7E3A353113E48473004412889F9E96AAFFAC6713`**.
+- Source whitespace checking passed with `core.whitespace=cr-at-eol`. Three editor files' original LF endings were restored after compilation; their normalized logical sources are identical, recorded in `source-line-ending-restoration.json`. Other original source line endings were retained. No installation/registration, certificate trust, security setting, commit or push was performed.
+
+**Runnable executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-152835-951-Release-x64-afe9d435\WindowsTerminal.exe`.
+
+### Visual and interaction verification still unrun
+
+No screenshots or native UI interaction checks were performed. This session exposes no `node_repl` for the supported Computer Use skill; its CUA tool has native computer APIs disabled. A shell startup smoke is not substituted for desktop visual testing. In particular, live control Save/Cancel/reset, keyboard/accessibility navigation, mouse selection/cursor/hyperlinks, pane split/move/zoom, small-window clipping, background transparency/acrylic/image appearance, and multi-monitor/fractional DPI remain manual checks. Hardware-GPU performance and idle redraw measurements are also unrun.
+
+Use the fresh portable directory or extract the ZIP into a new directory; keep `.portable` beside the executable. Only that copy's adjacent settings should be edited.
+
+1. Open a test profile's Appearance page. Confirm bezel off by default, then enable it. Try all four swatches and three widths; terminal ANSI output/colors and CRT sliders should stay independent. Confirm preview changes and Save/Cancel behavior.
+2. Switch bottom → top → omitted; confirm the temporary Backslash strip stays in the frame and no edge text is covered. Change terminal padding separately. Drag a selection and position the cursor near all four edges.
+3. Resize, split/close/move/zoom panes, and change font size. Confirm usable rows/columns, intact corners, aligned scrollbar/search/selection, and no clipping. Try a narrow pane for badge ellipsis.
+4. Toggle fullscreen (Alt+Enter); compare centering on/off with top/bottom badges. Opposite-side outer space should keep the aperture centered and consume only the documented space.
+5. Set bezel defaults, override a profile, clear each override, duplicate it, Save/relaunch, and check values. Test keyboard controls/reset and available DPI scales (100/125/150/200%).
+
+### Changed source files
+
+- Shared frame: `src/cascadia/inc/RetroBezel.h`, `RetroBezelGeometry.h`.
+- Model/schema: `MTSMSettings.h`, `Profile.idl`, `TerminalSettingsSerializationHelpers.h`, `EnumMappings.idl/.h/.cpp`; `doc/cascadia/profiles.schema.json`.
+- Adapter/sizing: `TerminalControl/IControlSettings.idl`, `TermControl.cpp`, `inc/ControlProperties.h`, `TerminalSettingsAppAdapterLib/TerminalSettings.cpp`.
+- Pane/fullscreen/focus: `TerminalApp/TerminalPaneContent.idl/.h/.cpp`, `TerminalPage.cpp`, `Pane.cpp`.
+- Editor/preview: `TerminalSettingsEditor/Appearances.idl/.h/.cpp/.xaml`, `Profiles_Appearance.h/.cpp`, English `Resources.resw`.
+- Tests: `UnitTests_SettingsModel/ProfileTests.cpp`, `TerminalSettingsTests.cpp`; this design document.
+
+## Historical research and future design options
+
 
 ## Requested direction and proposed first scope
 
@@ -163,5 +227,137 @@ Require readable text, accessible labeled sliders/color controls, neutral disabl
 
 Specific shape presets, retro-computer-inspired finish/palette variants, original Backslash badge/chin assets and applicable limited brightness/accent/control ranges; fullscreen center-display balancing/minimum-aperture policy; per-profile inheritance/overrides; inner/outer radius relationship; gradient types/stop limits; bezel versus aperture clipping representation; reserved content sizing; PNG nine-slice tiling policy; ornaments/minimum aspect behavior; optional SVG subset and sanitization; hybrid texture/shading/glass layer order, UV scale and anchored-detail policy; backend/renderer layer; resource/performance limits; preset schema/import/export/licensing UI; warp/input mapping and interaction with inline editor composition.
 
-Recommendation: begin with a small set of per-profile shape presets and separate curated finish-family variants, limited applicable adjustments and a neutral geometry fixture. Richer gradients/material/shape editing can be evaluated separately. Treat imported PNG/SVG skins as later optional work, with explicit metadata and proven import behavior. No implementation choice is finalized by this research.
+Recommendation: begin with a small set of per-profile shape presets and separate curated finish-family variants, limited applicable adjustments and a neutral geometry fixture. Richer gradients/material/shape editing can be evaluated separately. Treat imported PNG/SVG skins as later optional work, with explicit metadata and proven import behavior. The historical research did not finalize an implementation; the shipped first-slice choices are documented above.
 
+
+## Corner correction following user references (2026-10-13)
+
+The three supplied reference images were materialized through the supported Library transfer flow and inspected as pixels: `libfile_5ff414f797188191834b40df038b06b9` (annotated current corner), `libfile_9d4faa332f488191b34b7f32817d4368` (CRT recess), and `libfile_1259c2fe12b881918785bdf6f01ba719` (flipped boxed comparison). The last clarification concerns the **two boundaries of the recessed transition**: its outer shoulder is sharp/square, while the inner screen opening is rounded. It is not solely an application-window silhouette change. Lighting direction in a flipped crop is not a fixed lighting specification.
+
+The shared helper now draws a hollow material path with a square external silhouette. The recess is a separate hollow path with a square outer shoulder and a 6 DIP rounded inner boundary; the original light/dark bevel shading remains. A 6 DIP inner clearance contains the entire arc outside the rectangular terminal control, preserving all corner cells, scrollbar/overlays, input coordinates, and the existing preset/window/grid sizing. A non-hit-testable Canvas isolates these paths from desired-size calculation, avoiding resize feedback. There is no terminal content clip, renderer warp, new shader, texture, or glass effect. Textured plastic, richer sloping materials, and glass refinements from the reference remain future work.
+
+The corner constants/clearance are covered by `BackslashBezelSquareOuterRoundedInner`; the existing model/adapter/bezel and CRT tests remain applicable. Final fresh-build and startup/grid-resize evidence is recorded in SSH-PROFILES.md. Desktop visual verification of the resulting shoulder/rounded opening, selection, small panes, DPI, and transparency remains manual because the supported native automation runtime is unavailable.
+
+### Center aperture regression correction
+
+The user screenshot `libfile_7273be7555888191bdf864d9ee61a1d1` was materialized and inspected. Its wallpaper strip matches a concrete source defect: centering reserved the opposite-side 28 DIP as a margin outside the hollow casing, while TerminalPage's host is transparent. That area had no material paint. The correction keeps the casing at full pane size and adds balancing space to its own inset; content/minimum/grid dimensions retain the same total reservation. No opaque fill is added beneath the terminal, so terminal transparency is preserved.
+
+Centering now takes the existing fullscreen state as a separate input and applies only there. It cannot enter/exit fullscreen, change focus mode, or alter tab visibility. The original tab policy is retained verbatim in a small shared pure helper for regression tests: focus hides tabs; true fullscreen uses showTabsFullscreen; ordinary/maximized mode uses the existing titlebar/multiple/always-show choices. The screenshot alone cannot establish what caused fullscreen/tab state before capture, and interactive reproduction is unavailable. The diagnosed unpainted strip is fixed; disappearance of tabs due specifically to toggling this control is not independently reproduced.
+
+`BackslashBezelCenteringModeAndTabs` covers repeated center on/off in windowed, maximized, fullscreen and exiting fullscreen, top/bottom/omitted badges, disabled geometry, unchanged launch/tab preferences, and the actual production tab policy. Fresh startup/grid tests cover mode combinations and hot-reload toggles. Visual tab-row and wallpaper coverage checks, interactive Alt+Enter exit, and pointer/DPI behavior remain manual.
+
+Final integrated validation: `artifacts/build/20261013-155957-526-Release-x64-96cd752b` (0 errors / 134 warnings), all 158 settings tests, shader ABI/WARP regressions, portable isolation, and 13 startup cases with 52 repeated center hot-reloads passed. Windowed/maximized grids remain stable; fullscreen grids return consistently when center toggles, with both fullscreen tab preferences tested. Four installed/user-portable settings/state hashes remain unchanged. Clean ZIP/executable paths and SHA256 are recorded in [SSH-PROFILES.md](SSH-PROFILES.md). Live visual tab/window-background checks and fullscreen exit remain unrun.
+
+### Opaque black surround correction
+
+The supplied screenshot `libfile_f01403fd68e081919a9602dc39ed78c1` was inspected as pixels. Its arrows indicate the exposed inside top/left strips and rounded corner between the bevel and rectangular terminal; tabs are visible. The rounded recess intentionally reserves a 6 DIP safety gutter outside the TermControl, but that hollow gutter previously exposed the transparent host or window background image.
+
+The shared live/preview helper now places a non-hit-testable opaque-black hollow Border below the colored casing/recess. Its BorderThickness is exactly the same inset as the TermControl margin, and its Background is null. Thus the gutter/corner gaps are black, colored material remains above it, and the rectangular screen—including padding/scrollbar/overlays—has no black backing beneath it. The backing has fixed alpha 255 and XAML opacity 1; it does not use the TermControl background brush. Inspection confirms terminal opacity/acrylic changes the TermControl RootGrid background brush, not the surrounding frame's container opacity. Centering remains inside the full-size casing; fullscreen/tab policy and grid dimensions are unchanged.
+
+`BackslashBezelOpaqueSurroundTransparentScreen` checks the screen-hole boundaries, gutter/corners and fixed-black color across all widths/badges, centering/mode combinations, opacity 0/0.25/0.6/1 and acrylic on/off. Build, full settings/shader regressions, isolated transparency startup/hot-reload cases, and fresh delivery evidence are recorded below after validation. Actual visual black-versus-transparent composition and acrylic appearance remain manual; native Computer Use is unavailable. This changes the frame surround only, with no global titlebar/theme opacity override.
+
+### Badge plate vertical centering
+
+The user clarification and parent inspection of `libfile_f0930181a1988191be36f14f1767059b` specify the horizontal red line as the vertical midpoint of the flat chin. The whole 22 DIP badge plate is now centered between the 2 DIP outer rim and the square inner-recess shoulder (`sideInset - 6 DIP clearance - 3 DIP recess`). Its offset from the outer edge is 5.5/9.5/15.5 DIP for slim/medium/wide with a badge. Top badges use the analogous top distance. Fullscreen balancing changes the opposite edge only, so plate centering stays correct. Existing horizontal margins/stretch are unchanged.
+
+`BackslashBezelBadgeVerticalChinCenter` verifies equal flat-space clearance and plate midpoint across sizes, top/bottom, fullscreen/centering combinations and 100/125/150/200% mathematical DPI scaling. Native rendered/pixel-rounded badge inspection remains manual. The crop itself was interpreted from the parent's pixel inspection; this executor did not independently materialize that second image.
+
+Final follow-up evidence: `artifacts/build/20261013-162825-371-Release-x64-f3e3a085`, 0 build errors / 134 warnings, all 161 settings tests and 11 focused tests passed, shader/isolation checks passed, and 19 startup cases with 76 centering hot-reloads passed. The fresh runnable copy/ZIP (also containing the automatic built-in SSH selection fix) is listed in [SSH-PROFILES.md](SSH-PROFILES.md). ZIP SHA256: `0CD83CE7C44387C7DD471EB81244C4DCF3AC43CFBC8C1FC150A29DBEF48AE590`. Four existing settings/state files retained identical hashes. Actual composited transparency, rendered badge centering and native interaction remain manual.
+
+### Subdued inset badge material
+
+The user/parent-inspected reference `libfile_3bae91bd79f88191a6492dddcf7228ba` identifies the pale cream strip as too conspicuous. The prior fill mixed 28% white into the casing. It is replaced by an opaque computed equivalent of a 22% neutral #707070 tint over each casing swatch. A 1 DIP seam uses a dark upper/left edge and a softer lower/right edge; no glow, thick contour, new slider or renderer blend mode is introduced. The plate color derives only from the selected casing, never terminal opacity/acrylic. BACKSLASH changes from weight 600 to 700; font family, size and letter spacing remain unchanged.
+
+The whole 22 DIP plate, corner radius, horizontal placement and vertically centered chin position are retained. Border space is compensated by reducing internal padding so text insets/available content space stay at the original 10 DIP horizontal and 2 DIP vertical. The opaque black screen gutter, transparent screen cutout and square-outer/rounded-inner aperture geometry remain unchanged. The new shared color helper preserves the exact four casing swatches and their fallback.
+
+`BackslashBezelBadgeMaterialSwatchesAndDpi` checks all swatches for subdued casing-aware face colors, dark/softer seam ordering, opaque alpha, unchanged text insets at 100/125/150/200% mathematical scaling, and bold weight. Existing badge-center, mode/tab, surround/transparency and profile tests continue to cover geometry. Actual native compositing, pixel rounding and aesthetic review remain manual because node_repl/native Computer Use is unavailable. The reference was interpreted from the parent's inspected pixels; no new screenshot or font asset was generated.
+
+#### Badge material delivery and evidence (2026-10-14 UTC)
+
+Source remains uncommitted atop `79cf9d34`. The prior source, SSH/profile behavior, main README, screenshot guide and user branding assets are preserved. A future outlined SVG can replace the lettering child independently of the plate; none has been supplied and no SVG import/font dependency is added now.
+
+- Fresh build: `artifacts/build/20261013-170939-466-Release-x64-ef8de854`, Release/x64, **0 errors / 134 warnings**, **1m22.63s**. Settings DLL: 0 errors / 8 warnings. Existing warning categories remain.
+- TAEF host adjacent to DLL/resources.pri: **12 focused tests passed; all 162 settings tests passed**, no failures/blocked/skipped/not-run tests. Tests cover all four swatches, subdued face/seam ordering, fixed opaque alpha, the original text insets and 100/125/150/200% mathematical DPI scaling, plus prior badge-center, aperture/surround, modes/tabs, SSH persistence/restoration and WSL behavior.
+- Existing shader ABI/reflection and WARP output tests passed; shader source unchanged. Local fake SSH capture remains offline. Portable isolation checks passed.
+- **19 isolated hidden startup cases and 76 centering hot-reloads passed**, including all widths/swatches, top/bottom/off and windowed/maximized/fullscreen, opaque/translucent/acrylic settings. This establishes successful startup/grid/reload behavior, not native plate appearance or rendered DPI quality. Four existing installed/user-portable settings/state hashes remained unchanged; only 19 exact-path owned processes were stopped. Smoke files are retained in evidence, and delivery has no settings folder.
+- No screenshot, new font, SVG import, SSH connection, user-instance launch, registration, commit or push occurred.
+
+**Executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-170939-466-Release-x64-ef8de854\WindowsTerminal.exe`.
+
+**ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-BadgeMaterial-x64-ef8de854.zip` (258 entries, `.portable` included, smoke settings excluded).
+
+SHA256: **`DD077711E3244029648D5FC45B5880AC23FFE2E81486244AB7851AF35259068B`**.
+
+Changed files in this slice: `src/cascadia/inc/RetroBezel.h`, new `BezelBadgeMaterial.h`, `UnitTests_SettingsModel/ProfileSourceTests.cpp`, and this document. Actual native aesthetics, seam pixel rounding, wordmark readability in narrow panes and fractional DPI remain manual because node_repl/native Computer Use is unavailable; CUA native APIs are disabled. Inspect the plate with all plastic swatches and top/bottom/off, then compare transparent/acrylic screen settings to confirm casing/plate stay independent.
+
+### Small outer-recess corner rounding (superseding the square shoulder)
+
+The user's green-check reference (`libfile_2b091efdff888191acfdc1f17e91e7f3`) and current red-arrow reference (`libfile_39892016c93c81919796423ca3bf4ae6`), as inspected by the parent, supersede the earlier square **dark-band shoulder**. The recessed band now has a small 3 DIP rounded outer boundary on all four corners and retains its larger 6 DIP inner opening. The external casing/app outline stays square. Existing dark bevel shading remains, so the band reads as a continuous gap without new controls.
+
+A shared clamp limits each arc to half its rectangle's dimensions; when a tiny opening clamps the inner radius, the outer radius scales down to half the inner radius, retaining their visual order. Empty/pre-layout rectangles generate empty decoration rather than invalid arcs. The black opaque surround, rectangular transparent terminal cutout, safety gutter, badge dimensions/centering/material, tabs and SSH/WSL behavior remain unchanged. The straight recess bounds are unchanged, so the badge's flat-chin midpoint is unchanged.
+
+`BackslashBezelRecessCornerRadii` covers normal/narrow/tiny/empty/negative dimensions, rotated symmetry, all preset widths/badge positions and 100/125/150/200% mathematical scaling, plus square casing and screen-safe inner bounds. The actual native corner appearance and pixel rounding remain manual; node_repl/native Computer Use is unavailable. References were interpreted from the parent's inspected pixels. This is a single refinement; duplicate retry requests must not repeat the mutation.
+
+### Thicker DPI-aware presets
+
+The user requests thicker versions of all three presets, including Slim. Shared geometry changes **Slim 12 → 18 DIP, Medium 20 → 28 DIP, Wide 32 → 40 DIP**. The moderate 6/8/8 DIP increases leave distinct 10/12 DIP steps, and Slim now has at least 7 DIP of flat casing outside the inner recess/rim. Preset names and serialized enum values are unchanged. The 28 DIP badge chin and 22 DIP plate remain; the derived vertical offsets become 8.5/13.5/19.5 DIP on the badge side.
+
+These are logical XAML DIPs, scaled once by the existing layout/sizing path. Initial-window and VT-size-request code already uses this shared helper with DPI scale, so terminal font metrics and user text padding are not altered. A fixed-size/fullscreen pane naturally has less terminal area with a thicker frame. Tests cover original font size, new widths, inner-recess clearance, badge fit and mathematical 100/125/150/200% scaling; runtime initial-grid/VT resize/hot-reload checks and native visual limitations are recorded with the new delivery. This width change accompanies the small outer-recess corner refinement.
+
+### Rounded recess and thicker presets: verified delivery
+
+Evidence: `artifacts/build/20261013-175202-052-Release-x64-09c88028`. The earlier corner-only `0f49d0ab` and geometry-only `f356ccc0` successful build directories are preserved. Checkpoint remains `79cf9d34`; all changes remain uncommitted.
+
+- Final Release/x64 application build: **0 errors, 134 warnings**, **16.87 seconds**. Settings DLL build: **0 errors, 8 warnings**, **23.39 seconds**. Existing packaging/resource warnings remain.
+- Adjacent-resource TAEF host: `bin/x64/Release/UnitTests_SettingsModel/TE.exe`, DLL and `resources.pri` together. Focused ProfileSourceTests **14/14** and full settings suite **164/164** passed, with no failed/blocked/skipped/not-run tests. Includes new radius/clamp/symmetry and thicker-preset layout/font preservation coverage, existing shell capture/restore/WSL, badge/gutter, fullscreen tab policy, CRT/profile regressions.
+- Shader ABI/reflection and WARP pixel-output regressions passed. Fresh portable assembly and isolation checks passed.
+- **19 hidden isolated startup cases and 76 repeated centering hot-reloads passed**. All widths/swatches, badge positions, windowed/maximized/fullscreen, transparent/acrylic, tabs and CRT cases started. Windowed grids remain 80x24 initially and 90x30 after VT requests; windowed/maximized center toggles preserve the grid, and fullscreen toggles repeat without a collapse. Modern Ubuntu-24.04 appears exactly once; no utility distro profile or WSL/SSH execution occurred.
+- **4 installed/user-portable settings/state hashes unchanged**; only 19 exact-path test processes stopped. Smoke settings were preserved in evidence, leaving the delivery without a settings directory. Preservation audit confirms **59 existing source/docs/assets plus two previous ZIPs unchanged** outside the six scoped files, including FILE-TRANSFER-DESIGN.md, README/screenshot guidance, SSH/WSL source, badge material, original user concept images and licenses.
+
+**Executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-175202-052-Release-x64-09c88028\WindowsTerminal.exe`.
+
+**ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-RecessPresets-x64-09c88028.zip` (258 entries; `.portable` included, smoke settings excluded).
+
+SHA256: **`43EF225AC2736BF571565CEC63E9CB7A6F7D1AF8F2683BB1BC52461898304750`**.
+
+Changed files for this refinement: `src/cascadia/inc/RetroBezel.h`, `RetroBezelGeometry.h`, `UnitTests_SettingsModel/ProfileSourceTests.cpp`, `ProfileTests.cpp`, `TerminalSettingsEditor/Resources/en-US/Resources.resw`, and this document. The width labels now read 18/28/40 DIP. Source diff/status/preservation and smoke evidence are in the build directory. `source-checkpoint.zip` preserves the scoped working-tree source/docs/assets, including new untracked files; `final-source.patch` records the tracked diff without staging.
+
+**Manual checklist:** compare Slim/Medium/Wide at 100/125/150/200% DPI; inspect the small outer dark-band corner and larger inner opening on all four corners; confirm continuous shading/opaque gutter and unchanged rectangular terminal transparency; inspect badge top/bottom/off, all four swatches, narrow/split panes and fullscreen tabs/centering. Native aesthetics, pixel rounding and interactive settings/accessibility checks remain unrun because node_repl/native Computer Use is unavailable (CUA native APIs disabled). The startup/grid checks do not establish rendered appearance. No installation, registration, security changes, commits, pushes, user-instance launch or remote connection occurred.
+
+### Additional understated casing finishes
+
+Five finishes append to the original four plastic shades. The original names, numeric values 0-3, default off-white, RGB values and light-plastic shading/badge path remain unchanged. New persisted strings and adapter/selector values are:
+
+| Finish | JSON value | Numeric value | Base RGB |
+| --- | --- | --- | --- |
+| Graphite gray | `"graphite"` | 4 | #666B6C |
+| Charcoal | `"charcoal"` | 5 | #414648 |
+| Near black | `"nearBlack"` | 6 | #222629 |
+| Muted slate blue | `"slateBlue"` | 7 | #566572 |
+| Muted olive | `"mutedOlive"` | 8 | #626A55 |
+
+The existing enum-backed selector obtains all nine choices from the model map and sorts by numeric value, so new choices follow the originals. English fallback labels call it **Casing finish**. Schema, enum mapping, copying, inheritance, null/reset and duplication retain normal settings behavior; no slider is added.
+
+The five darker finishes use restrained neutral upper/outer highlights and darker lower edges, plus a shadow/light recessed band that separates from the black gutter. Their inset badge face is slightly darker than the casing, with a dark upper seam, subtle lighter lower seam and warm light lettering (#EEEFE5). The small wordmark's actual opaque plate/lettering pairs have calculated sRGB contrast of approximately 4.86/7.61/11.45/5.30/5.04 respectively; tests require at least 4.5. Every casing, recess, seam, plate and wordmark layer stays opaque. Original light badge lettering remains #2A2D2B. This checks color math, not native font rasterization or accessibility conformance.
+
+Geometry remains square casing, 3 DIP outer recess/6 DIP inner opening, 6 DIP screen safety gutter, 18/28/40 DIP widths, and the existing 22 DIP centered plate/28 DIP chin. Terminal ANSI colors, transparency/acrylic, CRT settings, profiles and SSH/WSL behavior are independent. New model/adapter and material tests cover all nine serialized values, enum-map order, inheritance/copy/reset/duplicates, the five darker color contrasts and original shade fallback. Final build/package/startup evidence is appended after validation; native visual limits remain explicit.
+
+### Five additional finishes: verified portable delivery
+
+Evidence: `artifacts/build/20261013-181436-771-Release-x64-b6705194`. Checkpoint remains `79cf9d34`; all changes remain uncommitted. Previous geometry/material packages, source snapshots, FILE-TRANSFER design, branding assets, README and screenshot guidance are preserved.
+
+- Final Release/x64 application build: **0 errors, 135 warnings**, **3m56.10s**. Final settings DLL: **0 errors, 8 warnings**, **26.55 seconds**. Existing packaging/resource/link warning categories remain. The first test compile's logs are preserved; its casing-color adapter assertions were corrected to verify independent terminal colors/opacity, matching the wrapper's direct profile-color ownership.
+- Adjacent-resource TAEF (`TE.exe`, test DLL and `resources.pri` together): focused ProfileSourceTests **15/15**, full settings suite **166/166**, with no failed/blocked/skipped/not-run tests. New coverage includes all nine stable enum/string mappings and copying/inheritance/null reset/duplication, focused/unfocused terminal color and opacity independence, darker opaque materials and badge contrast. Existing SSH argument capture/restore/WSL, bezel corner/width/gutter/badge and fullscreen tab/CRT regressions passed.
+- Static schema/model/UI consistency passed: nine ordered numeric values, serialized strings and English fallback labels; off-white remains the default. The selector sorts by numeric value, retaining the original four first. Shader ABI/reflection and WARP pixel-output regressions passed. Fresh portable assembly and isolation checks passed.
+- **34 isolated hidden startup cases and 136 centering hot-reload samples passed**, including the original 19 regressions plus each new finish in opaque windowed/bottom, transparent maximized/top and acrylic fullscreen/no-badge modes. All widths, fullscreen tabs and modern WSL discovery remain covered. **Ten palette reload samples** cycle through all nine finishes and back to off-white, preserving the 90x30 terminal grid. Windowed starts remain 80x24 and VT requests reach 90x30; center toggles repeat without collapse.
+- **4 existing installed/user-portable settings/state hashes unchanged**. Only 34 exact-path owned processes stopped; smoke settings moved into evidence, leaving delivery clean. Preservation audit confirms **55 existing source/docs/assets plus four previous artifacts unchanged** outside ten scoped files; the previous light-plastic shading path and complete geometry helper are retained.
+
+**Executable:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-20261013-181436-771-Release-x64-b6705194\WindowsTerminal.exe`.
+
+**ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-DarkPalettes-x64-b6705194.zip` (258 entries, `.portable` included, smoke settings excluded).
+
+SHA256: **`AA5BE5C8E61DED9C1703AF804FF137C7A893117DD1D62B4C7E76C21765104D66`**.
+
+Changed files for this slice: `TerminalSettingsModel/Profile.idl`, `TerminalSettingsSerializationHelpers.h`, `inc/BezelBadgeMaterial.h`, `RetroBezel.h`, `TerminalSettingsEditor/Resources/en-US/Resources.resw`, `doc/cascadia/profiles.schema.json`, `UnitTests_SettingsModel/ProfileTests.cpp`, `ProfileSourceTests.cpp`, `TerminalSettingsTests.cpp`, and this document. Source diff/status/preservation and the full uncommitted source checkpoint are retained in evidence.
+
+**Manual checklist:** choose all nine finishes and switch light-to-dark-to-light in the settings preview and a live pane; inspect top/bottom/omitted badge, readable lettering and inset seam, dark recess separation/continuous 3/6 DIP corners and opaque black gutter with opaque/transparent/acrylic terminal screens; compare Slim/Medium/Wide at 100/125/150/200% DPI and narrow/split/fullscreen panes. Native XAML appearance, font antialiasing, fractional-DPI pixel quality and interactive accessibility checks remain unrun because node_repl/native Computer Use is unavailable (CUA native APIs disabled). Mathematical color contrast and startup/grid checks do not establish native appearance. No new slider, group implementation, user settings edit, SSH connection, installation/registration, security change, commit or push occurred.

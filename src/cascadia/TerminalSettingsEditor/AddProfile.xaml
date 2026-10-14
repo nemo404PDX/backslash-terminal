@@ -37,6 +37,17 @@
             </Button>
         </Border>
         <StackPanel Margin="{StaticResource StandardControlMargin}">
+            <Button x:Uid="AddProfile_ScanSsh" Click="ScanSshClick" />
+            <TextBlock x:Name="SshScanStatus" x:Uid="AddProfile_SshScanStatus"
+                       TextWrapping="Wrap" Margin="0,8,0,8" />
+            <ComboBox x:Name="SshHosts" DisplayMemberPath="Name"
+                      x:Uid="AddProfile_SshHosts"
+                      SelectionChanged="SshSelectionChanged"
+                      Style="{StaticResource ComboBoxSettingStyle}" />
+            <Button x:Name="RestoreSshButton" x:Uid="AddProfile_RestoreSsh"
+                    Margin="0,8,0,16" IsEnabled="False" Click="RestoreSshClick" />
+        </StackPanel>
+        <StackPanel Margin="{StaticResource StandardControlMargin}">
             <local:SettingContainer x:Name="DuplicateProfile"
                                     x:Uid="AddProfile_Duplicate">
                 <ComboBox x:Name="Profiles"

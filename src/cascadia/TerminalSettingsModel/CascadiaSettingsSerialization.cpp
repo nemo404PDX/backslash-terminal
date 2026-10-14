@@ -165,6 +165,100 @@ Json::StreamWriterBuilder SettingsLoader::_getJsonStyledWriter()
     return styledWriter;
 }
 
+std::vector<winrt::com_ptr<Profile>> SettingsLoader::GenerateProfilesFor(const IDynamicProfileGenerator& generator)
+{
+    std::vector<winrt::com_ptr<Profile>> profiles;
+    if (!_ignoredNamespaces.contains(generator.GetNamespace()))
+    {
+        _executeGenerator(generator, profiles);
+    }
+    return profiles;
+}
+
+winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSettings::ScanSshProfiles()
+{
+    return ScanSshProfiles(SshHostGenerator{});
+}
+
+winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSettings::ScanSshProfiles(const IDynamicProfileGenerator& generator)
+{
+    _sshScanCandidates.clear();
+    if constexpr (Feature_DynamicSSHProfiles::IsEnabled())
+    {
+        if (generator.GetNamespace() == L"Windows.Terminal.SSH")
+        {
+            // Reuse disabledProfileSources and policy filtering, but never layer/reload settings
+            // or touch ApplicationState. Unsaved edits remain in the caller's clone.
+            SettingsLoader loader{ Json::writeString(Json::StreamWriterBuilder{}, ToJson()), "{}" };
+            _sshScanCandidates = loader.GenerateProfilesFor(generator);
+        }
+    }
+    std::vector<Model::Profile> candidates;
+    for (const auto& candidate : _sshScanCandidates)
+    {
+        // Return copies: callers cannot change the generated launch target cached for restore.
+        candidates.emplace_back(*candidate->CopySettings());
+    }
+    return winrt::single_threaded_vector(std::move(candidates)).GetView();
+}
+
+Model::Profile CascadiaSettings::RestoreSshProfile(const winrt::guid& guid)
+{
+    const auto found = std::find_if(_sshScanCandidates.begin(), _sshScanCandidates.end(), [&](const auto& p) { return p->Guid() == guid; });
+    if (found == _sshScanCandidates.end())
+    {
+        return nullptr;
+    }
+    const auto& candidate = *found;
+    auto existing = FindProfile(guid);
+    if (existing && existing.Source() != candidate->Source())
+    {
+        return nullptr; // Never replace an unrelated profile that happens to share the GUID.
+    }
+    winrt::com_ptr<Profile> restored;
+    uint32_t index = 0;
+    if (existing && !existing.Deleted())
+    {
+        restored.copy_from(winrt::get_self<Profile>(existing));
+        restored->ClearParents();
+        restored->AddLeastImportantParent(candidate);
+    }
+    else
+    {
+        restored = CreateChild(candidate); // A deleted profile returns with generated defaults.
+        if (existing && _allProfiles.IndexOf(existing, index))
+        {
+            _allProfiles.RemoveAt(index);
+        }
+        else
+        {
+            index = _allProfiles.Size();
+        }
+    }
+    restored->AddMostImportantParent(_baseLayerProfile);
+    restored->_FinalizeInheritance();
+    restored->Deleted(false);
+    restored->Orphaned(false);
+    restored->Hidden(false);
+    if (!existing || existing.Deleted())
+    {
+        _allProfiles.InsertAt(index, *restored);
+    }
+    // Refresh collections without duplicate GUIDs, including a stale deleted active entry.
+    for (uint32_t i = _activeProfiles.Size(); i > 0; --i)
+    {
+        if (_activeProfiles.GetAt(i - 1).Guid() == guid)
+        {
+            _activeProfiles.RemoveAt(i - 1);
+        }
+    }
+    _activeProfiles.Append(*restored);
+    _resolveDefaultProfile();
+    _resolveNewTabMenuProfiles();
+    _validateMediaResources();
+    return *restored;
+}
+
 // Generate dynamic profiles and add them to the list of "inbox" profiles
 // (meaning profiles specified by the application rather by the user).
 void SettingsLoader::GenerateProfiles()
@@ -358,8 +452,12 @@ void SettingsLoader::FinalizeLayering()
 // the settings need to be saved to disk.
 bool SettingsLoader::DisableDeletedProfiles()
 {
-    const auto& state = winrt::get_self<ApplicationState>(ApplicationState::SharedInstance());
-    auto generatedProfileIds = state->GeneratedProfiles();
+    return DisableDeletedProfiles(*winrt::get_self<ApplicationState>(ApplicationState::SharedInstance()));
+}
+
+bool SettingsLoader::DisableDeletedProfiles(ApplicationState& state)
+{
+    auto generatedProfileIds = state.GeneratedProfiles();
     auto newGeneratedProfiles = false;
 
     for (const auto& profile : _getNonUserOriginProfiles())
@@ -377,7 +475,7 @@ bool SettingsLoader::DisableDeletedProfiles()
 
     if (newGeneratedProfiles)
     {
-        state->GeneratedProfiles(generatedProfileIds);
+        state.GeneratedProfiles(generatedProfileIds);
     }
 
     return newGeneratedProfiles;
@@ -1418,6 +1516,11 @@ void CascadiaSettings::ResetToDefaultSettings()
 // - <none>
 bool CascadiaSettings::WriteSettingsToDisk()
 {
+    return WriteSettingsToDisk([this](std::string_view content) { _writeSettingsToDisk(content); }, *winrt::get_self<ApplicationState>(ApplicationState::SharedInstance()));
+}
+
+bool CascadiaSettings::WriteSettingsToDisk(const std::function<void(std::string_view)>& writer, ApplicationState& state)
+{
     // write current settings to current settings file
     Json::StreamWriterBuilder wbuilder;
     wbuilder.settings_["enableYAMLCompatibility"] = true; // suppress spaces around colons
@@ -1426,7 +1529,22 @@ bool CascadiaSettings::WriteSettingsToDisk()
 
     try
     {
-        _writeSettingsToDisk(Json::writeString(wbuilder, ToJson()));
+        writer(Json::writeString(wbuilder, ToJson()));
+        // A host added by Scan while the app is open may not have been seen at startup.
+        // Mark only successfully saved SSH entries; never erase unrelated seen GUIDs.
+        auto seen = state.GeneratedProfiles();
+        bool changed = false;
+        for (const auto& profile : _allProfiles)
+        {
+            if (profile.Source() == L"Windows.Terminal.SSH" && !profile.Deleted() && !profile.Orphaned())
+            {
+                changed |= seen.emplace(profile.Guid()).second;
+            }
+        }
+        if (changed)
+        {
+            state.GeneratedProfiles(seen);
+        }
     }
     catch (...)
     {

@@ -80,6 +80,11 @@ Author(s):
 // * IControlSettings.idl or ICoreSettings.idl
 // * ControlProperties.h
 #define MTSM_PROFILE_SETTINGS(X)                                                                                                                               \
+    X(bool, RetroBezelEnabled, "experimental.retroBezelEnabled", false) \
+    X(Model::RetroBezelSize, RetroBezelSize, "experimental.retroBezelSize", Model::RetroBezelSize::Medium) \
+    X(Model::RetroBezelColor, RetroBezelColor, "experimental.retroBezelColor", Model::RetroBezelColor::OffWhite) \
+    X(Model::RetroBezelBadge, RetroBezelBadge, "experimental.retroBezelBadge", Model::RetroBezelBadge::Bottom) \
+    X(bool, RetroBezelCenterFullscreen, "experimental.retroBezelCenterFullscreen", true) \
     X(int32_t, HistorySize, "historySize", DEFAULT_HISTORY_SIZE)                                                                                               \
     X(bool, SnapOnInput, "snapOnInput", true)                                                                                                                  \
     X(bool, AltGrAliasing, "altGrAliasing", true)                                                                                                              \

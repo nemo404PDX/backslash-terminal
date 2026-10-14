@@ -51,8 +51,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             _previewControl.CursorVisibility(Control::CursorDisplayState::Shown);
             _previewControl.IsEnabled(false);
             _previewControl.AllowFocusWhenDisabled(false);
-            ControlPreview().Child(_previewControl);
+            _previewBezel.Content(_previewControl);
+            ControlPreview().Child(_previewBezel.Root());
         }
+
+        _updateBezelPreview();
 
         // Subscribe to some changes in the view model
         // These changes should force us to update our own set of "Current<Setting>" members,
@@ -102,6 +105,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _Profile.DeleteUnfocusedAppearance();
     }
 
+    void Profiles_Appearance::_updateBezelPreview()
+    {
+        const auto appearance = _Profile.DefaultAppearance();
+        _previewBezel.Update(appearance.RetroBezelEnabled(), static_cast<int>(appearance.RetroBezelSize()),
+                             static_cast<int>(appearance.RetroBezelColor()), static_cast<int>(appearance.RetroBezelBadge()), false);
+    }
+
     void Profiles_Appearance::_onProfilePropertyChanged(const IInspectable&, const PropertyChangedEventArgs&)
     {
         if (!_updatePreviewControl)
@@ -117,6 +127,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     const auto settings = winrt::get_self<implementation::ProfileViewModel>(_Profile)->TermSettings();
                     _previewConnection->DisplayPowerlineGlyphs(_Profile.DefaultAppearance().HasPowerlineCharacters());
                     _previewControl.UpdateControlSettings(settings, settings);
+                    _updateBezelPreview();
                 });
         }
 

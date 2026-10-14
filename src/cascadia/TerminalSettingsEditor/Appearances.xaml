@@ -525,6 +525,63 @@
             </local:SettingContainer>
         </StackPanel>
 
+        <!-- Casing is profile-level: focus transitions never resize the aperture. -->
+        <StackPanel Style="{StaticResource PivotStackStyle}" Visibility="{x:Bind Appearance.IsDefault, Mode=OneWay}">
+            <TextBlock x:Uid="Profile_RetroBezelHeader" Style="{StaticResource TextBlockSubHeaderStyle}" />
+            <local:SettingContainer x:Name="RetroBezelEnabled" x:Uid="Profile_RetroBezelEnabled"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelEnabled}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelEnabled, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelEnabledOverrideSource, Mode=OneWay}">
+                <ToggleSwitch IsOn="{x:Bind Appearance.RetroBezelEnabled, Mode=TwoWay}" Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelSize" x:Uid="Profile_RetroBezelSize"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelSize}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelSize, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelSizeOverrideSource, Mode=OneWay}">
+                <ComboBox AutomationProperties.AccessibilityView="Content"
+                          ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                          ItemsSource="{x:Bind RetroBezelSizeList, Mode=OneWay}"
+                          SelectedItem="{x:Bind CurrentRetroBezelSize, Mode=TwoWay}"
+                          Style="{StaticResource ComboBoxSettingStyle}" />
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelColor" x:Uid="Profile_RetroBezelColor"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelColor}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelColor, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelColorOverrideSource, Mode=OneWay}">
+                <ComboBox AutomationProperties.AccessibilityView="Content"
+                          ItemsSource="{x:Bind RetroBezelColorList, Mode=OneWay}"
+                          SelectedItem="{x:Bind CurrentRetroBezelColor, Mode=TwoWay}"
+                          Style="{StaticResource ComboBoxSettingStyle}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="local:EnumEntry">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Border Width="20" Height="20" CornerRadius="2" BorderThickness="1"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumBrush}"
+                                        Background="{x:Bind local:Appearances.BezelShadeBrush(IntValue)}" />
+                                <TextBlock Text="{x:Bind EnumName}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelBadge" x:Uid="Profile_RetroBezelBadge"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelBadge}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelBadge, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelBadgeOverrideSource, Mode=OneWay}">
+                <ComboBox AutomationProperties.AccessibilityView="Content"
+                          ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                          ItemsSource="{x:Bind RetroBezelBadgeList, Mode=OneWay}"
+                          SelectedItem="{x:Bind CurrentRetroBezelBadge, Mode=TwoWay}"
+                          Style="{StaticResource ComboBoxSettingStyle}" />
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelCenterFullscreen" x:Uid="Profile_RetroBezelCenterFullscreen"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelCenterFullscreen}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelCenterFullscreen, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelCenterFullscreenOverrideSource, Mode=OneWay}">
+                <ToggleSwitch IsOn="{x:Bind Appearance.RetroBezelCenterFullscreen, Mode=TwoWay}" Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+            </local:SettingContainer>
+        </StackPanel>
+
         <!--  Grouping: Cursor  -->
         <StackPanel Style="{StaticResource PivotStackStyle}">
             <TextBlock x:Uid="Profile_CursorHeader"

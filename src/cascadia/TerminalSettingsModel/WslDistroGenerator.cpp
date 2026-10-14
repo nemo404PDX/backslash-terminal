@@ -89,9 +89,11 @@ static winrt::com_ptr<implementation::Profile> makeProfile(const std::wstring& d
 // - names: a list of distro names to turn into profiles
 // Return Value:
 // - the list of profiles we've generated.
-static void namesToProfiles(const std::vector<std::wstring>& names, std::vector<winrt::com_ptr<implementation::Profile>>& profiles)
+void WslDistroGenerator::GenerateForDistributions(const std::vector<std::pair<std::wstring, bool>>& names, std::vector<winrt::com_ptr<implementation::Profile>>& profiles)
 {
-    for (const auto& distName : names)
+    for (const auto& [distName, modern] : names)
+    // Modern distros previously relied on external fragments, disabled by Backslash.
+    // Both registry formats now use the same stable name-based GUID generator.
     {
         if (til::starts_with(distName, DockerDistributionPrefix) || til::starts_with(distName, RancherDistributionPrefix))
         {
@@ -100,7 +102,11 @@ static void namesToProfiles(const std::vector<std::wstring>& names, std::vector<
             continue;
         }
 
-        profiles.emplace_back(makeProfile(distName));
+        auto profile = makeProfile(distName);
+        if (std::none_of(profiles.begin(), profiles.end(), [&](const auto& p) { return p->Guid() == profile->Guid(); }))
+        {
+            profiles.emplace_back(std::move(profile));
+        }
     }
 }
 
@@ -188,7 +194,7 @@ static bool getWslGuids(const wil::unique_hkey& wslRootKey,
 // - false if the root key was invalid, else true.
 static bool getWslNames(const wil::unique_hkey& wslRootKey,
                         const std::vector<std::wstring>& guidStrings,
-                        std::vector<std::wstring>& names)
+                        std::vector<std::pair<std::wstring, bool>>& names)
 {
     if (!wslRootKey)
     {
@@ -198,12 +204,6 @@ static bool getWslNames(const wil::unique_hkey& wslRootKey,
     {
         auto distroKey{ openDistroKey(wslRootKey, guid) };
         if (!distroKey)
-        {
-            continue;
-        }
-
-        const auto modernValue{ wil::reg::try_get_value<uint32_t>(distroKey.get(), RegKeyModern) };
-        if (modernValue.value_or(0u) == 1u)
         {
             continue;
         }
@@ -223,7 +223,7 @@ static bool getWslNames(const wil::unique_hkey& wslRootKey,
         {
             continue;
         }
-        names.emplace_back(std::move(buffer));
+        names.emplace_back(std::move(buffer), wil::reg::try_get_value<uint32_t>(distroKey.get(), RegKeyModern).value_or(0u) == 1u);
     }
     return true;
 }
@@ -246,11 +246,11 @@ void WslDistroGenerator::GenerateProfiles(std::vector<winrt::com_ptr<implementat
         std::vector<std::wstring> guidStrings{};
         if (getWslGuids(wslRootKey, guidStrings))
         {
-            std::vector<std::wstring> names{};
+            std::vector<std::pair<std::wstring, bool>> names{};
             names.reserve(guidStrings.size());
             if (getWslNames(wslRootKey, guidStrings, names))
             {
-                return namesToProfiles(names, profiles);
+                return GenerateForDistributions(names, profiles);
             }
         }
     }

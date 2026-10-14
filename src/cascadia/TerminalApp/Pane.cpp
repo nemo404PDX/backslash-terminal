@@ -972,7 +972,13 @@ void Pane::_ContentGotFocusHandler(const winrt::Windows::Foundation::IInspectabl
                                    const RoutedEventArgs& /* args */)
 {
     auto f = FocusState::Programmatic;
-    if (const auto o = sender.try_as<winrt::Windows::UI::Xaml::Controls::Control>())
+    // Terminal content may have a decorative framework-element root. Preserve
+    // mouse/keyboard focus provenance from the nested terminal control.
+    if (const auto terminal = GetTerminalControl())
+    {
+        f = terminal.FocusState();
+    }
+    else if (const auto o = sender.try_as<winrt::Windows::UI::Xaml::Controls::Control>())
     {
         f = o.FocusState();
     }

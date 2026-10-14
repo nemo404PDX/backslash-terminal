@@ -6,19 +6,20 @@ Approved display brand: **Backslash**. Descriptive repository/folder: **backslas
 
 Approved visual direction: a geometric C-style descending backslash from upper left to lower right, with angular negative-space center cut, phosphor green approximately #00FF66, a near-black tile and angular lowercase wordmark.
 
-## Exact approved image and transfer status
+## Verified local reference availability
 
-- Library identity: `libfile_7b4e5834417881918b9e6a3121d94791`
-- Resolved filename: `backslash-c-phosphor-concept.png`
-- Resolved file ID: `file_00000000243881fd9d5f34e04942ec21`
-- Library version: 0
-- Reported size: 1,427,319 bytes; MIME type image/png
-- Intended local asset: `branding/concepts/backslash-c-phosphor-concept.png`
-- Status on 2026-10-13: **blocked; image is not present locally and has not been visually inspected here.**
+The user-added references in the selected checkout were opened and inspected on 2026-10-13. Both original image files are preserved without renaming or modification.
 
-The current Library skill's resolved-reference route was used: prepare_materialize returned a signed transfer, then its unchanged library_file_transfer.py helper was invoked on Windows. It failed while applying required Library metadata because Windows Python has no os.setxattr. The helper removed its temporary download and did not install the destination. No substitute/recreated artwork was generated, no guessed download URL was used, and no cloud filesystem path was treated as local.
+| Local file | Bytes | SHA256 |
+| --- | --- | --- |
+| `concept-c-green.png` | 1,427,319 | `E806C5AB3B76F7108772D48DE9F0A8FBF4FC4D32A2C1A6DA9252F2780CADD5F8` |
+| `concept-a-b-c.png` | 1,435,636 | `4387305FCD31F4B8156A4E209A21572950C547CF2275B1529A5F604FF355A3F0` |
 
-Resume with a supported Windows Library transfer route that preserves its required metadata, then verify file bytes/size, open the actual image and confirm descending geometry, center notch and green glow. Record a local SHA-256 after successful materialization. Keep this stable Library identity associated with the file.
+The green C/phosphor reference has the descending geometric backslash, angular center notch, phosphor-green glow on a dark tile, angular lowercase wordmark, and small-size studies. The comparison sheet contains green/amber pixel treatments and the geometric ice treatment. These are available local design references; reference availability is no longer blocked. The exact earlier basename `backslash-c-phosphor-concept.png` was not found in this checkout; the existing user-provided filenames above are retained.
+
+Earlier Library identity for the selected green concept: `libfile_7b4e5834417881918b9e6a3121d94791`, file `file_00000000243881fd9d5f34e04942ec21`, version 0, resolved name `backslash-c-phosphor-concept.png`, reported size 1,427,319 bytes. The local green file has that reported size and matches the approved visual direction; no comparison against a fresh Library download was required or performed. The previous automatic transfer failed at Windows `os.setxattr`; the user's added local references supersede that availability blocker.
+
+The current bezel retains its temporary BACKSLASH text badge. Using these concept images for production SVG/ICO assets or a final badge remains a separate bounded implementation task.
 
 ## Production work remains pending
 

@@ -71,6 +71,39 @@ JSON_ENUM_MAPPER(::winrt::Windows::UI::Xaml::Media::Stretch)
     };
 };
 
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize)
+{
+    static constexpr std::array<pair_type, 3> mappings = {
+        pair_type{ "slim", ValueType::Slim },
+        pair_type{ "medium", ValueType::Medium },
+        pair_type{ "wide", ValueType::Wide }
+    };
+};
+
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor)
+{
+    static constexpr std::array<pair_type, 9> mappings = {
+        pair_type{ "offWhite", ValueType::OffWhite },
+        pair_type{ "cream", ValueType::Cream },
+        pair_type{ "lightYellow", ValueType::LightYellow },
+        pair_type{ "agedYellow", ValueType::AgedYellow },
+        pair_type{ "graphite", ValueType::Graphite },
+        pair_type{ "charcoal", ValueType::Charcoal },
+        pair_type{ "nearBlack", ValueType::NearBlack },
+        pair_type{ "slateBlue", ValueType::SlateBlue },
+        pair_type{ "mutedOlive", ValueType::MutedOlive }
+    };
+};
+
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadge)
+{
+    static constexpr std::array<pair_type, 3> mappings = {
+        pair_type{ "none", ValueType::None },
+        pair_type{ "bottom", ValueType::Bottom },
+        pair_type{ "top", ValueType::Top }
+    };
+};
+
 JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Control::ScrollbarState)
 {
     static constexpr std::array<pair_type, 3> mappings = {

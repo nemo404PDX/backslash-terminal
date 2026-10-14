@@ -65,6 +65,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         Windows::Foundation::Collections::IVector<Model::FragmentSettings> _fragments;
     };
 
+    struct ApplicationState;
+
     struct ParsedSettings
     {
         winrt::com_ptr<implementation::GlobalAppSettings> globals;
@@ -85,6 +87,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static std::vector<Model::ExtensionPackage> LoadExtensionPackages();
         SettingsLoader(const std::string_view& userJSON, const std::string_view& inboxJSON);
 
+        std::vector<winrt::com_ptr<implementation::Profile>> GenerateProfilesFor(const IDynamicProfileGenerator& generator);
         void GenerateProfiles();
         void GenerateExtensionPackagesFromProfileGenerators();
         void ApplyRuntimeInitialSettings();
@@ -93,6 +96,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void MergeFragmentIntoUserSettings(const winrt::hstring& source, const winrt::hstring& basePath, const std::string_view& content);
         void FinalizeLayering();
         bool DisableDeletedProfiles();
+        bool DisableDeletedProfiles(ApplicationState& state);
         bool AddDynamicProfileFolders();
         bool RemapColorSchemeForProfile(const winrt::com_ptr<winrt::Microsoft::Terminal::Settings::Model::implementation::Profile>& profile);
         bool FixupUserSettings();
@@ -170,8 +174,12 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void ResetApplicationState() const;
         void ResetToDefaultSettings();
         bool WriteSettingsToDisk();
+        bool WriteSettingsToDisk(const std::function<void(std::string_view)>& writer, ApplicationState& state);
         Json::Value ToJson() const;
         Model::Profile ProfileDefaults() const;
+        Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles();
+        Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles(const IDynamicProfileGenerator& generator);
+        Model::Profile RestoreSshProfile(const winrt::guid& guid);
         Model::Profile CreateNewProfile();
         Model::Profile FindProfile(const winrt::guid& guid) const noexcept;
         void UpdateColorSchemeReferences(const winrt::hstring& oldName, const winrt::hstring& newName);
@@ -179,6 +187,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         Model::Profile GetProfileByName(const winrt::hstring& name) const;
         Model::Profile GetProfileByIndex(uint32_t index) const;
         Model::Profile DuplicateProfile(const Model::Profile& source);
+
+        std::vector<winrt::com_ptr<Profile>> _sshScanCandidates;
 
         // load errors
         winrt::Windows::Foundation::Collections::IVectorView<Model::SettingsLoadWarnings> Warnings() const;

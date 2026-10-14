@@ -84,6 +84,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         bool UseParentProcessDirectory() const;
         void UseParentProcessDirectory(const bool useParent);
 
+        Model::Profile ModelProfile() const { return _profile; }
+        void NotifySshCommandlineChanged() { _NotifyChanges(L"Commandline", L"HasCommandline"); }
+
         // general profile knowledge
         winrt::guid OriginalProfileGuid() const noexcept;
         bool CanDeleteProfile() const;

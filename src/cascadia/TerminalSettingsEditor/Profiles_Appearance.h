@@ -7,6 +7,7 @@
 
 #include "Profiles_Appearance.g.h"
 #include "PreviewConnection.h"
+#include "../inc/RetroBezel.h"
 #include "Utils.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
@@ -32,6 +33,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         winrt::com_ptr<PreviewConnection> _previewConnection{ nullptr };
         Microsoft::Terminal::Control::TermControl _previewControl{ nullptr };
+        ::Microsoft::Terminal::Backslash::RetroBezel _previewBezel;
+        void _updateBezelPreview();
         std::shared_ptr<ThrottledFunc<>> _updatePreviewControl;
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _ViewModelChangedRevoker;
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _AppearanceViewModelChangedRevoker;

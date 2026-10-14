@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "Appearances.h"
+#include "../inc/RetroBezel.h"
 
 #include "../WinRTUtils/inc/Utils.h"
 
@@ -1103,6 +1104,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
         }
 
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelSize, RetroBezelSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize, L"Profile_RetroBezelSize", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelColor, RetroBezelColor, winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor, L"Profile_RetroBezelColor", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelBadge, RetroBezelBadge, winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadge, L"Profile_RetroBezelBadge", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(CursorShape, CursorStyle, winrt::Microsoft::Terminal::Core::CursorStyle, L"Profile_CursorShape", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(AdjustIndistinguishableColors, AdjustIndistinguishableColors, winrt::Microsoft::Terminal::Core::AdjustTextMode, L"Profile_AdjustIndistinguishableColors", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING_REVERSE_ORDER(BackgroundImageStretchMode, BackgroundImageStretchMode, winrt::Windows::UI::Xaml::Media::Stretch, L"Profile_BackgroundImageStretchMode", L"Content");
@@ -1349,6 +1353,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _filteredFonts = winrt::single_threaded_observable_vector(std::move(filtered));
     }
 
+    Windows::UI::Xaml::Media::Brush Appearances::BezelShadeBrush(int32_t value)
+    {
+        return Windows::UI::Xaml::Media::SolidColorBrush{ ::Microsoft::Terminal::Backslash::RetroBezel::PaletteColor(value) };
+    }
+
     void Appearances::_ViewModelChanged(const DependencyObject& d, const DependencyPropertyChangedEventArgs& /*args*/)
     {
         const auto& obj{ d.as<Editor::Appearances>() };
@@ -1386,7 +1395,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
             _ViewModelChangedRevoker = appearance.PropertyChanged(winrt::auto_revoke, [=](auto&&, const PropertyChangedEventArgs& args) {
                 const auto settingName{ args.PropertyName() };
-                if (settingName == L"CursorShape")
+                if (settingName == L"RetroBezelSize" || settingName == L"RetroBezelColor" || settingName == L"RetroBezelBadge")
+                {
+                    PropertyChanged.raise(*this, PropertyChangedEventArgs{ hstring{ L"Current" } + settingName });
+                }
+                else if (settingName == L"CursorShape")
                 {
                     PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentCursorShape" });
                     PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"IsVintageCursor" });
@@ -1459,6 +1472,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 // button won't work right.
             });
 
+            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelSize" });
+            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelColor" });
+            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelBadge" });
             // make sure to send all the property changed events once here
             // we do this in the case an old appearance was deleted and then a new one is created,
             // the old settings need to be updated in xaml

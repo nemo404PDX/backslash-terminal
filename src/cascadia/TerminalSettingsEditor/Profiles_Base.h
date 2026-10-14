@@ -24,11 +24,17 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void Advanced_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
         void DeleteConfirmation_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
 
+        void SshShellSelectionChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void ApplySshShellClick(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+
         til::property_changed_event PropertyChanged;
         Editor::IHostedInWindow WindowRoot() const noexcept { return _weakWindowRoot.get(); }
         WINRT_PROPERTY(Editor::ProfileViewModel, Profile, nullptr);
 
     private:
+        bool _updatingSshSelection{ true };
+        void _RefreshSshShellControls();
+        void _ApplySshShellMode(int32_t mode);
         Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _ViewModelChangedRevoker;
         winrt::Windows::UI::Xaml::Controls::SwapChainPanel::LayoutUpdated_revoker _layoutUpdatedRevoker;
         winrt::weak_ref<Editor::IHostedInWindow> _weakWindowRoot;

@@ -117,6 +117,11 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             Icon(MediaResource::FromString(path));
         }
 
+        bool HasSshShellSelector() const;
+        int32_t SshShell() const;
+        hstring SshCustomCommand() const;
+        bool SetSshShell(int32_t mode, const hstring& customCommand);
+
         WINRT_PROPERTY(bool, Deleted, false);
         WINRT_PROPERTY(bool, Orphaned, false);
         WINRT_PROPERTY(OriginTag, Origin, OriginTag::None);
@@ -150,6 +155,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static std::wstring EvaluateStartingDirectory(const std::wstring& directory);
 
         static guid _GenerateGuidForProfile(const std::wstring_view& name, const std::wstring_view& source) noexcept;
+
+        const Profile* _sshParent() const;
 
         void _logSettingSet(const std::string_view& setting);
         void _logSettingIfSet(const std::string_view& setting, const bool isSet);

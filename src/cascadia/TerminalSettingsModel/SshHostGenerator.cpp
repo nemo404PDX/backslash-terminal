@@ -7,6 +7,7 @@
 #include "../../inc/DefaultSettings.h"
 
 #include "DynamicProfileUtils.h"
+#include "SshCommandline.h"
 
 static constexpr std::wstring_view SshHostGeneratorNamespace{ L"Windows.Terminal.SSH" };
 
@@ -27,12 +28,11 @@ static constexpr std::wstring_view SSH_SYSTEM_CONFIG_PATH = L"%ProgramData%\\ssh
 static constexpr std::wstring_view SSH_USER_CONFIG_PATH = L"%UserProfile%\\.ssh\\config";
 
 static constexpr std::wstring_view SSH_CONFIG_HOST_KEY{ L"Host" };
-static constexpr std::wstring_view SSH_CONFIG_HOSTNAME_KEY{ L"HostName" };
 
 using namespace ::Microsoft::Terminal::Settings::Model;
 using namespace winrt::Microsoft::Terminal::Settings::Model;
 
-/*static*/ const std::wregex SshHostGenerator::_configKeyValueRegex{ LR"(^\s*(\w+)\s+([^\s]+.*[^\s])\s*$)" };
+/*static*/ const std::wregex SshHostGenerator::_configKeyValueRegex{ LR"(^\s*(\w+)\s+([^\s].*?)\s*$)" };
 
 winrt::hstring _getProfileName(const std::wstring_view& hostName) noexcept
 {
@@ -41,7 +41,7 @@ winrt::hstring _getProfileName(const std::wstring_view& hostName) noexcept
 
 winrt::hstring _getProfileCommandLine(const std::wstring_view& sshExePath, const std::wstring_view& hostName) noexcept
 {
-    return til::hstring_format(FMT_COMPILE(LR"("{0}" {1})"), sshExePath, hostName);
+    return winrt::hstring{ implementation::SshCommandline::Quote(sshExePath) + L" " + implementation::SshCommandline::Quote(hostName) };
 }
 
 /*static*/ bool SshHostGenerator::_tryFindSshExePath(std::wstring& sshExePath) noexcept
@@ -96,26 +96,15 @@ winrt::hstring _getProfileCommandLine(const std::wstring_view& sshExePath, const
             std::wstring key;
             std::wstring value;
 
-            std::wstring lastHost;
-
             while (std::getline(inputStream, line))
             {
                 if (_tryParseConfigKeyValue(line, key, value))
                 {
                     if (til::equals_insensitive_ascii(key, SSH_CONFIG_HOST_KEY))
                     {
-                        // Save potential Host value for later
-                        lastHost = value;
+                        hostNames.emplace_back(value);
                     }
-                    else if (til::equals_insensitive_ascii(key, SSH_CONFIG_HOSTNAME_KEY))
-                    {
-                        // HostName was specified
-                        if (!lastHost.empty())
-                        {
-                            hostNames.emplace_back(lastHost);
-                            lastHost = L"";
-                        }
-                    }
+
                 }
             }
         }
@@ -154,14 +143,39 @@ void SshHostGenerator::GenerateProfiles(std::vector<winrt::com_ptr<implementatio
         _getHostNamesFromConfigFile(SSH_SYSTEM_CONFIG_PATH, hostNames);
         _getHostNamesFromConfigFile(SSH_USER_CONFIG_PATH, hostNames);
 
-        for (const auto& hostName : hostNames)
+        GenerateForHosts(sshExePath, hostNames, profiles);
+    }
+}
+
+void SshHostGenerator::GenerateForHosts(std::wstring_view sshExePath, const std::vector<std::wstring>& hosts, std::vector<winrt::com_ptr<implementation::Profile>>& profiles)
+{
+    for (const auto& host : hosts)
+    {
+        if (!implementation::SshCommandline::SingleLine(host))
         {
-            const auto profile{ CreateDynamicProfile(_getProfileName(hostName)) };
-
-            profile->Commandline(_getProfileCommandLine(sshExePath, hostName));
+            continue;
+        }
+        // Host may name several aliases. Wildcard/negated patterns aren't launch targets.
+        std::wistringstream aliases{ host };
+        std::wstring alias;
+        while (aliases >> alias)
+        {
+            if (alias.starts_with(L"#"))
+            {
+                break;
+            }
+            if (!implementation::SshCommandline::ValidHost(alias))
+            {
+                continue;
+            }
+            auto profile = CreateDynamicProfile(_getProfileName(alias));
+            if (std::any_of(profiles.begin(), profiles.end(), [&](const auto& p) { return p->Guid() == profile->Guid(); }))
+            {
+                continue;
+            }
+            profile->Commandline(_getProfileCommandLine(sshExePath, alias));
             profile->Icon(winrt::hstring{ PROFILE_ICON_PATH });
-
-            profiles.emplace_back(profile);
+            profiles.emplace_back(std::move(profile));
         }
     }
 }

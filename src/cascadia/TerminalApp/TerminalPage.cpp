@@ -3617,6 +3617,7 @@ namespace winrt::TerminalApp::implementation
             const auto& profile = _settings.GetProfileForArgs(newTerminalArgs);
             const auto control = _AttachControlToContent(newTerminalArgs.ContentId());
             auto paneContent{ winrt::make<TerminalPaneContent>(profile, _terminalSettingsCache, control) };
+            paneContent.SetFullscreen(_isFullscreen);
             return std::make_shared<Pane>(paneContent);
         }
 
@@ -3688,6 +3689,7 @@ namespace winrt::TerminalApp::implementation
         }
 
         auto paneContent{ winrt::make<TerminalPaneContent>(profile, _terminalSettingsCache, control) };
+        paneContent.SetFullscreen(_isFullscreen);
 
         auto resultPane = std::make_shared<Pane>(paneContent);
 
@@ -3696,6 +3698,7 @@ namespace winrt::TerminalApp::implementation
             auto newControl = _CreateNewControlAndContent(controlSettings, debugConnection);
             // Split (auto) with the debug tap.
             auto debugContent{ winrt::make<TerminalPaneContent>(profile, _terminalSettingsCache, newControl) };
+            debugContent.SetFullscreen(_isFullscreen);
             auto debugPane = std::make_shared<Pane>(debugContent);
 
             // Since we're doing this split directly on the pane (instead of going through Tab,
@@ -4382,6 +4385,18 @@ namespace winrt::TerminalApp::implementation
             return;
         }
         _isFullscreen = newFullscreen;
+        for (const auto& tab : _tabs)
+        {
+            if (auto tabImpl = _GetTabImpl(tab))
+            {
+                tabImpl->GetRootPane()->WalkTree([&](auto&& pane) {
+                    if (const auto content = pane->GetContent().try_as<TerminalApp::TerminalPaneContent>())
+                    {
+                        content.SetFullscreen(newFullscreen);
+                    }
+                });
+            }
+        }
         _UpdateTabView();
         FullscreenChanged.raise(*this, nullptr);
     }

@@ -28,6 +28,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model
         std::wstring_view GetIcon() const noexcept override;
         void GenerateProfiles(std::vector<winrt::com_ptr<implementation::Profile>>& profiles) const override;
 
+        static void GenerateForHosts(std::wstring_view sshExePath, const std::vector<std::wstring>& hosts, std::vector<winrt::com_ptr<implementation::Profile>>& profiles);
+
     private:
         static const std::wregex _configKeyValueRegex;
 

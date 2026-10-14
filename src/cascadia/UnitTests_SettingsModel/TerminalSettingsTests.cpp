@@ -45,6 +45,7 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(TerminalSettingsTests);
 
+        TEST_METHOD(BackslashBezelAdapter);
         TEST_METHOD(BackslashRetroFocusedUnfocused);
         TEST_METHOD(TestTerminalArgsForBinding);
         TEST_METHOD(CommandLineToArgvW);
@@ -56,6 +57,38 @@ namespace SettingsModelUnitTests
         TEST_METHOD(TestCommandlineToTitlePromotion);
         TEST_METHOD(TestInitialPositionParsing);
     };
+
+    void TerminalSettingsTests::BackslashBezelAdapter()
+    {
+        const auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({
+            "profiles": { "defaults": { "experimental.retroBezelEnabled":true, "experimental.retroBezelSize":"wide" },
+            "list": [{ "name":"bezel", "guid":"{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
+                "experimental.retroBezelBadge":"top", "unfocusedAppearance":{"opacity":50} }] }
+        })");
+        const auto profile = settings->ActiveProfiles().GetAt(0);
+        const auto baseline = TerminalSettings::CreateWithProfile(*settings, profile);
+        for (int color = 0; color < 9; ++color)
+        {
+            profile.RetroBezelColor(static_cast<RetroBezelColor>(color));
+            const auto result = TerminalSettings::CreateWithProfile(*settings, profile);
+            VERIFY_IS_TRUE(result.DefaultSettings()->RetroBezelEnabled());
+            VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelSize());
+            VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelBadge());
+            // The wrapper reads casing color directly from the profile. Terminal
+            // appearance stays independent; the adapter only forwards geometry.
+            VERIFY_ARE_EQUAL(baseline.DefaultSettings()->DefaultForeground(), result.DefaultSettings()->DefaultForeground());
+            VERIFY_ARE_EQUAL(baseline.DefaultSettings()->DefaultBackground(), result.DefaultSettings()->DefaultBackground());
+            VERIFY_ARE_EQUAL(1.0f, result.DefaultSettings()->Opacity());
+            // No appearance/focus-dependent casing changes.
+            VERIFY_IS_TRUE(result.UnfocusedSettings()->RetroBezelEnabled());
+            VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelSize());
+            VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelBadge());
+            VERIFY_ARE_EQUAL(baseline.UnfocusedSettings()->DefaultForeground(), result.UnfocusedSettings()->DefaultForeground());
+            VERIFY_ARE_EQUAL(baseline.UnfocusedSettings()->DefaultBackground(), result.UnfocusedSettings()->DefaultBackground());
+            VERIFY_ARE_EQUAL(0.5f, result.UnfocusedSettings()->Opacity());
+            VERIFY_ARE_EQUAL(static_cast<RetroBezelColor>(color), profile.RetroBezelColor());
+        }
+    }
 
     void TerminalSettingsTests::BackslashRetroFocusedUnfocused()
     {

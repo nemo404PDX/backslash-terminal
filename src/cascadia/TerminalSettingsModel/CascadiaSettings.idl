@@ -52,6 +52,9 @@ namespace Microsoft.Terminal.Settings.Model
         Windows.Foundation.IReference<SettingsLoadErrors> GetLoadingError { get; };
         String GetSerializationErrorMessage { get; };
 
+        // Scan only reads SSH configuration. Add/Restore is an explicit settings-clone edit.
+        IVectorView<Profile> ScanSshProfiles();
+        Profile RestoreSshProfile(Guid profileGuid);
         Profile CreateNewProfile();
         Profile FindProfile(Guid profileGuid);
         void UpdateColorSchemeReferences(String oldName, String newName);
