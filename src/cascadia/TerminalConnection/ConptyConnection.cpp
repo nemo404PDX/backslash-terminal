@@ -8,6 +8,7 @@
 #include <winmeta.h>
 
 #include "CTerminalHandoff.h"
+#include "../inc/PowerShellDirectoryIntegration.h"
 #include "../../types/inc/utils.hpp"
 
 #include "ConptyConnection.g.cpp"
@@ -52,7 +53,10 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
             nullptr,
             nullptr));
 
-        auto cmdline{ wil::ExpandEnvironmentStringsW<std::wstring>(_commandline.c_str()) }; // mutable copy -- required for CreateProcessW
+        // Keep _commandline logical for restart, duplication and launch identity.
+        // Prepare only the physical argv of a fresh client, after normal env expansion.
+        auto cmdline = ::Microsoft::Terminal::Backslash::PowerShellDirectoryIntegration::Prepare(
+            wil::ExpandEnvironmentStringsW<std::wstring>(_commandline.c_str()));
         auto environment = _initialEnv;
 
         {

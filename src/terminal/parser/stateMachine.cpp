@@ -650,6 +650,13 @@ void StateMachine::_ActionIgnore() noexcept
 // - <none>
 void StateMachine::_ActionInterrupt()
 {
+    // A cancelled cwd report must not leave the previous folder actionable.
+    if ((_state == VTStates::OscString || _state == VTStates::OscTermination) &&
+        _oscParameter == 9 && _oscString.starts_with(L"9;"))
+    {
+        _ActionOscPut(L'\0');
+        _ActionOscDispatch();
+    }
     // This is only applicable for DCS strings. OSC strings require a full
     // ST sequence to be received before they can be dispatched.
     if (_state == VTStates::DcsPassThrough)
@@ -1499,7 +1506,10 @@ void StateMachine::_EventOscString(const wchar_t wch)
     }
     else if (_isOscInvalid(wch))
     {
-        _ActionIgnore();
+        // Preserve invalid cwd payload controls for validation. Dropping them
+        // could silently turn an invalid path into a different usable path.
+        if (_oscParameter == 9 && _oscString.starts_with(L"9;")) { _ActionOscPut(wch); }
+        else { _ActionIgnore(); }
     }
     else
     {
@@ -1527,6 +1537,7 @@ void StateMachine::_EventOscTermination(const wchar_t wch)
     }
     else
     {
+        _ActionInterrupt();
         _EnterEscape();
         _EventEscape(wch);
     }
@@ -1839,6 +1850,16 @@ void StateMachine::_EventSosPmApcString(const wchar_t /*wch*/) noexcept
 void StateMachine::ProcessCharacter(const wchar_t wch)
 {
     _trace.TraceCharInput(wch);
+
+    // C1 controls are normally ignored (or expanded into ESC sequences).
+    // A cwd payload must instead reject them, without silently changing paths.
+    // An enabled 8-bit ST remains a framing terminator, just like ESC backslash.
+    if (_state == VTStates::OscString && _oscParameter == 9 && _oscString.starts_with(L"9;") &&
+        _isC1ControlCharacter(wch) && !(wch == 0x9c && _parserMode.test(Mode::AcceptC1)))
+    {
+        _ActionOscPut(wch);
+        return;
+    }
 
     // Process "from anywhere" events first.
     const auto isFromAnywhereChar = (wch == AsciiChars::CAN || wch == AsciiChars::SUB);

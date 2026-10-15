@@ -522,6 +522,9 @@ namespace winrt::TerminalApp::implementation
                 continue;
             }
 
+            // A pin reference resolves its exact profile after its claim loads.
+            // The default profile must not determine its elevation context.
+            if (newTerminalArgs && !newTerminalArgs.PinnedId().empty()) { return false; }
             // It's possible that newTerminalArgs is null here.
             // GetProfileForArgs should be resilient to that.
             const auto profile{ settings.GetProfileForArgs(newTerminalArgs) };
@@ -683,6 +686,7 @@ namespace winrt::TerminalApp::implementation
             }
 
             _CompleteInitialization();
+            _StartPins();
         }
     }
 
@@ -703,6 +707,13 @@ namespace winrt::TerminalApp::implementation
     safe_void_coroutine TerminalPage::ProcessStartupActions(std::vector<ActionAndArgs> actions, const winrt::hstring cwd, const winrt::hstring env)
     {
         const auto strong = get_strong();
+        ++_pinActionDepth;
+        auto pinBatch = wil::scope_exit([&]() { --_pinActionDepth; _StartPins(); _MaybeActivatePin(); });
+        if (!actions.empty())
+        {
+            const auto incoming = winrt::single_threaded_vector<ActionAndArgs>(std::vector<ActionAndArgs>{ actions });
+            if (TryAttachPinContent(incoming, -1, false)) { co_return; }
+        }
 
         // If the caller provided a CWD, "switch" to that directory, then switch
         // back once we're done.
@@ -748,7 +759,10 @@ namespace winrt::TerminalApp::implementation
                 co_await wil::resume_foreground(Dispatcher(), CoreDispatcherPriority::Low);
             }
 
-            _actionDispatch->DoAction(actions[i]);
+            if (!_pinRestoring || !TryAttachPinContent(winrt::single_threaded_vector<ActionAndArgs>({ actions[i] }), -1, true))
+            {
+                _actionDispatch->DoAction(actions[i]);
+            }
             suspend = true;
         }
 
@@ -954,6 +968,7 @@ namespace winrt::TerminalApp::implementation
     void TerminalPage::_CreateNewTabFlyout()
     {
         _CreateSavedGroupsFlyout();
+        _CreatePinsFlyout();
         auto newTabFlyout = WUX::Controls::MenuFlyout{};
         newTabFlyout.Placement(WUX::Controls::Primitives::FlyoutPlacementMode::BottomEdgeAlignedLeft);
 
@@ -2321,6 +2336,7 @@ namespace winrt::TerminalApp::implementation
     //   than one tab opened, show a warning dialog.
     safe_void_coroutine TerminalPage::CloseWindow()
     {
+        if (_pinsClosing || _displayingCloseDialog) { co_return; }
         if (_HasMultipleTabs() &&
             _settings.GlobalSettings().ConfirmCloseAllTabs() &&
             !_displayingCloseDialog)
@@ -2564,6 +2580,7 @@ namespace winrt::TerminalApp::implementation
 
             if (tab)
             {
+                if (tab->Pin) { _SendPinnedTab(tab, windowId, 0); return true; }
                 auto startupActions = tab->BuildStartupActions(BuildStartupKind::Content);
                 _DetachTabFromWindow(tab);
                 _MoveContent(std::move(startupActions), windowId, 0);
@@ -5699,6 +5716,11 @@ namespace winrt::TerminalApp::implementation
         {
             return;
         }
+        if (!args.PinnedId().empty())
+        {
+            if (const auto tab = _FindPinTab(winrt::to_string(args.PinnedId()))) { _SendPinnedTab(tab, winrt::to_hstring(args.TargetWindow()), args.TabIndex(), {}, args.PinBackground()); }
+            return;
+        }
         if (!_stashed.draggedTab)
         {
             return;
@@ -5741,6 +5763,7 @@ namespace winrt::TerminalApp::implementation
                                                const uint32_t tabIndex,
                                                std::optional<winrt::Windows::Foundation::Point> dragPoint)
     {
+        if (_stashed.draggedTab->Pin) { _SendPinnedTab(_stashed.draggedTab, windowId, tabIndex, dragPoint); return; }
         auto startupActions = _stashed.draggedTab->BuildStartupActions(BuildStartupKind::Content);
         _DetachTabFromWindow(_stashed.draggedTab);
 
@@ -5851,6 +5874,7 @@ namespace winrt::TerminalApp::implementation
         for (const auto& tab : _tabs)
         {
             std::vector<P::PaneKind> kinds;
+            if (const auto pin = _GetTabImpl(tab)->Pin; pin && pin->dormant) { tabs.push_back({ P::PaneKind::DormantPin }); continue; }
             const auto root = _GetTabImpl(tab)->GetRootPane();
             if (root)
             {

@@ -72,6 +72,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _actualFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, { 0, DEFAULT_FONT_SIZE }, CP_UTF8, false }
     {
         _initialConnectionTitlePrefix = settings.ConnectionTitlePrefix();
+        _initialLaunchProfileId = settings.LaunchProfileId();
+        _initialLaunchProfileSource = settings.LaunchProfileSource();
+        _initialLaunchConnectionIdentity = settings.LaunchConnectionIdentity();
+        _initialLaunchCommandline = settings.Commandline();
         _initialStartingTitle = settings.StartingTitle();
         _initialTitleIsExplicit = settings.StartingTitleIsExplicit() || settings.SuppressApplicationTitle();
         static const auto textMeasurementInit = [&]() {
@@ -323,11 +327,22 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         _closeConnection();
 
+        // A new transport is a new observation generation, even when the
+        // same core is retained. A previous report must not reactivate.
+        {
+            const auto lock = _terminal->LockForWriting();
+            _terminal->SetInitialWorkingDirectory(_settings.StartingDirectory());
+        }
         _connection = newConnection;
         if (_connection)
         {
             // Subscribe to the connection's disconnected event and call our connection closed handlers.
             _connectionStateChangedRevoker = newConnection.StateChanged(winrt::auto_revoke, [this](auto&& /*s*/, auto&& /*v*/) {
+                if (ConnectionState() != TerminalConnection::ConnectionState::Connected)
+                {
+                    const auto lock = _terminal->LockForWriting();
+                    _terminal->SetInitialWorkingDirectory(_settings.StartingDirectory());
+                }
                 ConnectionStateChanged.raise(*this, nullptr);
             });
 
@@ -2481,6 +2496,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     winrt::hstring ControlCore::ReportedWorkingDirectory() const
     {
+        if (ConnectionState() != TerminalConnection::ConnectionState::Connected) { return {}; }
         const auto lock = _terminal->LockForReading();
         return _terminal->HasReportedWorkingDirectory() ? winrt::hstring{ _terminal->GetWorkingDirectory() } : winrt::hstring{};
     }

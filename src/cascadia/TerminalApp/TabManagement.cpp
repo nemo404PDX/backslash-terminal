@@ -98,8 +98,9 @@ namespace winrt::TerminalApp::implementation
     // Arguments:
     // - newTabImpl: the uninitialized tab.
     // - insertPosition: Optional parameter to indicate the position of tab.
-    void TerminalPage::_InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition)
+    void TerminalPage::_InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition, bool background)
     {
+        if (_nextPinView) { newTabImpl->SetPin(std::move(_nextPinView)); _nextPinView.reset(); }
         newTabImpl->ConnectionIdentityTitles(_settings.GlobalSettings().ShowConnectionIdentity());
         newTabImpl->Initialize();
 
@@ -116,6 +117,8 @@ namespace winrt::TerminalApp::implementation
                 }
             }
         }
+
+        if (!newTabImpl->Pin) { insertPosition = std::max(insertPosition, _PinCount()); }
 
         // Add the new tab to the list of our tabs.
         _tabs.InsertAt(insertPosition, *newTabImpl);
@@ -193,7 +196,7 @@ namespace winrt::TerminalApp::implementation
 
         // This kicks off TabView::SelectionChanged, in response to which
         // we'll attach the terminal's Xaml control to the Xaml root.
-        _tabView.SelectedItem(tabViewItem);
+        if (!background) { _tabView.SelectedItem(tabViewItem); }
     }
 
     // Method Description:
@@ -201,12 +204,12 @@ namespace winrt::TerminalApp::implementation
     // Arguments:
     // - pane: The pane to use as the root.
     // - insertPosition: Optional parameter to indicate the position of tab.
-    TerminalApp::Tab TerminalPage::_CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition)
+    TerminalApp::Tab TerminalPage::_CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition, bool background)
     {
         if (pane)
         {
             auto newTabImpl = winrt::make_self<Tab>(pane);
-            _InitializeTab(newTabImpl, insertPosition);
+            _InitializeTab(newTabImpl, insertPosition, background);
             return *newTabImpl;
         }
         return nullptr;
@@ -278,6 +281,7 @@ namespace winrt::TerminalApp::implementation
     // - tab: tab to duplicate
     void TerminalPage::_DuplicateTab(const Tab& tab)
     {
+        if (tab.Pin && tab.Pin->dormant) { _PinError(RS_(L"Pins_Busy")); return; }
         try
         {
             // TODO: GH#5047 - We're duplicating the whole profile, which might
@@ -399,7 +403,7 @@ namespace winrt::TerminalApp::implementation
     // - Removes the tab (both TerminalControl and XAML) after prompting for approval
     // Arguments:
     // - tab: the tab to remove
-    winrt::Windows::Foundation::IAsyncAction TerminalPage::_HandleCloseTabRequested(winrt::TerminalApp::Tab tab)
+    winrt::Windows::Foundation::IAsyncAction TerminalPage::_HandleCloseTabRequested(winrt::TerminalApp::Tab tab, bool forgetPin)
     {
         winrt::com_ptr<TerminalPage> strong;
 
@@ -419,10 +423,14 @@ namespace winrt::TerminalApp::implementation
         }
 
         auto t = winrt::get_self<implementation::Tab>(tab);
-        auto actions = t->BuildStartupActions(BuildStartupKind::None);
-        _AddPreviouslyClosedPaneOrTab(std::move(actions));
-
-        tab.Close();
+        if (t->Pin && t->Pin->busy) { _PinError(RS_(L"Pins_Busy")); co_return; }
+        if (t->Pin && forgetPin && !(co_await _RemovePinPreference(tab))) { co_return; }
+        if (!t->Pin || !t->Pin->dormant)
+        {
+            auto actions = t->BuildStartupActions(BuildStartupKind::None);
+            _AddPreviouslyClosedPaneOrTab(std::move(actions));
+        }
+        if (!_pinsClosing) { tab.Close(); }
     }
 
     // Removes the tab (both TerminalControl and XAML).
@@ -445,7 +453,9 @@ namespace winrt::TerminalApp::implementation
 
         // Removing the tab from the collection should destroy its control and disconnect its connection,
         // but it doesn't always do so. The UI tree may still be holding the control and preventing its destruction.
+        const auto pin = winrt::get_self<implementation::Tab>(tab)->Pin;
         tab.Shutdown();
+        if (pin && pin->lease && !_pinsClosing) { _ReleasePin(*pin->lease); }
 
         uint32_t mruIndex{};
         if (_mruTabs.IndexOf(tab, mruIndex))
@@ -827,7 +837,7 @@ namespace winrt::TerminalApp::implementation
             winrt::Windows::Foundation::IAsyncAction action{ nullptr };
             if (const auto strong = weak.get())
             {
-                action = _HandleCloseTabRequested(tab);
+                action = _HandleCloseTabRequested(tab, false);
             }
 
             if (!action)
@@ -986,6 +996,7 @@ namespace winrt::TerminalApp::implementation
             }
 
             _adjustProcessPriorityThrottled->Run();
+            if (!CommandPaletteElement() || CommandPaletteElement().Visibility() != Visibility::Visible) { _MaybeActivatePin(); }
         }
         CATCH_LOG();
     }
@@ -1126,6 +1137,7 @@ namespace winrt::TerminalApp::implementation
 
         from = std::nullopt;
         to = std::nullopt;
+        _NormalizePinOrder();
     }
 
     void TerminalPage::_DismissTabContextMenus()
@@ -1152,6 +1164,7 @@ namespace winrt::TerminalApp::implementation
                 tab.Focus(FocusState::Programmatic);
                 _UpdateMRUTab(tab);
                 _updateAllTabCloseButtons();
+                _MaybeActivatePin();
             }
         }
     }

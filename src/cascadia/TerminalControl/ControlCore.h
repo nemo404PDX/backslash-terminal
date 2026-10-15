@@ -195,6 +195,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         winrt::hstring CurrentWorkingDirectory() const;
         winrt::hstring InitialConnectionTitlePrefix() const { return _initialConnectionTitlePrefix; }
+        winrt::guid InitialLaunchProfileId() const { return _initialLaunchProfileId; }
+        winrt::hstring InitialLaunchProfileSource() const { return _initialLaunchProfileSource; }
+        winrt::hstring InitialLaunchConnectionIdentity() const { return _initialLaunchConnectionIdentity; }
+        winrt::hstring InitialLaunchCommandline() const { return _initialLaunchCommandline; }
         winrt::hstring InitialStartingTitle() const { return _initialStartingTitle; }
         bool InitialTitleIsExplicit() const { return _initialTitleIsExplicit; }
         winrt::hstring ReportedWorkingDirectory() const;
@@ -417,6 +421,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // Other stuff.
         winrt::Windows::System::DispatcherQueue _dispatcher{ nullptr };
         winrt::hstring _initialConnectionTitlePrefix;
+        winrt::guid _initialLaunchProfileId;
+        winrt::hstring _initialLaunchProfileSource;
+        winrt::hstring _initialLaunchConnectionIdentity;
+        winrt::hstring _initialLaunchCommandline;
         winrt::hstring _initialStartingTitle;
         bool _initialTitleIsExplicit{ false };
         IControlSettings _settings{ nullptr };

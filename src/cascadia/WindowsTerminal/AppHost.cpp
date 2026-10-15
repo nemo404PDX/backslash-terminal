@@ -322,6 +322,7 @@ void AppHost::Close()
 
     _revokeWindowCallbacks();
 
+    if (_windowLogic) { _windowLogic.ShutdownPinnedTabs(); }
     _window->Close();
 
     if (_windowLogic)
@@ -1346,6 +1347,8 @@ void AppHost::_handleReceiveContent(const winrt::Windows::Foundation::IInspectab
 {
     if (const auto target = _windowManager->GetWindowById(args.SourceWindow()))
     {
-        target->_windowLogic.SendContentToOther(winrt::TerminalApp::RequestReceiveContentArgs{ args.SourceWindow(), args.TargetWindow(), args.TabIndex() });
+        auto request = winrt::TerminalApp::RequestReceiveContentArgs{ args.SourceWindow(), args.TargetWindow(), args.TabIndex() };
+        request.PinnedId(args.PinnedId()); request.PinBackground(args.PinBackground());
+        target->_windowLogic.SendContentToOther(request);
     }
 }

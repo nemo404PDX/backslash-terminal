@@ -120,6 +120,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         winrt::hstring CurrentWorkingDirectory() const;
         winrt::hstring InitialConnectionTitlePrefix() const;
+        winrt::guid InitialLaunchProfileId() const;
+        winrt::hstring InitialLaunchProfileSource() const;
+        winrt::hstring InitialLaunchConnectionIdentity() const;
+        winrt::hstring InitialLaunchCommandline() const;
         winrt::hstring InitialStartingTitle() const;
         bool InitialTitleIsExplicit() const;
         winrt::hstring ReportedWorkingDirectory() const;

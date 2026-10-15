@@ -192,6 +192,9 @@ namespace Microsoft.Terminal.Settings.Model
         Windows.Foundation.IReference<Boolean> ReloadEnvironmentVariables;
 
         UInt64 ContentId{ get; set; };
+        String PinnedId;
+        String PinnedTransfer;
+        Boolean PinnedBackground;
 
         String ToCommandline();
     };

@@ -386,6 +386,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         ACTION_ARG(winrt::guid, SessionId, winrt::guid{});
         ACTION_ARG(bool, AppendCommandLine, false);
         ACTION_ARG(uint64_t, ContentId);
+        ACTION_ARG(winrt::hstring, PinnedId);
+        ACTION_ARG(winrt::hstring, PinnedTransfer);
+        ACTION_ARG(bool, PinnedBackground);
 
         static constexpr std::string_view SessionIdKey{ "sessionId" };
         static constexpr std::string_view AppendCommandLineKey{ "appendCommandLine" };
@@ -414,7 +417,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
                        otherAsUs->_ColorScheme == _ColorScheme &&
                        otherAsUs->_Elevate == _Elevate &&
                        otherAsUs->_ReloadEnvironmentVariables == _ReloadEnvironmentVariables &&
-                       otherAsUs->_ContentId == _ContentId;
+                       otherAsUs->_ContentId == _ContentId && otherAsUs->_PinnedId == _PinnedId && otherAsUs->_PinnedTransfer == _PinnedTransfer && otherAsUs->_PinnedBackground == _PinnedBackground;
             }
             return false;
         };
@@ -434,6 +437,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             JsonUtils::GetValueForKey(json, ElevateKey, args->_Elevate);
             JsonUtils::GetValueForKey(json, ReloadEnvironmentVariablesKey, args->_ReloadEnvironmentVariables);
             JsonUtils::GetValueForKey(json, ContentKey, args->_ContentId);
+            JsonUtils::GetValueForKey(json, "__backslashPin", args->_PinnedId);
+            JsonUtils::GetValueForKey(json, "__backslashPinTransfer", args->_PinnedTransfer);
+            JsonUtils::GetValueForKey(json, "__backslashPinBackground", args->_PinnedBackground);
             return *args;
         }
         static Json::Value ToJson(const Model::NewTerminalArgs& val)
@@ -456,6 +462,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             JsonUtils::SetValueForKey(json, ElevateKey, args->_Elevate);
             JsonUtils::SetValueForKey(json, ReloadEnvironmentVariablesKey, args->_ReloadEnvironmentVariables);
             JsonUtils::SetValueForKey(json, ContentKey, args->_ContentId);
+            JsonUtils::SetValueForKey(json, "__backslashPin", args->_PinnedId);
+            JsonUtils::SetValueForKey(json, "__backslashPinTransfer", args->_PinnedTransfer);
+            JsonUtils::SetValueForKey(json, "__backslashPinBackground", args->_PinnedBackground);
             return json;
         }
         Model::NewTerminalArgs Copy() const
@@ -473,6 +482,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             copy->_Elevate = _Elevate;
             copy->_ReloadEnvironmentVariables = _ReloadEnvironmentVariables;
             copy->_ContentId = _ContentId;
+            copy->_PinnedId = _PinnedId;
+            copy->_PinnedTransfer = _PinnedTransfer;
+            copy->_PinnedBackground = _PinnedBackground;
             return *copy;
         }
         size_t Hash() const
@@ -494,6 +506,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             h.write(Elevate());
             h.write(ReloadEnvironmentVariables());
             h.write(ContentId());
+            h.write(PinnedId());
+            h.write(PinnedTransfer());
+            h.write(PinnedBackground());
         }
     };
 

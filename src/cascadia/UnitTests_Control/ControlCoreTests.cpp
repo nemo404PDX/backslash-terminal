@@ -404,31 +404,64 @@ namespace ControlUnitTests
     void ControlCoreTests::BackslashConnectionTitleSnapshot()
     {
         auto [settings, conn] = _createSettingsAndConnection();
-        settings->ConnectionTitlePrefix(L"SSH originalAlias");settings->StartingTitle(L"Original profile");settings->StartingTitleIsExplicit(true);
+        settings->ConnectionTitlePrefix(L"SSH originalAlias");settings->LaunchProfileId(winrt::guid{L"{22222222-2222-4222-8222-222222222222}"});settings->LaunchProfileSource(L"Windows.Terminal.SSH");settings->LaunchConnectionIdentity(L"SSH originalAlias");settings->Commandline(L"ssh.exe originalAlias");settings->StartingTitle(L"Original profile");settings->StartingTitleIsExplicit(true);
         const auto core = createCore(*settings, *conn);_standardInit(core);
         VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH originalAlias" }, core->InitialConnectionTitlePrefix());
         VERIFY_ARE_EQUAL(winrt::hstring{ L"Original profile" }, core->InitialStartingTitle());
         VERIFY_IS_TRUE(core->InitialTitleIsExplicit());
-        auto other = winrt::make_self<MockControlSettings>();other->ConnectionTitlePrefix(L"SSH changedAlias");other->StartingTitle(L"Changed profile");other->StartingTitleIsExplicit(false);
+        auto other = winrt::make_self<MockControlSettings>();other->ConnectionTitlePrefix(L"SSH changedAlias");other->LaunchProfileId(winrt::guid{L"{33333333-3333-4333-8333-333333333333}"});other->LaunchProfileSource(L"Windows.Terminal.Wsl");other->LaunchConnectionIdentity(L"WSL other");other->Commandline(L"wsl.exe -d other");other->StartingTitle(L"Changed profile");other->StartingTitleIsExplicit(false);
         core->UpdateSettings(*other, nullptr);
         conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]0;remote dynamic title\x7"));
         VERIFY_ARE_EQUAL(winrt::hstring{ L"remote dynamic title" }, core->Title());
         VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH originalAlias" }, core->InitialConnectionTitlePrefix());
         VERIFY_ARE_EQUAL(winrt::hstring{ L"Original profile" }, core->InitialStartingTitle());
-        VERIFY_IS_TRUE(core->InitialTitleIsExplicit());core->Close();
+        VERIFY_IS_TRUE(core->InitialTitleIsExplicit());
+        VERIFY_ARE_EQUAL(winrt::guid{L"{22222222-2222-4222-8222-222222222222}"}, core->InitialLaunchProfileId());
+        VERIFY_ARE_EQUAL(winrt::hstring{L"Windows.Terminal.SSH"}, core->InitialLaunchProfileSource());
+        VERIFY_ARE_EQUAL(winrt::hstring{L"SSH originalAlias"}, core->InitialLaunchConnectionIdentity());
+        VERIFY_ARE_EQUAL(winrt::hstring{L"ssh.exe originalAlias"}, core->InitialLaunchCommandline());core->Close();
     }
 
     void ControlCoreTests::BackslashReportedDirectory()
     {
-        auto [settings, conn] = _createSettingsAndConnection();
-        settings->StartingDirectory(L"C:\\profile-default");
-        const auto core = createCore(*settings, *conn);
-        _standardInit(core);
-        VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
-        VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\profile-default" }, core->WorkingDirectory());
-        conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;\"C:\\reported-local\"\x7"));
-        VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\reported-local" }, core->ReportedWorkingDirectory());
-        core->Close();
+        for (const auto* initial : { L"%USERPROFILE%", L"C:\\Users\\nemo", L"C:\\Users\\nemo\\AppData" })
+        {
+            auto [settings, conn] = _createSettingsAndConnection(); settings->StartingDirectory(initial);
+            const auto core = createCore(*settings, *conn); _standardInit(core);
+            VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty()); VERIFY_ARE_EQUAL(winrt::hstring{ initial }, core->WorkingDirectory());
+            // A normal PowerShell prompt is not an authenticated cwd report.
+            conn->WriteInput(winrt_wstring_to_array_view(L"PS C:\\Users\\nemo\\AppData> "));
+            VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;\"C:\\Users\\nemo\\AppData\"\x7"));
+            VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\Users\\nemo\\AppData" }, core->ReportedWorkingDirectory());
+            for (const auto* path : { L"C:\\sp ace;\u03a9's", L"C:\\semicolon;another;folder" })
+            {
+                const auto report = L"\x1b]9;9;\"" + std::wstring{ path } + L"\"\x7";
+                conn->WriteInput(winrt_wstring_to_array_view(report)); VERIFY_ARE_EQUAL(winrt::hstring{ path }, core->ReportedWorkingDirectory());
+            }
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;\x7")); VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\valid\x7")); VERIFY_IS_FALSE(core->ReportedWorkingDirectory().empty());
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;\"\"\x7")); VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            for (const auto* bad : { L"C:\\bad|folder", L"C:\\bad\u0085folder", L"C:\\bad\tfolder", L"C:\\bad\rfolder", L"C:\\bad\nfolder" })
+            {
+                conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\valid\x7"));
+                const auto report = L"\x1b]9;9;" + std::wstring{ bad } + L"\x7";
+                conn->WriteInput(winrt_wstring_to_array_view(report)); VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            }
+            for (const auto control : { wchar_t{ 0 }, wchar_t{ 0x18 }, wchar_t{ 0x1a }, wchar_t{ 0x1b } })
+            {
+                conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\valid\x7"));
+                auto report = std::wstring{ L"\x1b]9;9;C:\\bad" }; report.push_back(control); report += L"folder\x7";
+                conn->WriteInput(winrt_wstring_to_array_view(report)); VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            }
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\old-generation\x7"));
+            auto next = winrt::make_self<MockConnection>(); core->Connection(*next);
+            VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\stale-transport\x7")); VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+            next->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;C:\\new-generation\x7"));
+            VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\new-generation" }, core->ReportedWorkingDirectory());
+            core->Close();
+        }
     }
 
     void ControlCoreTests::BackslashPhosphorOpacityWARP()

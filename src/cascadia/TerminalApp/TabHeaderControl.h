@@ -18,6 +18,13 @@ namespace winrt::TerminalApp::implementation
                                        const winrt::Windows::UI::Xaml::RoutedEventArgs& e);
 
         bool InRename();
+        bool IsPinned() const { return _isPinned; }
+        void IsPinned(bool value);
+        til::typed_event<> PinCloseRequested;
+        WINRT_OBSERVABLE_PROPERTY(bool, PinHasStatus, PropertyChanged.raise, false);
+    public:
+        bool PinBusy() { return !PinCloseButton().IsEnabled(); }
+        void PinBusy(bool value) { PinCloseButton().IsEnabled(!value); }
 
         til::event<TerminalApp::TitleChangeRequestedArgs> TitleChangeRequested;
         til::typed_event<> RenameEnded;
@@ -28,6 +35,7 @@ namespace winrt::TerminalApp::implementation
         WINRT_OBSERVABLE_PROPERTY(winrt::TerminalApp::TerminalTabStatus, TabStatus, PropertyChanged.raise);
 
     private:
+        bool _isPinned = false;
         bool _receivedKeyDown{ false };
         bool _renameCancelled{ false };
 

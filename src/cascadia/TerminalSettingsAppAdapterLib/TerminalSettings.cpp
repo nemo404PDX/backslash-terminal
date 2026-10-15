@@ -380,6 +380,14 @@ namespace winrt::Microsoft::Terminal::Settings
     {
         namespace Policy = ::Microsoft::Terminal::Backslash::ConnectionIdentityTitle;
         const auto identity = profile.ConnectionIdentity(Commandline());
+        _LaunchProfileId = profile.Guid();
+        _LaunchProfileSource = profile.Source();
+        _LaunchConnectionIdentity = identity;
+        if (identity.empty() && Policy::Classify(Commandline()) == Policy::LaunchKind::LocalShell &&
+            (profile.Source().empty() || profile.Source() == L"Windows.Terminal.PowershellCore"))
+        {
+            _LaunchConnectionIdentity = hstring{ Policy::LocalMachineName() };
+        }
         const auto generatedName = profile.GeneratedConnectionProfileName();
         std::wstring_view shell;
         if (!identity.empty() && profile.Source() == L"Windows.Terminal.SSH" && Commandline() == profile.Commandline())

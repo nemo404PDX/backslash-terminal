@@ -170,6 +170,8 @@
     <ClInclude Include="SnippetsPaneContent.h">
       <DependentUpon>SnippetsPaneContent.xaml</DependentUpon>
     </ClInclude>
+    <ClInclude Include="PinnedPaneContent.h" />
+    <ClInclude Include="PinTabView.h" />
     <ClInclude Include="SettingsPaneContent.h">
       <DependentUpon>TerminalPaneContent.idl</DependentUpon>
     </ClInclude>
@@ -282,6 +284,8 @@
     <ClCompile Include="SnippetsPaneContent.cpp">
       <DependentUpon>SnippetsPaneContent.xaml</DependentUpon>
     </ClCompile>
+    <ClCompile Include="PinnedPaneContent.cpp" />
+    <ClCompile Include="TerminalPage.Pins.cpp" />
     <ClCompile Include="SettingsPaneContent.cpp">
       <DependentUpon>TerminalPaneContent.idl</DependentUpon>
     </ClCompile>

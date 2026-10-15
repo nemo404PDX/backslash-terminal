@@ -25,6 +25,7 @@ Abstract:
 #pragma once
 
 #include "ContentManager.g.h"
+#include <mutex>
 
 #include <inc/cppwinrt_utils.h>
 namespace winrt::TerminalApp::implementation
@@ -42,6 +43,7 @@ namespace winrt::TerminalApp::implementation
 
     private:
         std::unordered_map<uint64_t, Microsoft::Terminal::Control::ControlInteractivity> _content;
+        std::mutex _contentMutex;
 
         void _closedHandler(const winrt::Windows::Foundation::IInspectable& sender,
                             const winrt::Windows::Foundation::IInspectable& e);

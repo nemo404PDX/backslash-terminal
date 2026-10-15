@@ -62,6 +62,9 @@ namespace Microsoft.Terminal.Control
         Boolean ScrollToChangeOpacity { get; };
 
         String ConnectionTitlePrefix { get; };
+        Guid LaunchProfileId { get; };
+        String LaunchProfileSource { get; };
+        String LaunchConnectionIdentity { get; };
         Boolean StartingTitleIsExplicit { get; };
         String Commandline { get; };
         String StartingDirectory { get; };

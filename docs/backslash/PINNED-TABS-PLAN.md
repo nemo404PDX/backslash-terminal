@@ -2,7 +2,9 @@
 
 [Project entry point](README.md) | [Saved tab groups](SAVED-TAB-GROUPS.md) | [Settings layout proposal](SETTINGS-LAYOUT-PROPOSAL.md)
 
-Status: **deferred plan, 2026-10-14; not implemented**. Stabilize saved groups, their naming/focus behavior and approved startup slice first. This document records the agreed visual direction and proposed follow-on behavior; it does not authorize implementation or assign settings keys.
+Status: **buildable preview checkpoint, 2026-10-15 UTC**. The user selected global unviewed collection, lazy launch and focused-pane capture. Runtime/menu/persistence integration and the live-cwd repair are implemented; 230/230 Settings tests, 34/34 Control tests, 759 parser tests (one preexisting skip) and 9/9 owned local runtime assertions pass. Native latest live-cwd UI interaction/visual acceptance remains pending. See [implementation and evidence](PINNED-TABS-IMPLEMENTATION.md). Historical questions below are superseded by the approved choices near the end. Baseline is `dc027cae`.
+
+Current scoped cwd repair and separate future listing slices: [Live cwd and session metadata](LIVE-CWD-AND-SESSION-METADATA.md).
 
 ## Desired core model: remembered destination
 
@@ -187,3 +189,23 @@ Source paths below were checked on 2026-10-14; anchors are research entry points
 25. Once eager versus lazy launch is decided, verify creation/first selection and failures against that policy, including local and SSH destinations. Lazy launch is a candidate only. Selecting an already-open pin accesses its existing separate session; fresh reopen uses the captured path. No duplicate connection from repeated selection or focus theft during background creation.
 
 Before implementation, choose the cross-window persistence/access and global-menu and eager-versus-lazy background-launch policies without an exclusive pin-capable window; settle close-shortcut/pane-close/separate bulk tab-close mappings, persistence ownership and create/remove workflow, startup/default-profile/restore composition, explicit dedup association, live split-tab association, ordering/focus, explicit/transfer/restore-created window claim eligibility, ownership coordinator/recovery, fixed-path capture/launch validation and invalid-pin fallback. Defer all implementation until groups are stable.
+
+## Implementation checkpoint: independent model and action rules (2026-10-15 UTC)
+
+`TerminalSettingsModel/PinnedDestinations.h` introduces a bounded version-1 descriptor/collection format, independent of storage topology. A descriptor contains its own stable ID, exact profile GUID/source, typed local/WSL/SSH path context and fixed host/profile-label/path. It contains no commands, credentials, environment, scrollback, runtime window/content IDs or split-layout configuration. Unknown fields/versions, duplicate IDs, invalid/oversized data and unsafe paths fail validation instead of being rewritten as an empty collection. No disk reader/writer or global claim mechanism is connected yet.
+
+Capture requires reported directory provenance; a starting-directory seed is rejected. Capture copies the destination, so later navigation/title changes cannot mutate it. Resolution checks exact profile/source/host/context, active state, compatible elevation and launcher path support before returning the fixed descriptor. Missing local paths block without substituting a default folder/profile. Remote path descriptors never reach the local filesystem probe. These are tested model contracts, not a claim that SSH/WSL pin launch adapters or native UI already work.
+
+The action policy separates accepted individual Close, Unpin, window exit/Quit, transfer, natural connection end and recovery. Cancel plans no mutations. Close removes the remembered entry and closes its live session; Unpin removes the remembered entry while retaining/demoting its session; whole-window/Quit preserve remembered data. The injected writer boundary completes before in-memory removal, and failed writes leave the collection untouched. Repeated removal is idempotent. Separate bulk-tab-close and pane-only-close mappings remain unresolved and are rejected by this foundation instead of silently chosen. No removal side effect is attached to `_RemoveTab`, Shutdown or teardown.
+
+The user approved all three choices below on 2026-10-15; dependent implementation is now underway:
+
+1. **Proposed global unviewed collection plus a Pins menu in every window.** Every window can create pins. A new ordinary window collects currently unviewed pins, so pins from closed B and C combine in D. Existing windows can explicitly open closed pins, move live pins here or gather all. Closing another window never launches replacements automatically. Explicit commands, restored layouts and selected saved-group startup preserve their existing content and use the menu for pin access. This policy is selected.
+2. **Proposed lazy launch.** Creating a separate compact background entry leaves the source tab/focus intact; the fresh connection starts only on first selection. Lazy launch is selected.
+3. **Proposed focused-pane capture.** A split source tab contributes only its focused terminal destination to a new single-session pin. Later splits in the pin's live tab survive Unpin/Move, while a fresh reopen uses the original single destination. Focused-pane capture is selected.
+
+Focused `PinnedDestinationTests` exercises typed round trips, metadata provenance, immutable paths, independent IDs, strict data/bounds, Close/Unpin/exit/cancel rules, writer failure/idempotence, exact-profile/target preflight and exclusion of remote paths from local probes. Build/test logs live under `artifacts/pinned-tabs-foundation`; the initial GUID-type compile diagnostic is preserved. Compact native UI and runtime persistence/ownership integration are in progress; no native visual or completed pinned-tabs acceptance is claimed. No user settings, remote connection, commit, push, tag or release accompanies this checkpoint.
+
+## Capture fallback correction (2026-10-15)
+
+A usable reported cwd keeps quick capture; an unavailable/invalid report now asks for a folder explicitly. Startup seeds are suggestions, and confirmation stores an absolute literal path. Local variables are resolved before confirmation; remote paths never use local seeds/variables. See [cause, evidence and checklist](PIN-CAPTURE-FIX.md).

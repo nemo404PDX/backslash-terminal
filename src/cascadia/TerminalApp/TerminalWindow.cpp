@@ -149,6 +149,8 @@ namespace winrt::TerminalApp::implementation
         // Now that we know we can do XAML, build our page.
         _root = winrt::make_self<TerminalPage>(*_WindowProperties, _manager);
 
+        const bool _rootHasStartupConnection = static_cast<bool>(_startupConnection);
+        const bool _rootHasInitialContent = !_initialContentArgs.empty();
         // Pass in information about the initial state of the window.
         // * If we were supposed to start from serialized "content", do that,
         // * If we were supposed to load from a persisted layout, do that
@@ -174,6 +176,20 @@ namespace winrt::TerminalApp::implementation
             _root->SetStartupActions(_appArgs->ParsedArgs().GetStartupActions());
         }
 
+        bool ordinary = !_hasCommandLineArguments;
+        if (_appArgs)
+        {
+            const auto raw = _appArgs->Commandline();
+            ordinary = true;
+            for (uint32_t i = 1; i < raw.size(); ++i)
+            {
+                const std::wstring_view arg{ raw[i] };
+                if (arg == L"-w" || arg == L"--window" || arg == L"--pos" || arg == L"--size") { if (++i >= raw.size()) { ordinary = false; } }
+                else if (arg != L"-M" && arg != L"--maximized" && arg != L"-F" && arg != L"--fullscreen" && arg != L"--focus") { ordinary = false; }
+            }
+        }
+        const bool restored = static_cast<bool>(LoadPersistedLayout());
+        _root->SetPinStartupContext(ordinary && !_rootHasStartupConnection && !_rootHasInitialContent && !restored && !_gotSettingsStartupActions && !(_initialAppLaunch && _settings.GlobalSettings().StartupWithSavedGroup()), restored);
         return _root->Initialize(hwnd);
     }
 
@@ -1286,7 +1302,7 @@ namespace winrt::TerminalApp::implementation
 
             auto args = _contentStringToActions(content, replaceFirstWithNewTab);
 
-            _root->AttachContent(std::move(args), tabIndex);
+            if (!_root->TryAttachPinContent(args, tabIndex)) { _root->AttachContent(std::move(args), tabIndex); }
         }
     }
     void TerminalWindow::SendContentToOther(winrt::TerminalApp::RequestReceiveContentArgs args)

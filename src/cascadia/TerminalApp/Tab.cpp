@@ -90,6 +90,8 @@ namespace winrt::TerminalApp::implementation
         _CreateContextMenu();
 
         _headerControl.TabStatus(_tabStatus);
+        _headerControl.PinCloseRequested([weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get()) { self->CloseRequested.raise(*self, nullptr); } });
+        _tabStatus.PropertyChanged([weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get()) { self->UpdatePinStatus(); } });
 
         // Add an event handler for the header control to tell us when they want their title to change
         _headerControl.TitleChangeRequested([weakThis = get_weak()](auto&& title) {
@@ -411,9 +413,11 @@ namespace winrt::TerminalApp::implementation
     // - iconPath: The new path string to use as the IconPath for our TabViewItem
     // Return Value:
     // - <none>
-    void Tab::UpdateIcon(const winrt::hstring& iconPath, const winrt::Microsoft::Terminal::Settings::Model::IconStyle iconStyle)
+    void Tab::UpdateIcon(const winrt::hstring& requestedIconPath, const winrt::Microsoft::Terminal::Settings::Model::IconStyle requestedIconStyle)
     {
         ASSERT_UI_THREAD();
+        const auto iconPath = Pin ? Pin->icon : requestedIconPath;
+        const auto iconStyle = Pin ? Microsoft::Terminal::Settings::Model::IconStyle::Default : requestedIconStyle;
 
         // Don't reload our icon and iconStyle hasn't changed.
         if (iconPath == _lastIconPath && iconStyle == _lastIconStyle)
@@ -451,6 +455,7 @@ namespace winrt::TerminalApp::implementation
     // - hide: if true, we hide the icon; if false, we show the icon
     void Tab::HideIcon(const bool hide)
     {
+        if (Pin && hide) { return; }
         ASSERT_UI_THREAD();
 
         if (_iconHidden != hide)
@@ -537,7 +542,7 @@ namespace winrt::TerminalApp::implementation
     {
         ASSERT_UI_THREAD();
 
-        const auto activeTitle = _GetActiveTitle();
+        const auto activeTitle = Pin ? (Pin->destination ? winrt::to_hstring(::Microsoft::Terminal::Backslash::Pins::Identity(*Pin->destination)) : RS_(L"Pins_Loading")) : _GetActiveTitle();
         // Bubble our current tab text to anyone who's listening for changes.
         Title(activeTitle);
 
@@ -545,6 +550,47 @@ namespace winrt::TerminalApp::implementation
         _headerControl.Title(activeTitle);
         Automation::AutomationProperties::SetName(TabViewItem(), activeTitle);
         _UpdateToolTip();
+        if (Pin) { UpdatePinStatus(); }
+    }
+
+    void Tab::SetPin(std::optional<PinTabView> view)
+    {
+        Pin = std::move(view);
+        _headerControl.IsPinned(Pin.has_value());
+        if (Pin)
+        {
+            TabViewItem().MinWidth(PinnedTabWidth); TabViewItem().MaxWidth(PinnedTabWidth); TabViewItem().Width(PinnedTabWidth);
+            _headerControl.PinBusy(Pin->busy);
+            HideIcon(false);
+            if (!Pin->icon.empty()) { UpdateIcon(Pin->icon, Microsoft::Terminal::Settings::Model::IconStyle::Default); }
+        }
+        else
+        {
+            TabViewItem().ClearValue(Windows::UI::Xaml::FrameworkElement::MinWidthProperty());
+            TabViewItem().ClearValue(Windows::UI::Xaml::FrameworkElement::MaxWidthProperty());
+            TabViewItem().ClearValue(Windows::UI::Xaml::FrameworkElement::WidthProperty());
+        }
+        _updateIsClosable(); UpdateTitle(); UpdatePinStatus();
+    }
+    void Tab::PinBusy(bool value)
+    {
+        if (Pin) { Pin->busy = value; _headerControl.PinBusy(value); }
+    }
+    void Tab::UpdatePinStatus()
+    {
+        if (!Pin) { return; }
+        const bool status = _tabStatus.BellIndicator() || _tabStatus.IsConnectionClosed() || _tabStatus.IsReadOnlyActive() || _tabStatus.IsInputBroadcastActive() || _tabStatus.IsProgressRingActive() || _tabStatus.IsPaneZoomed();
+        _headerControl.PinHasStatus(status);
+        std::wstring text{ Title() };
+        if (_tabStatus.BellIndicator()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusBell") }; }
+        if (_tabStatus.IsConnectionClosed()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusClosed") }; }
+        if (_tabStatus.IsReadOnlyActive()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusReadOnly") }; }
+        if (_tabStatus.IsInputBroadcastActive()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusBroadcast") }; }
+        if (_tabStatus.IsProgressRingActive()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusProgress") }; }
+        if (_tabStatus.IsPaneZoomed()) { text += L"; " + std::wstring{ RS_(L"Pins_StatusZoom") }; }
+        Automation::AutomationProperties::SetName(TabViewItem(), text);
+        Automation::AutomationProperties::SetHelpText(TabViewItem(), text);
+        WUX::Controls::ToolTipService::SetToolTip(TabViewItem(), box_value(text));
     }
 
     // Method Description:
@@ -575,6 +621,14 @@ namespace winrt::TerminalApp::implementation
     // - A vector of commands
     std::vector<ActionAndArgs> Tab::BuildStartupActions(BuildStartupKind kind, const Pane::StartupArgsFactory& factory) const
     {
+        if (Pin && kind == BuildStartupKind::Persist)
+        {
+            NewTerminalArgs content; content.PinnedId(winrt::to_hstring(Pin->id));
+            NewTabArgs args{ content };
+            ActionAndArgs action; action.Action(ShortcutAction::NewTab); action.Args(args);
+            return { action };
+        }
+
         ASSERT_UI_THREAD();
 
         // Give initial ids (0 for the child created with this tab,
@@ -1051,7 +1105,7 @@ namespace winrt::TerminalApp::implementation
     {
         ASSERT_UI_THREAD();
 
-        _headerControl.BeginRename();
+        if (!Pin) { _headerControl.BeginRename(); }
     }
 
     // Method Description:
@@ -1817,6 +1871,14 @@ namespace winrt::TerminalApp::implementation
         auto closeSubMenu = _AppendCloseMenuItems(contextMenuFlyout);
         closeSubMenu.Items().Append(closePaneMenuItem);
 
+        contextMenuFlyout.Opening([weakThis, renameTabMenuItem, duplicateTabMenuItem, splitTabMenuItem](auto&&, auto&&) {
+            if (const auto tab = weakThis.get()) {
+                renameTabMenuItem.IsEnabled(!tab->Pin);
+                const bool terminal = !tab->Pin || !tab->Pin->dormant;
+                duplicateTabMenuItem.IsEnabled(terminal); splitTabMenuItem.IsEnabled(terminal);
+            }
+        });
+
         // GH#5750 - When the context menu is dismissed with ESC, toss the focus
         // back to our control.
         contextMenuFlyout.Closed([weakThis](auto&&, auto&&) {
@@ -2178,6 +2240,7 @@ namespace winrt::TerminalApp::implementation
     // - The value to populate in the title run of the tool tip
     winrt::hstring Tab::_CreateToolTipTitle()
     {
+        if (Pin) { return Title(); }
         // The curated title already contains identity first; preserve it in full.
         if (_showConnectionIdentity) { return Title(); }
         if (const auto profile{ GetFocusedProfile() })
@@ -2650,6 +2713,7 @@ namespace winrt::TerminalApp::implementation
     {
         bool isClosable = true;
 
+        if (Pin) { TabViewItem().IsClosable(false); return; }
         if (ReadOnly())
         {
             isClosable = false;

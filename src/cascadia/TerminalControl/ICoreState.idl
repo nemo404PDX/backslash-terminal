@@ -32,6 +32,10 @@ namespace Microsoft.Terminal.Control
     {
         String Title { get; };
         String InitialConnectionTitlePrefix { get; };
+        Guid InitialLaunchProfileId { get; };
+        String InitialLaunchProfileSource { get; };
+        String InitialLaunchConnectionIdentity { get; };
+        String InitialLaunchCommandline { get; };
         String InitialStartingTitle { get; };
         Boolean InitialTitleIsExplicit { get; };
         UInt64 TaskbarState { get; };

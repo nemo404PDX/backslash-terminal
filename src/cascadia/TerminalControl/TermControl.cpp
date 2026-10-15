@@ -3783,6 +3783,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         return _core.CommandHistory();
     }
     winrt::hstring TermControl::InitialConnectionTitlePrefix() const { return _core.InitialConnectionTitlePrefix(); }
+    winrt::guid TermControl::InitialLaunchProfileId() const { return _core.InitialLaunchProfileId(); }
+    winrt::hstring TermControl::InitialLaunchProfileSource() const { return _core.InitialLaunchProfileSource(); }
+    winrt::hstring TermControl::InitialLaunchConnectionIdentity() const { return _core.InitialLaunchConnectionIdentity(); }
+    winrt::hstring TermControl::InitialLaunchCommandline() const { return _core.InitialLaunchCommandline(); }
     winrt::hstring TermControl::InitialStartingTitle() const { return _core.InitialStartingTitle(); }
     bool TermControl::InitialTitleIsExplicit() const { return _core.InitialTitleIsExplicit(); }
 

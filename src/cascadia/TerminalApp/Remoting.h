@@ -40,6 +40,8 @@ namespace winrt::TerminalApp::implementation
         WINRT_PROPERTY(uint64_t, SourceWindow);
         WINRT_PROPERTY(uint64_t, TargetWindow);
         WINRT_PROPERTY(uint32_t, TabIndex);
+        WINRT_PROPERTY(winrt::hstring, PinnedId);
+        WINRT_PROPERTY(bool, PinBackground, false);
 
     public:
         RequestReceiveContentArgs(const uint64_t src, const uint64_t tgt, const uint32_t tabIndex) :

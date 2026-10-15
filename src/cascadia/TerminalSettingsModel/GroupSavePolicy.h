@@ -6,7 +6,7 @@
 
 namespace Microsoft::Terminal::Backslash::GroupSavePolicy
 {
-    enum class PaneKind { Terminal, Settings, Unsupported };
+    enum class PaneKind { Terminal, Settings, Unsupported, DormantPin };
     struct Selection
     {
         std::vector<uint32_t> indices;
@@ -19,6 +19,7 @@ namespace Microsoft::Terminal::Backslash::GroupSavePolicy
         for (uint32_t i = 0; i < tabs.size(); ++i)
         {
             const auto& panes = tabs[i];
+            if (panes.size() == 1 && panes.front() == PaneKind::DormantPin) { continue; }
             if (panes.size() == 1 && panes.front() == PaneKind::Settings) { result.skippedSettings = true;continue; }
             if (panes.empty() || std::any_of(panes.begin(),panes.end(),[](auto kind) { return kind != PaneKind::Terminal; }))
             { throw std::invalid_argument("Only terminal pane layouts can be saved. Mixed Settings or other nonterminal panes cannot be omitted safely."); }

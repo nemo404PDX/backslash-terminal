@@ -37,6 +37,11 @@
   <ItemGroup>
     <ClCompile Include="ProfileTests.cpp" />
     <ClCompile Include="ProfileSourceTests.cpp" />
+    <ClCompile Include="PinnedDestinationTests.cpp" />
+    <ClCompile Include="PinnedStoreTests.cpp" />
+    <ClCompile Include="PinnedLaunchTests.cpp" />
+    <ClCompile Include="PinnedCaptureTests.cpp" />
+    <ClCompile Include="PinnedIdentityTests.cpp" />
     <ClCompile Include="ColorSchemeTests.cpp" />
     <ClCompile Include="KeyBindingsTests.cpp" />
     <ClCompile Include="CommandTests.cpp" />

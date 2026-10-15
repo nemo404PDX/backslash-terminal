@@ -934,4 +934,35 @@
   <data name="SavedGroups_SettingsSkipSuppress" xml:space="preserve"><value>Don’t show this again</value></data>
   <data name="SavedGroups_SettingsSkipContinue" xml:space="preserve"><value>Continue</value></data>
   <data name="SavedGroups_SettingsSkipCancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Pins_Button.Content" xml:space="preserve"><value>Pins</value></data>
+  <data name="Pins_Button.AutomationProperties.Name" xml:space="preserve"><value>Pinned destinations</value></data>
+  <data name="Pins_Close" xml:space="preserve"><value>Close session and remove pin</value></data>
+  <data name="Pins_Loading" xml:space="preserve"><value>Loading pinned destination…</value></data>
+  <data name="Pins_Opening" xml:space="preserve"><value>Opening pinned destination…</value></data>
+  <data name="Pins_Dormant" xml:space="preserve"><value>Select this entry to start a fresh session at the remembered destination.</value></data>
+  <data name="Pins_Busy" xml:space="preserve"><value>This pin is being updated or moved. Wait for that operation to finish.</value></data>
+  <data name="Pins_Current" xml:space="preserve"><value>Pin current folder</value></data>
+  <data name="Pins_AddFolder" xml:space="preserve"><value>Add a folder...</value></data>
+  <data name="Pins_CurrentUnavailable" xml:space="preserve"><value>This pane has no usable current folder report. Open a new PowerShell 7 session and wait for its prompt, or choose Add a folder to enter a path.</value></data>
+  <data name="Pins_Gather" xml:space="preserve"><value>Gather pins in this window</value></data>
+  <data name="Pins_Select" xml:space="preserve"><value>Select in this window</value></data>
+  <data name="Pins_OpenHere" xml:space="preserve"><value>Open in this window</value></data>
+  <data name="Pins_MoveHere" xml:space="preserve"><value>Move here</value></data>
+  <data name="Pins_Unpin" xml:space="preserve"><value>Unpin and keep session</value></data>
+  <data name="Pins_Remove" xml:space="preserve"><value>Remove remembered destination</value></data>
+  <data name="Pins_OtherProcess" xml:space="preserve"><value>This pin is open in another process or elevation context. Close its window first, then open the pin here.</value></data>
+  <data name="Pins_StatusBell" xml:space="preserve"><value>Bell</value></data>
+  <data name="Pins_StatusClosed" xml:space="preserve"><value>Connection closed</value></data>
+  <data name="Pins_StatusReadOnly" xml:space="preserve"><value>Read only</value></data>
+  <data name="Pins_StatusProgress" xml:space="preserve"><value>Progress</value></data>
+  <data name="Pins_StatusBroadcast" xml:space="preserve"><value>Input broadcast</value></data>
+  <data name="Pins_StatusZoom" xml:space="preserve"><value>Pane zoomed</value></data>
+  <data name="Pins_ConfirmFolderTitle" xml:space="preserve"><value>Pin a folder</value></data>
+  <data name="Pins_ConfirmLocalFolder" xml:space="preserve"><value>Choose a folder to remember. The suggested path is editable and may differ from your shell&#x27;s current folder.</value></data>
+  <data name="Pins_ConfirmLocalInvalidReport" xml:space="preserve"><value>Backslash couldn&#x27;t use this shell&#x27;s folder report. Confirm or change the suggested folder below. Your current session will stay where it is.</value></data>
+  <data name="Pins_ConfirmRemoteFolder" xml:space="preserve"><value>Enter the full folder path on the remote host to remember.</value></data>
+  <data name="Pins_FolderToPin" xml:space="preserve"><value>Folder to pin</value></data>
+  <data name="Pins_ConfirmPin" xml:space="preserve"><value>Pin folder</value></data>
+  <data name="Pins_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Pins_ResolvedFolder" xml:space="preserve"><value>Folder that will be pinned: </value></data>
 </root>

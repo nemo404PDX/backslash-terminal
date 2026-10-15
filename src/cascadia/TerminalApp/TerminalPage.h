@@ -140,6 +140,9 @@ namespace winrt::TerminalApp::implementation
         void RequestSetMaximized(bool newMaximized);
 
         void SetStartupActions(std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs> actions);
+        void SetPinStartupContext(bool collect, bool restoring);
+        bool TryAttachPinContent(winrt::Windows::Foundation::Collections::IVector<Microsoft::Terminal::Settings::Model::ActionAndArgs> actions, uint32_t index, bool restoring = false);
+        void ShutdownPinnedTabs();
         void SetStartupConnection(winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection connection);
 
         static std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs> ConvertExecuteCommandlineToActions(const Microsoft::Terminal::Settings::Model::ExecuteCommandlineArgs& args);
@@ -308,6 +311,40 @@ namespace winrt::TerminalApp::implementation
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowMultiLinePasteWarningDialog();
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowLargePasteWarningDialog();
 
+        std::shared_ptr<::Microsoft::Terminal::Backslash::Pins::Store> _pinStore;
+        ::Microsoft::Terminal::Backslash::Pins::Owner _pinOwner;
+        wil::unique_handle _pinLifetime;
+        std::optional<PinTabView> _nextPinView;
+        winrt::Windows::UI::Xaml::Controls::MenuFlyout _pinsFlyout{ nullptr };
+        bool _pinCollectEligible = false, _pinRestoring = false, _pinsCollected = false, _pinsClosing = false, _pinNormalizing = false;
+        uint32_t _pinActionDepth = 0;
+        void _EnsurePins();
+        void _CreatePinsFlyout();
+        safe_void_coroutine _RefreshPinsMenu();
+        safe_void_coroutine _CollectPins();
+        bool _pinCaptureActive = false;
+        winrt::Windows::Foundation::IAsyncOperation<winrt::hstring> _ConfirmPinDirectory(::Microsoft::Terminal::Backslash::Pins::Kind kind, winrt::hstring suggestion, bool invalidReport);
+        safe_void_coroutine _PinFocusedDestination(bool manual = false);
+        safe_void_coroutine _OpenPinHere(std::string id, bool activate = true);
+        safe_void_coroutine _GatherPins();
+        safe_void_coroutine _ActivatePin(winrt::TerminalApp::Tab tab);
+        safe_void_coroutine _FinishPinReference(winrt::TerminalApp::Tab tab, winrt::hstring actions, bool restoring);
+        safe_void_coroutine _Unpin(std::string id);
+        safe_void_coroutine _RemoveClosedPin(std::string id);
+        safe_void_coroutine _SendPinnedTab(winrt::com_ptr<Tab> tab, winrt::hstring window, uint32_t index, std::optional<winrt::Windows::Foundation::Point> point = {}, bool background = false);
+        safe_void_coroutine _WatchPinTransfer(std::string id, std::string transfer, ::Microsoft::Terminal::Backslash::Pins::Owner source, winrt::hstring actions);
+        winrt::Windows::Foundation::IAsyncOperation<bool> _RemovePinPreference(winrt::TerminalApp::Tab tab);
+        winrt::com_ptr<Tab> _FindPinTab(const std::string& id) const;
+        winrt::TerminalApp::Tab _AddPinEntry(PinTabView view, bool activate, uint32_t index = -1);
+        Microsoft::Terminal::Settings::Model::Profile _PinProfile(const ::Microsoft::Terminal::Backslash::Pins::Destination& destination) const;
+        ::Microsoft::Terminal::Backslash::Pins::ProfileTarget _PinTarget(const Microsoft::Terminal::Settings::Model::Profile& profile) const;
+        void _MaybeActivatePin();
+        void _StartPins();
+        uint32_t _PinCount() const;
+        void _NormalizePinOrder();
+        void _ReleasePin(const ::Microsoft::Terminal::Backslash::Pins::Lease& lease);
+        void _RequestPinMove(const ::Microsoft::Terminal::Backslash::Pins::Lease& lease, bool background);
+        void _PinError(const winrt::hstring& message);
         void _CreateSavedGroupsFlyout();
         safe_void_coroutine _SaveCurrentTabGroup();
         ::Microsoft::Terminal::Backslash::GroupSavePolicy::Selection _SelectGroupTerminalTabs();
@@ -327,7 +364,7 @@ namespace winrt::TerminalApp::implementation
 
         void _OpenNewTabDropdown();
         HRESULT _OpenNewTab(const Microsoft::Terminal::Settings::Model::INewContentArgs& newContentArgs);
-        TerminalApp::Tab _CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition = -1);
+        TerminalApp::Tab _CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition = -1, bool background = false);
 
         std::wstring _evaluatePathForCwd(std::wstring_view path);
 
@@ -361,12 +398,12 @@ namespace winrt::TerminalApp::implementation
 
         safe_void_coroutine _ExportTab(const Tab& tab, winrt::hstring filepath);
 
-        winrt::Windows::Foundation::IAsyncAction _HandleCloseTabRequested(winrt::TerminalApp::Tab tab);
+        winrt::Windows::Foundation::IAsyncAction _HandleCloseTabRequested(winrt::TerminalApp::Tab tab, bool forgetPin = true);
         void _CloseTabAtIndex(uint32_t index);
         void _RemoveTab(const winrt::TerminalApp::Tab& tab);
         safe_void_coroutine _RemoveTabs(const std::vector<winrt::TerminalApp::Tab> tabs);
 
-        void _InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition = -1);
+        void _InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition = -1, bool background = false);
         void _RegisterTerminalEvents(Microsoft::Terminal::Control::TermControl term);
         void _RegisterTabEvents(Tab& hostingTab);
 

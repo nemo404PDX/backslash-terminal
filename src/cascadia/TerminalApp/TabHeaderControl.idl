@@ -15,6 +15,10 @@ namespace TerminalApp
         void BeginRename();
 
         Boolean InRename { get; };
+        Boolean IsPinned { get; set; };
+        Boolean PinHasStatus { get; set; };
+        Boolean PinBusy { get; set; };
+        event Windows.Foundation.TypedEventHandler<Object, Object> PinCloseRequested;
 
         TerminalTabStatus TabStatus { get;  set; };
 

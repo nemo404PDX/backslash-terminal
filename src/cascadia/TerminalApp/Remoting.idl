@@ -40,6 +40,8 @@ namespace TerminalApp
         UInt64 SourceWindow { get; };
         UInt64 TargetWindow { get; };
         UInt32 TabIndex { get; };
+        String PinnedId;
+        Boolean PinBackground;
     };
 
     [default_interface] runtimeclass WindowRequestedArgs {

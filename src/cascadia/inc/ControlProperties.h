@@ -83,6 +83,9 @@
     X(winrt::hstring, CellWidth)                                                                                                                         \
     X(winrt::hstring, CellHeight)                                                                                                                        \
     X(winrt::hstring, ConnectionTitlePrefix) \
+    X(winrt::guid, LaunchProfileId) \
+    X(winrt::hstring, LaunchProfileSource) \
+    X(winrt::hstring, LaunchConnectionIdentity) \
     X(bool, StartingTitleIsExplicit, false) \
     X(winrt::hstring, Commandline)                                                                                                                       \
     X(winrt::hstring, StartingDirectory)                                                                                                                 \

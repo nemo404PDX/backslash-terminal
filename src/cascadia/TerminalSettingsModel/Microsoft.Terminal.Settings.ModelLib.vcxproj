@@ -80,6 +80,11 @@
     <ClInclude Include="DynamicProfileUtils.h" />
     <ClInclude Include="FileUtils.h" />
     <ClInclude Include="SavedTabGroups.h" />
+    <ClInclude Include="PinnedDestinations.h" />
+    <ClInclude Include="PinnedStore.h" />
+    <ClInclude Include="PinnedLaunch.h" />
+    <ClInclude Include="PinnedCapture.h" />
+    <ClInclude Include="PinnedIdentity.h" />
     <ClInclude Include="GlobalAppSettings.h">
       <DependentUpon>GlobalAppSettings.idl</DependentUpon>
     </ClInclude>

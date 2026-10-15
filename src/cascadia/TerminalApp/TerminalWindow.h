@@ -119,6 +119,7 @@ namespace winrt::TerminalApp::implementation
         bool OnDirectKeyEvent(const uint32_t vkey, const uint8_t scanCode, const bool down);
 
         void CloseWindow();
+        void ShutdownPinnedTabs() { if (_root) { _root->ShutdownPinnedTabs(); } }
         void WindowVisibilityChanged(const bool showOrHide);
 
         winrt::TerminalApp::TaskbarState TaskbarState();

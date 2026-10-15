@@ -14,6 +14,9 @@ namespace winrt::TerminalApp::implementation
     TabHeaderControl::TabHeaderControl()
     {
         InitializeComponent();
+        Windows::UI::Xaml::Automation::AutomationProperties::SetName(PinCloseButton(), RS_(L"Pins_Close"));
+        Windows::UI::Xaml::Controls::ToolTipService::SetToolTip(PinCloseButton(), box_value(RS_(L"Pins_Close")));
+        PinCloseButton().Click([this](auto&&, auto&&) { PinCloseRequested.raise(*this, nullptr); });
 
         // We'll only process the KeyUp event if we received an initial KeyDown event first.
         // Avoids issue immediately closing the tab rename when we see the enter KeyUp event that was
@@ -55,6 +58,13 @@ namespace winrt::TerminalApp::implementation
         });
     }
 
+    void TabHeaderControl::IsPinned(bool value)
+    {
+        _isPinned = value;
+        HeaderStackPanel().Visibility(value ? Windows::UI::Xaml::Visibility::Collapsed : Windows::UI::Xaml::Visibility::Visible);
+        PinnedHeaderPanel().Visibility(value ? Windows::UI::Xaml::Visibility::Visible : Windows::UI::Xaml::Visibility::Collapsed);
+    }
+
     // Method Description:
     // - Returns true if we're in the middle of a tab rename. This is used to
     //   mitigate GH#10112.
@@ -72,6 +82,7 @@ namespace winrt::TerminalApp::implementation
     // - We automatically use the previous title as the initial text of the box
     void TabHeaderControl::BeginRename()
     {
+        if (_isPinned) { return; }
         _receivedKeyDown = false;
         _renameCancelled = false;
 

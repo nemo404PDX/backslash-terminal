@@ -283,6 +283,7 @@ namespace winrt::TerminalApp::implementation
             const auto& duplicateFromTab{ realArgs.SplitMode() == SplitType::Duplicate ? _GetFocusedTab() : nullptr };
 
             const auto& activeTab{ _senderOrFocusedTab(sender) };
+            if (activeTab && activeTab->Pin && activeTab->Pin->dormant) { _PinError(RS_(L"Pins_Busy")); args.Handled(true); return; }
 
             _SplitPane(activeTab,
                        realArgs.SplitDirection(),

@@ -3591,19 +3591,24 @@ void AdaptDispatch::DoConEmuAction(const std::wstring_view string)
     {
         if (parts.size() >= 2)
         {
-            auto path = til::at(parts, 1);
+            // Everything after the first separator is the path. Splitting it
+            // into parameters loses valid semicolons, including quoted paths.
+            auto path = string.substr(string.find(L';') + 1);
             // The path should be surrounded with '"' according to the documentation of ConEmu.
             // An example: 9;"D:/"
             // If we fail to find the surrounding quotation marks, we'll give the path a try anyway.
             // ConEmu also does this.
-            if (path.size() >= 3 && path.at(0) == L'"' && path.at(path.size() - 1) == L'"')
+            if (path.size() >= 2 && path.at(0) == L'"' && path.at(path.size() - 1) == L'"')
             {
                 path = path.substr(1, path.size() - 2);
             }
 
-            if (!til::is_legal_path(path))
+            // Invalid reports invalidate the previous observation. C0/C1
+            // controls are never valid metadata, even if a path API accepts them.
+            if (path.size() > 32760 || !til::is_legal_path(path) ||
+                std::any_of(path.begin(), path.end(), [](const auto ch) { return ch < 0x20 || (ch >= 0x7f && ch <= 0x9f); }))
             {
-                return;
+                path = {};
             }
 
             _api.SetWorkingDirectory(path);

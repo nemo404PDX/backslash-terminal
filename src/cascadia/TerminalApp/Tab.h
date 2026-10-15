@@ -6,6 +6,7 @@
 #include "ColorPickupFlyout.h"
 #include "Tab.h"
 #include "Tab.g.h"
+#include "PinTabView.h"
 
 // fwdecl unittest classes
 namespace TerminalAppLocalTests
@@ -60,6 +61,10 @@ namespace winrt::TerminalApp::implementation
 
         void UpdateSettings(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& settings);
         void UpdateTitle();
+        std::optional<PinTabView> Pin;
+        void SetPin(std::optional<PinTabView> view);
+        void PinBusy(bool value);
+        void UpdatePinStatus();
         void ConnectionIdentityTitles(bool enabled) { _showConnectionIdentity = enabled; }
 
         void Close();
