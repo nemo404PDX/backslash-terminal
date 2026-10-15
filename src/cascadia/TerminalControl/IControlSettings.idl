@@ -61,6 +61,8 @@ namespace Microsoft.Terminal.Control
         Boolean ScrollToZoom { get; };
         Boolean ScrollToChangeOpacity { get; };
 
+        String ConnectionTitlePrefix { get; };
+        Boolean StartingTitleIsExplicit { get; };
         String Commandline { get; };
         String StartingDirectory { get; };
 

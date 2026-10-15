@@ -174,6 +174,10 @@ namespace winrt::TerminalApp::implementation
         winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection _startupConnection{ nullptr };
         bool _hasCommandLineArguments{ false };
         bool _gotSettingsStartupActions{ false };
+        bool _initialAppLaunch{ false };
+        HWND _startupOwnerHwnd{ nullptr };
+        bool _StartupGroupEligible();
+        void _PrepareStartupGroup();
         std::vector<winrt::Microsoft::Terminal::Settings::Model::ActionAndArgs> _settingsStartupArgs{};
         Windows::Foundation::IReference<Windows::Foundation::Rect> _contentBounds{ nullptr };
 

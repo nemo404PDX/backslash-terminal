@@ -13,6 +13,8 @@
 #include "RequestMoveContentArgs.g.h"
 #include "LaunchPositionRequest.g.h"
 #include "Toast.h"
+#include "../TerminalSettingsModel/SavedTabGroups.h"
+#include "../TerminalSettingsModel/GroupSavePolicy.h"
 
 #include "WindowsPackageManagerFactory.h"
 
@@ -155,6 +157,8 @@ namespace winrt::TerminalApp::implementation
         safe_void_coroutine ProcessStartupActions(std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs> actions,
                                                   const winrt::hstring cwd = winrt::hstring{},
                                                   const winrt::hstring env = winrt::hstring{});
+        void SetStartupTabGroup(::Microsoft::Terminal::Backslash::SavedTabGroup group, ::Microsoft::Terminal::Backslash::SavedTabGroups::Restore restore);
+        void SetStartupGroupNotice(const winrt::hstring& notice);
         safe_void_coroutine CreateTabFromConnection(winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection connection);
 
         TerminalApp::WindowProperties WindowProperties() const noexcept { return _WindowProperties; };
@@ -304,6 +308,17 @@ namespace winrt::TerminalApp::implementation
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowMultiLinePasteWarningDialog();
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowLargePasteWarningDialog();
 
+        void _CreateSavedGroupsFlyout();
+        safe_void_coroutine _SaveCurrentTabGroup();
+        ::Microsoft::Terminal::Backslash::GroupSavePolicy::Selection _SelectGroupTerminalTabs();
+        winrt::Windows::Foundation::IAsyncOperation<bool> _ConfirmSettingsGroupSkip(bool& suppressOnSave);
+        safe_void_coroutine _OpenSavedTabGroup(winrt::hstring id);
+        winrt::Windows::Foundation::IAsyncAction _RestoreSavedGroup(::Microsoft::Terminal::Backslash::SavedTabGroup group, ::Microsoft::Terminal::Backslash::SavedTabGroups::Restore restore);
+        safe_void_coroutine _StartSavedTabGroup();
+        std::optional<::Microsoft::Terminal::Backslash::SavedTabGroup> _startupTabGroup;
+        ::Microsoft::Terminal::Backslash::SavedTabGroups::Restore _startupGroupRestore;
+        bool _groupOperation = false;
+        bool _openingSavedGroup = false;
         void _CreateNewTabFlyout();
         std::vector<winrt::Windows::UI::Xaml::Controls::MenuFlyoutItemBase> _CreateNewTabFlyoutItems(winrt::Windows::Foundation::Collections::IVector<Microsoft::Terminal::Settings::Model::NewTabMenuEntry> entries);
         winrt::Windows::UI::Xaml::Controls::IconElement _CreateNewTabFlyoutIcon(const winrt::hstring& icon);

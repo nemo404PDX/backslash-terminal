@@ -166,12 +166,12 @@ try
         const std::array<double,3> weights{0.2126,0.7152,0.0722};
         double luminance=0,chosenLuminance=0;
         for(UINT c=0;c<3;++c) {
-            original[c]=linear(std::clamp(static_cast<double>(pixel[c])/std::max(static_cast<double>(pixel[3]),0.000001),0.0,1.0));
+            original[c]=linear(std::clamp(static_cast<double>(pixel[c])/static_cast<double>(pixel[3]),0.0,1.0));
             chosen[c]=linear(phosphor[c]); luminance+=original[c]*weights[c];chosenLuminance+=chosen[c]*weights[c];
         }
         std::array<float,4> expected{0,0,0,pixel[3]};
         for(UINT c=0;c<3;++c) {
-            const auto mapped=chosenLuminance>0 && luminance<=chosenLuminance ? chosen[c]*luminance/chosenLuminance : chosen[c]+(1-chosen[c])*(luminance-chosenLuminance)/std::max(1-chosenLuminance,0.000001);
+            const auto mapped=(chosenLuminance>0 ? chosen[c] : 1.0)*luminance;
             expected[c]=static_cast<float>(encoded(std::clamp(original[c]+(std::clamp(mapped,0.0,1.0)-original[c])*strength,0.0,1.0))*pixel[3]);
         }
         return expected;
@@ -183,7 +183,8 @@ try
     };
     unsigned int tintCases=0;
     for(const auto rgb:std::array<std::array<float,3>,10>{{{0,0,0},{1,1,1},{0.02f,0.02f,0.02f},{0.25f,0.25f,0.25f},{0.9f,0.9f,0.9f},{1,0,0},{0,1,0},{0,0,1},{1,1,0},{0.1f,0.2f,0.6f}}}) {
-        for(const auto phosphor:std::array<std::array<float,3>,6>{{{0,1,65.0f/255},{1,176.0f/255,0},{0,0,1},{0.1f,0.1f,0.1f},{0,0,0},{1,1,1}}}) {
+        const std::array<std::array<float,3>,10> phosphors{{{0,1,65.0f/255},{1,176.0f/255,0},{1,0,0},{0,0,1},{180.0f/255,80.0f/255,1},{5.0f/255,31.0f/255,8.0f/255},{230.0f/255,1,242.0f/255},{0.1f,0.1f,0.1f},{0,0,0},{1,1,1}}};
+        for(const auto phosphor:phosphors) {
             for(const auto alpha:std::array<float,5>{0,0.00000001f,0.000001f,0.4f,1}) {
                 const std::array<float,4> pixel{rgb[0]*alpha,rgb[1]*alpha,rgb[2]*alpha,alpha};
                 setInput(pixel);
@@ -196,13 +197,42 @@ try
                     if(alpha>=0.000001f) {
                         double before=0,after=0;
                         for(UINT c=0;c<3;++c) { const auto weight=std::array<double,3>{0.2126,0.7152,0.0722}[c];before+=linear(rgb[c])*weight;after+=linear(actual[c]/alpha)*weight; }
-                        if(std::abs(after-before)>0.00002) { throw std::runtime_error("Tint changed luminance/contrast of dark, light or saturated colors"); }
+                        double endpointLuminance=0;
+                        for(UINT c=0;c<3;++c) { endpointLuminance+=linear(phosphor[c])*std::array<double,3>{0.2126,0.7152,0.0722}[c]; }
+                        if(endpointLuminance==0) { endpointLuminance=1; }
+                        const auto scale=1-strength+strength*endpointLuminance;
+                        if(std::abs(after-before*scale)>0.00002) { throw std::runtime_error("Tint failed uniform relative-luminance scaling"); }
                     }
                     ++tintCases;
                 }
             }
         }
     }
+    // Independent endpoint and monotonicity requirements: no colored phosphor
+    // may exempt white, even at nearly transparent coverage. Black is the only
+    // fallback, and intentionally produces grayscale instead of a blank image.
+    const std::array<std::array<float,3>,10> endpointPhosphors{{{0,1,65.0f/255},{1,176.0f/255,0},{1,0,0},{0,0,1},{180.0f/255,80.0f/255,1},{5.0f/255,31.0f/255,8.0f/255},{230.0f/255,1,242.0f/255},{0.1f,0.1f,0.1f},{0,0,0},{1,1,1}}};
+    for(const auto phosphor:endpointPhosphors) {
+        const bool black=phosphor==std::array<float,3>{0,0,0};
+        for(const auto alpha:std::array<float,3>{1,0.4f,0.00000001f}) {
+            setInput({alpha,alpha,alpha,alpha});
+            const auto actual=sample(render(0,0,1,1,1,1,phosphor),16);
+            for(UINT c=0;c<3;++c) {
+                const auto endpoint=black ? 1.0f : phosphor[c];
+                if(std::abs(actual[c]/alpha-endpoint)>0.00001f || actual[3]!=alpha) { throw std::runtime_error("White must map to selected phosphor independently of coverage alpha"); }
+            }
+        }
+        double previous=-1;
+        for(unsigned int level=0;level<=16;++level) {
+            const auto gray=static_cast<float>(encoded(level/16.0));
+            setInput({gray,gray,gray,1});
+            const auto actual=sample(render(0,0,1,1,1,1,phosphor),16);
+            const auto luminance=linear(actual[0])*.2126+linear(actual[1])*.7152+linear(actual[2])*.0722;
+            if(luminance+0.000001<previous) { throw std::runtime_error("Phosphor ramp must preserve brightness ordering"); }
+            previous=luminance;
+        }
+    }
+    std::puts("PASS: 10 phosphor white endpoints at opaque/partial/near-zero coverage and 170 monotonic gray levels");
     // Zero strength also returns otherwise invalid hidden RGB at alpha zero as-is.
     setInput({0.25f,0.1f,0.5f,0});
     const auto zeroHidden=sample(render(0,0),16);
@@ -221,7 +251,7 @@ try
             }
         }
     }
-    std::printf("PASS: %u tint cases: exact zero, RGB oracle, luminance/readability, opaque/partial/near-zero alpha, endpoints and combined CRT\n",tintCases);
+    std::printf("PASS: %u tint cases: exact zero, RGB oracle, relative-luminance scaling, opaque/partial/near-zero alpha, colored-white endpoints and combined CRT\n",tintCases);
     auto* timeVar=reflection->GetConstantBufferByName("PixelShaderSettings")->GetVariableByName("time");
     D3D11_SHADER_VARIABLE_DESC timeDesc{}; Check(timeVar->GetDesc(&timeDesc));
     if(timeDesc.uFlags&D3D_SVF_USED) { throw std::runtime_error("Static scanlines must not use Time"); }

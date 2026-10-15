@@ -99,6 +99,8 @@ public:
     void SetOptionalFeatures(winrt::Microsoft::Terminal::Core::ICoreSettings settings);
     bool IsXtermBracketedPasteModeEnabled() const noexcept;
     std::wstring_view GetWorkingDirectory() noexcept;
+    void SetInitialWorkingDirectory(std::wstring_view value) { _workingDirectory = value; _workingDirectoryReported = false; }
+    bool HasReportedWorkingDirectory() const noexcept { return _workingDirectoryReported; }
 
     til::point GetViewportRelativeCursorPosition() const noexcept;
 
@@ -378,6 +380,7 @@ private:
 
     std::wstring _answerbackMessage;
     std::wstring _workingDirectory;
+    bool _workingDirectoryReported = false;
     bool _highContrastMode = false;
 
     // This default fake font value is only used to check if the font is a raster font.

@@ -428,7 +428,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
             // Create another window if needed: There aren't any yet, OR we got an explicit command line.
             if (_windows.empty() || args.size() != 1)
             {
-                _dispatchCommandlineCommon(args, cwd, env, showCmd);
+                _dispatchCommandlineCommon(args, cwd, env, showCmd, true);
             }
 
             // If we created no windows, e.g. because the args are "/?" we can just exit now.
@@ -666,13 +666,14 @@ void WindowEmperor::_dispatchCommandline(winrt::TerminalApp::CommandlineArgs arg
     }
 }
 
-void WindowEmperor::_dispatchCommandlineCommon(winrt::array_view<const winrt::hstring> args, wil::zwstring_view currentDirectory, wil::zwstring_view envString, uint32_t showWindowCommand)
+void WindowEmperor::_dispatchCommandlineCommon(winrt::array_view<const winrt::hstring> args, wil::zwstring_view currentDirectory, wil::zwstring_view envString, uint32_t showWindowCommand, bool initialAppLaunch)
 {
     winrt::TerminalApp::CommandlineArgs c;
     c.Commandline(args);
     c.CurrentDirectory(currentDirectory);
     c.CurrentEnvironment(envString);
     c.ShowWindowCommand(showWindowCommand);
+    c.InitialAppLaunch(initialAppLaunch);
     _dispatchCommandline(std::move(c));
 }
 

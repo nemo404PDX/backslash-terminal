@@ -38,6 +38,8 @@ namespace Microsoft.Terminal.Settings.Model
 
         GlobalAppSettings GlobalSettings { get; };
 
+        Boolean EqualsForGroupSave(CascadiaSettings other, Boolean ignoreGroups);
+
         Profile ProfileDefaults { get; };
 
         IObservableVector<Profile> AllProfiles { get; };

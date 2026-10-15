@@ -111,18 +111,18 @@ float4 PhosphorTint(float4 color)
 {
     // Branch at zero in main: exact identity, with no conversion/clipping.
     if (color.a <= 0.0f) { return float4(0, 0, 0, color.a); }
-    float3 original = SrgbToLinear(saturate(color.rgb / max(color.a, 0.000001f)));
+    float3 original = SrgbToLinear(saturate(color.rgb / color.a));
     float3 phosphor = SrgbToLinear(tintColorAndIntensity.rgb);
     const float3 weights = float3(0.2126f, 0.7152f, 0.0722f);
     float luminance = saturate(dot(original, weights));
     float phosphorLuminance = dot(phosphor, weights);
-    // A monotonic black -> chosen phosphor -> white ramp preserves luminance
-    // (and therefore luminance contrast) in both dark and light appearances.
-    // Endpoints black/white safely degenerate to grayscale; highlights whiten
-    // when the chosen hue alone cannot carry the original brightness in gamut.
-    float3 tinted = phosphorLuminance > 0.0f && luminance <= phosphorLuminance ?
-        phosphor * (luminance / max(phosphorLuminance, 0.000001f)) :
-        lerp(phosphor, 1.0f, (luminance - phosphorLuminance) / max(1.0f - phosphorLuminance, 0.000001f));
+    // Keep the selected hue through the brightest samples: white maps to the
+    // phosphor endpoint, including unpremultiplied transparent glyph coverage.
+    // This uniformly scales linear luminance instead of adding white highlights.
+    // Dark/saturated choices can dim the image. Exact black uses grayscale so
+    // selecting it cannot blank all terminal content.
+    float3 endpoint = phosphorLuminance > 0.0f ? phosphor : 1.0f;
+    float3 tinted = endpoint * luminance;
     float3 blended = lerp(original, saturate(tinted), tintColorAndIntensity.a);
     return float4(LinearToSrgb(saturate(blended)) * color.a, color.a);
 }

@@ -203,3 +203,7 @@ Preserve the remote grid and do not hide arbitrary matching output during echo r
 ## Samples do not establish the editor contract
 
 The [sample map](BASELINE.md) distinguishes ConPTY pipe/input demos from production transport/control/editor seams. Existing completion menus use DEL+text outbound input, not the preferred local-owned buffer; scrollback history is not persistent execution storage. No sample changes the required ownership, exact multiline submission, echo, result-trust, Unicode/IME or local view-shift gates in the [research](SSH-LOCAL-EDITOR-RESEARCH.md) and [audit](SSH-LOCAL-EDITOR-AUDIT.md).
+
+## App commands and resumable sessions - future scope
+
+See [internal app-command design](APP-COMMANDS-DESIGN.md) for dedicated local ownership before any optional inline slash interception, and [resumable remote sessions](RESUMABLE-SESSIONS-DESIGN.md) for separate remote ownership, output/result retention and lifecycle policy. Saved layouts do not imply remote process persistence. These follow-ups are documentation only; ordinary shell history/editing and input pass-through remain intact.

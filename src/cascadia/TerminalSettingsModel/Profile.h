@@ -117,6 +117,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             Icon(MediaResource::FromString(path));
         }
 
+        hstring ConnectionIdentity(const hstring& launchCommandline) const;
+        hstring GeneratedConnectionProfileName() const;
+        const Profile* _generatedConnectionParent() const;
         bool HasSshShellSelector() const;
         int32_t SshShell() const;
         hstring SshCustomCommand() const;

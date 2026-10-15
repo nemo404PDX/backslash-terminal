@@ -588,6 +588,38 @@ void Profile::LogSettingChanges(std::set<std::string>& changes, const std::strin
     }
 }
 
+// Connection labels are configured launch identities, not a probed remote hostname.
+const Profile* Profile::_generatedConnectionParent() const
+{
+    if (Source() != L"Windows.Terminal.SSH" && Source() != L"Windows.Terminal.Wsl") { return nullptr; }
+    if (Origin() == OriginTag::Generated) { return this; }
+    for (const auto& parent : _parents)
+    {
+        if (parent->Origin() == OriginTag::Generated && parent->Source() == Source() && parent->Guid() == Guid()) { return parent.get(); }
+    }
+    return nullptr;
+}
+
+winrt::hstring Profile::GeneratedConnectionProfileName() const
+{
+    const auto parent = _generatedConnectionParent();
+    return parent ? parent->Name() : hstring{};
+}
+
+winrt::hstring Profile::ConnectionIdentity(const hstring& launchCommandline) const
+{
+    if (const auto parent = _generatedConnectionParent())
+    {
+        if (Source() == L"Windows.Terminal.SSH")
+        {
+            std::wstring exe, host, custom;
+            if (SshCommandline::Base(parent->Commandline(), exe, host) && SshCommandline::Recognize(parent->Commandline(), launchCommandline, custom) >= 0) { return hstring{ std::wstring{ L"SSH " } + host }; }
+        }
+        else if (launchCommandline == parent->Commandline()) { return hstring{ std::wstring{ L"WSL " } + std::wstring{ parent->Name() } }; }
+    }
+    return {};
+}
+
 // The original generated parent supplies the target, never the editable display name.
 const Profile* Profile::_sshParent() const
 {

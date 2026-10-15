@@ -71,6 +71,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _desiredFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, DEFAULT_FONT_SIZE, CP_UTF8 },
         _actualFont{ DEFAULT_FONT_FACE, 0, DEFAULT_FONT_WEIGHT, { 0, DEFAULT_FONT_SIZE }, CP_UTF8, false }
     {
+        _initialConnectionTitlePrefix = settings.ConnectionTitlePrefix();
+        _initialStartingTitle = settings.StartingTitle();
+        _initialTitleIsExplicit = settings.StartingTitleIsExplicit() || settings.SuppressApplicationTitle();
         static const auto textMeasurementInit = [&]() {
             TextMeasurementMode mode = TextMeasurementMode::Graphemes;
             switch (settings.TextMeasurement())
@@ -109,7 +112,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         });
 
         // GH#8969: pre-seed working directory to prevent potential races
-        _terminal->SetWorkingDirectory(_settings.StartingDirectory());
+        _terminal->SetInitialWorkingDirectory(_settings.StartingDirectory());
 
         _terminal->SetCopyToClipboardCallback([this](wil::zwstring_view wstr) {
             WriteToClipboard.raise(*this, winrt::make<WriteToClipboardEventArgs>(winrt::hstring{ std::wstring_view{ wstr } }, std::string{}, std::string{}));
@@ -2474,6 +2477,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         context->CurrentCommandline(trimmedCurrentCommand);
         context->QuickFixes(_cachedQuickFixes);
         return *context;
+    }
+
+    winrt::hstring ControlCore::ReportedWorkingDirectory() const
+    {
+        const auto lock = _terminal->LockForReading();
+        return _terminal->HasReportedWorkingDirectory() ? winrt::hstring{ _terminal->GetWorkingDirectory() } : winrt::hstring{};
     }
 
     winrt::hstring ControlCore::CurrentWorkingDirectory() const

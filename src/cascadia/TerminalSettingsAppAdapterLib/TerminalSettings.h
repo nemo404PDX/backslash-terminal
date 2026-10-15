@@ -104,6 +104,7 @@ namespace winrt::Microsoft::Terminal::Settings
 
         static winrt::com_ptr<TerminalSettings> _CreateWithProfileCommon(const Model::CascadiaSettings& appSettings, const Model::Profile& profile);
         void _ApplyProfileSettings(const Model::Profile& profile);
+        void _ApplyConnectionTitle(const Model::Profile& profile);
 
         void _ApplyGlobalSettings(const Model::GlobalAppSettings& globalSettings) noexcept;
         void _ApplyAppearanceSettings(const Microsoft::Terminal::Settings::Model::IAppearanceConfig& appearance,

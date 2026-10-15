@@ -57,6 +57,7 @@
                   Glyph="&#xEC05;"
                   Visibility="{x:Bind TabStatus.IsInputBroadcastActive, Mode=OneWay}" />
         <TextBlock x:Name="HeaderTextBlock"
+                   TextTrimming="CharacterEllipsis"
                    Text="{x:Bind Title, Mode=OneWay}"
                    Visibility="Visible" />
         <TextBox x:Name="HeaderRenamerTextBox"

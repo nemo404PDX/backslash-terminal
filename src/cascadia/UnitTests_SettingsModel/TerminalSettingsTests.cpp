@@ -9,6 +9,7 @@
 #include "../TerminalSettingsModel/CascadiaSettings.h"
 #include "../TerminalSettingsModel/ModelSerializationHelpers.h"
 #include "TestUtils.h"
+#include "../inc/ConnectionIdentityTitle.h"
 
 using namespace Microsoft::Console;
 using namespace WEX::Logging;
@@ -45,6 +46,8 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(TerminalSettingsTests);
 
+        TEST_METHOD(BackslashConnectionTitlePolicy);
+        TEST_METHOD(BackslashConnectionTitleMetadata);
         TEST_METHOD(BackslashBezelAdapter);
         TEST_METHOD(BackslashRetroFocusedUnfocused);
         TEST_METHOD(TestTerminalArgsForBinding);
@@ -88,6 +91,58 @@ namespace SettingsModelUnitTests
             VERIFY_ARE_EQUAL(0.5f, result.UnfocusedSettings()->Opacity());
             VERIFY_ARE_EQUAL(static_cast<RetroBezelColor>(color), profile.RetroBezelColor());
         }
+    }
+
+    void TerminalSettingsTests::BackslashConnectionTitlePolicy()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::ConnectionIdentityTitle;
+        const auto local = P::Prefix(L"\"C:\\Program Files\\PowerShell\\7\\pwsh.exe\" -NoLogo", L"", L"PowerShell", L"", L"", L"", L"LAPTOP");
+        VERIFY_ARE_EQUAL(std::wstring{ L"LAPTOP · PowerShell" }, local);
+        VERIFY_ARE_EQUAL(std::wstring{ L"LAPTOP · PowerShell · ~/project" }, P::Format(local, L"PowerShell", L"~/project", true, false));
+        VERIFY_ARE_EQUAL(local, P::Format(local, L"PowerShell", L"PowerShell", true, false));
+        VERIFY_ARE_EQUAL(std::wstring{ L"~/project" }, P::Format(local, L"PowerShell", L"~/project", false, false));
+        VERIFY_ARE_EQUAL(std::wstring{ L"User title" }, P::Format(local, L"User title", L"User title", true, true));
+        VERIFY_ARE_EQUAL(std::wstring{ L"New dynamic title" }, P::Format(local, L"User title", L"New dynamic title", true, true));
+        const auto ssh = P::Prefix(L"ssh.exe host", L"Windows.Terminal.SSH", L"SSH - host", L"SSH - host", L"SSH host", L"Bash", L"LAPTOP");
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH host · Bash" }, ssh);
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH host · Personal server" }, P::Prefix(L"ssh.exe host", L"Windows.Terminal.SSH", L"Personal server", L"SSH - host", L"SSH host", L"", L"LAPTOP"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"WSL Ubuntu-24.04" }, P::Prefix(L"wsl.exe -d Ubuntu-24.04", L"Windows.Terminal.Wsl", L"Ubuntu-24.04", L"Ubuntu-24.04", L"WSL Ubuntu-24.04", L"", L"LAPTOP"));
+        for (const auto command : { L"ssh.exe -J jump otherHost", L"wsl.exe -d OtherDistro", L"pwsh.exe -HostN remote", L"pwsh.exe -HostName:remote", L"pwsh.exe -Command ssh.exe remote", L"cmd.exe /k wrapper.cmd", L"remote-wrapper.exe host", L"%UNKNOWN%" })
+        {
+            const auto value = P::Prefix(command, L"", L"Custom", L"", L"", L"", L"LAPTOP");
+            VERIFY_IS_TRUE(value.find(L"LAPTOP") == std::wstring::npos);
+        }
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH profile · Manual SSH" }, P::Prefix(L"ssh.exe remote", L"", L"Manual SSH", L"", L"", L"", L"LAPTOP"));
+        VERIFY_ARE_EQUAL(std::wstring{ L"WSL profile · Manual WSL" }, P::Prefix(L"wsl.exe -d remote", L"", L"Manual WSL", L"", L"", L"", L"LAPTOP"));
+        const std::wstring longTitle(8192, L'界');
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH host · " } + longTitle, P::Format(L"SSH host", L"Original", longTitle, true, false));
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH host · 作業 Ω" }, P::Format(L"SSH host", L"Original", L"作業 Ω", true, false));
+        VERIFY_ARE_EQUAL(std::wstring{ L"SSH host" }, P::Format(L"SSH host", L"Original", L"", true, false));
+    }
+
+    void TerminalSettingsTests::BackslashConnectionTitleMetadata()
+    {
+        const auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({"profiles":{"list":[{"guid":"{6239a42c-1de4-49a3-80bd-e8fdd045185c}","name":"PowerShell","commandline":"pwsh.exe -NoLogo"}]}})", "{}");
+        VERIFY_IS_TRUE(settings->GlobalSettings().ShowConnectionIdentity());
+        const auto profile = settings->AllProfiles().GetAt(0);
+        auto result = TerminalSettings::CreateWithProfile(*settings, profile);
+        VERIFY_IS_FALSE(result.DefaultSettings()->StartingTitleIsExplicit());
+        VERIFY_IS_TRUE(!result.DefaultSettings()->ConnectionTitlePrefix().empty());
+        VERIFY_IS_TRUE(std::wstring_view{ result.DefaultSettings()->ConnectionTitlePrefix() }.ends_with(L" · PowerShell"));
+        NewTerminalArgs args;args.Profile(winrt::to_hstring(profile.Guid()));args.TabTitle(L"PowerShell");
+        result = TerminalSettings::CreateWithNewTerminalArgs(*settings, args);
+        VERIFY_IS_TRUE(result.DefaultSettings()->StartingTitleIsExplicit());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"PowerShell" }, result.DefaultSettings()->StartingTitle());
+        args.TabTitle(L"");args.Commandline(L"ssh.exe arbitraryTarget");
+        result = TerminalSettings::CreateWithNewTerminalArgs(*settings, args);
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH profile · PowerShell" }, result.DefaultSettings()->ConnectionTitlePrefix());
+        profile.TabTitle(L"Pinned title");
+        result = TerminalSettings::CreateWithProfile(*settings, profile);
+        VERIFY_IS_TRUE(result.DefaultSettings()->StartingTitleIsExplicit());
+        settings->GlobalSettings().ShowConnectionIdentity(false);
+        const auto copy = settings->Copy();
+        VERIFY_IS_FALSE(copy.GlobalSettings().ShowConnectionIdentity());
+        VERIFY_IS_FALSE(winrt::get_self<implementation::CascadiaSettings>(copy)->ToJson()["backslash.showConnectionIdentity"].asBool());
     }
 
     void TerminalSettingsTests::BackslashRetroFocusedUnfocused()

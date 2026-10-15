@@ -3782,6 +3782,15 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     {
         return _core.CommandHistory();
     }
+    winrt::hstring TermControl::InitialConnectionTitlePrefix() const { return _core.InitialConnectionTitlePrefix(); }
+    winrt::hstring TermControl::InitialStartingTitle() const { return _core.InitialStartingTitle(); }
+    bool TermControl::InitialTitleIsExplicit() const { return _core.InitialTitleIsExplicit(); }
+
+    winrt::hstring TermControl::ReportedWorkingDirectory() const
+    {
+        return _core.ReportedWorkingDirectory();
+    }
+
     winrt::hstring TermControl::CurrentWorkingDirectory() const
     {
         return _core.CurrentWorkingDirectory();

@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "TerminalSettings.h"
+#include "../inc/ConnectionIdentityTitle.h"
 #include "winrt/Windows.UI.ViewManagement.h"
 #include "../../types/inc/colorTable.hpp"
 
@@ -146,6 +147,7 @@ namespace winrt::Microsoft::Terminal::Settings
             if (!newTerminalArgs.TabTitle().empty())
             {
                 defaultSettings->_StartingTitle = newTerminalArgs.TabTitle();
+                defaultSettings->_StartingTitleIsExplicit = true;
             }
             else
             {
@@ -193,6 +195,7 @@ namespace winrt::Microsoft::Terminal::Settings
             }
         }
 
+        defaultSettings->_ApplyConnectionTitle(profile);
         return settingsPair;
     }
 
@@ -320,6 +323,8 @@ namespace winrt::Microsoft::Terminal::Settings
         // GH#2373: Use the tabTitle as the starting title if it exists; otherwise,
         // use the profile name
         _StartingTitle = !profile.TabTitle().empty() ? profile.TabTitle() : profile.Name();
+        _StartingTitleIsExplicit = !profile.TabTitle().empty();
+        _ApplyConnectionTitle(profile);
 
         if (profile.SuppressApplicationTitle())
         {
@@ -371,6 +376,20 @@ namespace winrt::Microsoft::Terminal::Settings
     // - globalSettings: the global property values we're applying.
     // Return Value:
     // - <none>
+    void TerminalSettings::_ApplyConnectionTitle(const Model::Profile& profile)
+    {
+        namespace Policy = ::Microsoft::Terminal::Backslash::ConnectionIdentityTitle;
+        const auto identity = profile.ConnectionIdentity(Commandline());
+        const auto generatedName = profile.GeneratedConnectionProfileName();
+        std::wstring_view shell;
+        if (!identity.empty() && profile.Source() == L"Windows.Terminal.SSH" && Commandline() == profile.Commandline())
+        {
+            if (profile.SshShell() == 2) { shell = L"Bash"; }
+            else if (profile.SshShell() == 3) { shell = L"PowerShell 7"; }
+        }
+        _ConnectionTitlePrefix = hstring{ Policy::Prefix(Commandline(), profile.Source(), profile.Name(), generatedName, identity, shell, Policy::LocalMachineName()) };
+    }
+
     void TerminalSettings::_ApplyGlobalSettings(const Model::GlobalAppSettings& globalSettings) noexcept
     {
         _InitialRows = globalSettings.InitialRows();

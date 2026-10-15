@@ -19,6 +19,9 @@ Author(s):
 // (type, name, jsonKey, defaultArgs)
 
 #define MTSM_GLOBAL_SETTINGS(X)                                                                                                                                                                       \
+    X(bool, StartupWithSavedGroup, "backslash.startupWithSavedGroup", false) \
+    X(hstring, StartupGroup, "backslash.startupGroup", L"") \
+    X(bool, ShowConnectionIdentity, "backslash.showConnectionIdentity", true) \
     X(int32_t, InitialRows, "initialRows", 30)                                                                                                                                                        \
     X(int32_t, InitialCols, "initialCols", 80)                                                                                                                                                        \
     X(hstring, WordDelimiters, "wordDelimiters", DEFAULT_WORD_DELIMITERS)                                                                                                                             \

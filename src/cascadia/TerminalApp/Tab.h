@@ -60,6 +60,7 @@ namespace winrt::TerminalApp::implementation
 
         void UpdateSettings(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& settings);
         void UpdateTitle();
+        void ConnectionIdentityTitles(bool enabled) { _showConnectionIdentity = enabled; }
 
         void Close();
         void Shutdown();
@@ -80,7 +81,7 @@ namespace winrt::TerminalApp::implementation
         void EnterZoom();
         void ExitZoom();
 
-        std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs> BuildStartupActions(BuildStartupKind kind) const;
+        std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs> BuildStartupActions(BuildStartupKind kind, const Pane::StartupArgsFactory& factory = {}) const;
 
         int GetLeafPaneCount() const noexcept;
 
@@ -148,6 +149,7 @@ namespace winrt::TerminalApp::implementation
         winrt::TerminalApp::ShortcutActionDispatch _dispatch;
         Microsoft::Terminal::Settings::Model::IActionMapView _actionMap{ nullptr };
         winrt::hstring _keyChord{};
+        bool _showConnectionIdentity{ true };
 
         winrt::Microsoft::Terminal::Settings::Model::ThemeColor _themeColor{ nullptr };
         winrt::Microsoft::Terminal::Settings::Model::ThemeColor _unfocusedThemeColor{ nullptr };

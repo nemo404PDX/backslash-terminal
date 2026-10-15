@@ -176,6 +176,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         bool WriteSettingsToDisk();
         bool WriteSettingsToDisk(const std::function<void(std::string_view)>& writer, ApplicationState& state);
         Json::Value ToJson() const;
+        bool EqualsForGroupSave(const Model::CascadiaSettings& other, bool ignoreGroups) const;
         Model::Profile ProfileDefaults() const;
         Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles();
         Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles(const IDynamicProfileGenerator& generator);

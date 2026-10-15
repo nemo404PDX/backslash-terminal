@@ -55,6 +55,9 @@ namespace Microsoft.Terminal.Settings.Model
 
         INHERITABLE_SETTING(String, UnparsedDefaultProfile);
 
+        INHERITABLE_SETTING(Boolean, StartupWithSavedGroup);
+        INHERITABLE_SETTING(String, StartupGroup);
+        INHERITABLE_SETTING(Boolean, ShowConnectionIdentity);
         INHERITABLE_SETTING(Int32, InitialRows);
         INHERITABLE_SETTING(Int32, InitialCols);
         INHERITABLE_SETTING(Boolean, AlwaysShowTabs);
@@ -120,6 +123,7 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_SETTING(ThemePair, Theme);
         Theme CurrentTheme { get; };
 
+        String SavedTabGroupsJson;
         Boolean ShouldUsePersistedLayout();
     }
 }

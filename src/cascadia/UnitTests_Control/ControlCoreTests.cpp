@@ -44,6 +44,9 @@ namespace ControlUnitTests
         TEST_METHOD(TestReadEntireBuffer);
         TEST_METHOD(BackslashRenderingVisibilityKeepsOutput);
         TEST_METHOD(BackslashPostProcessWARP);
+        TEST_METHOD(BackslashPhosphorOpacityWARP);
+        TEST_METHOD(BackslashConnectionTitleSnapshot);
+        TEST_METHOD(BackslashReportedDirectory);
 
         TEST_METHOD(TestSelectCommandSimple);
         TEST_METHOD(TestSelectOutputSimple);
@@ -396,6 +399,305 @@ namespace ControlUnitTests
         core->Close();
         core->SetRenderingVisible(true);
         VERIFY_IS_FALSE(core->_renderer->IsRenderingVisible());
+    }
+
+    void ControlCoreTests::BackslashConnectionTitleSnapshot()
+    {
+        auto [settings, conn] = _createSettingsAndConnection();
+        settings->ConnectionTitlePrefix(L"SSH originalAlias");settings->StartingTitle(L"Original profile");settings->StartingTitleIsExplicit(true);
+        const auto core = createCore(*settings, *conn);_standardInit(core);
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH originalAlias" }, core->InitialConnectionTitlePrefix());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"Original profile" }, core->InitialStartingTitle());
+        VERIFY_IS_TRUE(core->InitialTitleIsExplicit());
+        auto other = winrt::make_self<MockControlSettings>();other->ConnectionTitlePrefix(L"SSH changedAlias");other->StartingTitle(L"Changed profile");other->StartingTitleIsExplicit(false);
+        core->UpdateSettings(*other, nullptr);
+        conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]0;remote dynamic title\x7"));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"remote dynamic title" }, core->Title());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH originalAlias" }, core->InitialConnectionTitlePrefix());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"Original profile" }, core->InitialStartingTitle());
+        VERIFY_IS_TRUE(core->InitialTitleIsExplicit());core->Close();
+    }
+
+    void ControlCoreTests::BackslashReportedDirectory()
+    {
+        auto [settings, conn] = _createSettingsAndConnection();
+        settings->StartingDirectory(L"C:\\profile-default");
+        const auto core = createCore(*settings, *conn);
+        _standardInit(core);
+        VERIFY_IS_TRUE(core->ReportedWorkingDirectory().empty());
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\profile-default" }, core->WorkingDirectory());
+        conn->WriteInput(winrt_wstring_to_array_view(L"\x1b]9;9;\"C:\\reported-local\"\x7"));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\reported-local" }, core->ReportedWorkingDirectory());
+        core->Close();
+    }
+
+    void ControlCoreTests::BackslashPhosphorOpacityWARP()
+    {
+        // Production WIC loading runs on a render worker (MTA), not the STA test host.
+        std::exception_ptr workerFailure;
+        std::thread worker([&]() {
+            try
+            {
+                winrt::init_apartment(winrt::apartment_type::multi_threaded);
+                auto uninitialize = wil::scope_exit([] { winrt::uninit_apartment(); });
+                using namespace ::Microsoft::Console::Render::Atlas;
+                auto [settings, conn] = _createSettingsAndConnection();
+                settings->DefaultForeground(til::color{255,255,255});settings->DefaultBackground(til::color{0,0,0});
+                settings->RetroTerminalEffect(true);settings->RetroTerminalGlowIntensity(0);settings->RetroTerminalScanlineIntensity(0);settings->RetroTerminalTintIntensity(1);settings->RetroTerminalTintColor(til::color{0,255,65});
+                auto core = createCore(*settings, *conn);
+                _standardInit(core);
+                auto& engine = *core->_renderEngine;
+                engine.SetCallback([](HANDLE) {});
+                engine.EnableTransparentBackground(false);
+                engine.SetGraphicsAPI(GraphicsAPI::Direct3D11);
+                VERIFY_SUCCEEDED(engine.UpdateViewport({ 0, 0, 29, 19 }));
+                auto diagnostics = std::make_shared<::Microsoft::Console::Render::RenderDiagnostics>();
+                engine.SetDiagnostics(diagnostics);
+                auto& payload = engine._p;
+                payload.warningCallback = [](HRESULT hr, wil::zwstring_view message) {
+                    Log::Comment(String().Format(L"POSTPROCESS_WARNING 0x%08x %s", static_cast<unsigned int>(hr), message.c_str()));
+                };
+
+                wil::com_ptr<ID3D11Device> device;
+                wil::com_ptr<ID3D11DeviceContext> context;
+                D3D_FEATURE_LEVEL featureLevel{};
+                VERIFY_SUCCEEDED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr,
+                    D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_SINGLETHREADED, nullptr, 0,
+                    D3D11_SDK_VERSION, device.put(), &featureLevel, context.put()));
+                payload.device = device.query<ID3D11Device2>();
+                payload.deviceContext = context.query<ID3D11DeviceContext2>();
+                const auto dxgiDevice = device.query<IDXGIDevice>();
+                wil::com_ptr<IDXGIAdapter> adapter;
+                VERIFY_SUCCEEDED(dxgiDevice->GetAdapter(adapter.put()));
+                wil::com_ptr<IDXGIFactory2> factory;
+                VERIFY_SUCCEEDED(adapter->GetParent(IID_PPV_ARGS(factory.put())));
+                const DXGI_SWAP_CHAIN_DESC1 desc{
+                    .Width = 270, .Height = 380, .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+                    .SampleDesc = { 1, 0 }, .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                    .BufferCount = 2, .Scaling = DXGI_SCALING_STRETCH,
+                    .SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+                    .AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
+                };
+                wil::com_ptr<IDXGISwapChain1> swapChain;
+                VERIFY_SUCCEEDED(factory->CreateSwapChainForComposition(device.get(), &desc, nullptr, swapChain.put()));
+                payload.swapChain.swapChain = swapChain.query<IDXGISwapChain2>();
+                BackendD3D backend{ payload };
+
+                // Draw into an unattached composition buffer and read it back. Never Present,
+                // attach to a XAML surface, create a window, or depend on compositor pacing.
+                auto alphaMode=DXGI_ALPHA_MODE_PREMULTIPLIED;
+                auto opacity=[&](float value) {
+                    core->_setOpacity(value);engine._resolveTransparencySettings();
+                    const auto desired=value < 1 ? DXGI_ALPHA_MODE_PREMULTIPLIED : DXGI_ALPHA_MODE_IGNORE;
+                    if(desired!=alphaMode) {
+                        backend.ReleaseResources();context->ClearState();payload.swapChain.swapChain.reset();swapChain.reset();context->Flush();
+                        auto next=desc;next.AlphaMode=desired;VERIFY_SUCCEEDED(factory->CreateSwapChainForComposition(device.get(),&next,nullptr,swapChain.put()));payload.swapChain.swapChain=swapChain.query<IDXGISwapChain2>();alphaMode=desired;
+                    }
+                    VERIFY_ARE_EQUAL(value,core->Opacity());
+                    VERIFY_ARE_EQUAL(value<1,engine._api.s->target->useAlpha);
+                    VERIFY_ARE_EQUAL(1.0f,engine._api.s->retroTerminalTintIntensity);
+                };
+                auto draw = [&](uint32_t background) {
+                    VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes({}, core->_terminal->GetRenderSettings(), gsl::make_not_null(core->_terminal.get()), false, true));
+                    VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes({}, core->_terminal->GetRenderSettings(), gsl::make_not_null(core->_terminal.get()), false, false));
+                    engine._api.s.write()->misc.write()->backgroundColor = background;
+                    VERIFY_SUCCEEDED(engine.InvalidateAll());
+                    VERIFY_SUCCEEDED(engine.StartPaint());
+                    // Fill only the unpainted default cells, before real paint calls.
+                    // Explicit cell and selection backgrounds must survive EndPaint.
+                    std::fill(payload.backgroundBitmap.begin(), payload.backgroundBitmap.end(), background);
+                    payload.colorBitmapGenerations[0].bump();
+                    const std::array<til::point_span, 1> selection{ til::point_span{ { 0, 3 }, { 1, 3 } } };
+                    ::Microsoft::Console::Render::RenderFrameInfo info{};
+                    info.selectionSpans = selection;
+                    info.selectionBackground = til::color{ 255, 0, 0 };
+                    VERIFY_SUCCEEDED(engine.PrepareRenderInfo(info));
+                    const std::array<::Microsoft::Console::Render::Cluster, 2> text{
+                        ::Microsoft::Console::Render::Cluster{ L"A", 1 },
+                        ::Microsoft::Console::Render::Cluster{ L"B", 1 },
+                    };
+                    VERIFY_SUCCEEDED(engine.PaintBufferLine(text, { 0, 0 }, false));
+                    engine._flushBufferLine();
+                    TextAttribute red;red.SetForeground(RGB(255,0,0));
+                    VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes(red,core->_terminal->GetRenderSettings(),gsl::make_not_null(core->_terminal.get()),false,false));
+                    VERIFY_SUCCEEDED(engine.PaintBufferLine(text,{0,1},false));
+                    engine._flushBufferLine();
+                    const std::array<::Microsoft::Console::Render::Cluster, 2> spaces{
+                        ::Microsoft::Console::Render::Cluster{ L" ", 1 },
+                        ::Microsoft::Console::Render::Cluster{ L" ", 1 },
+                    };
+                    auto paintCells = [&](COLORREF color, til::point position) {
+                        TextAttribute attributes;
+                        attributes.SetBackground(color);
+                        VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes(attributes, core->_terminal->GetRenderSettings(), gsl::make_not_null(core->_terminal.get()), false, false));
+                        VERIFY_SUCCEEDED(engine.PaintBufferLine(spaces, position, false));
+                        engine._flushBufferLine();
+                    };
+                    paintCells(RGB(0, 0, 255), { 0, 2 });
+                    paintCells(RGB(0, 0, 0), { 0, 3 }); // Selection replaces the painted background.
+                    paintCells(RGB(0, 0, 0), { 0, 4 });
+                    paintCells(RGB(255, 255, 255), { 2, 4 });
+                    ::Microsoft::Console::Render::CursorOptions cursor{};
+                    cursor.coordCursor = { 4, 2 };
+                    cursor.cursorType = CursorType::FullBox;
+                    cursor.fUseColor = true;
+                    cursor.cursorColor = RGB(255, 0, 0);
+                    cursor.isVisible = cursor.isOn = cursor.inViewport = true;
+                    VERIFY_SUCCEEDED(engine.PaintCursor(cursor));
+                    VERIFY_SUCCEEDED(engine.EndPaint());
+                    backend.Render(payload);
+
+                    wil::com_ptr<ID3D11Texture2D> target;
+                    VERIFY_SUCCEEDED(swapChain->GetBuffer(0, IID_PPV_ARGS(target.put())));
+                    D3D11_TEXTURE2D_DESC readDesc{};
+                    target->GetDesc(&readDesc);
+                    readDesc.Usage = D3D11_USAGE_STAGING;
+                    readDesc.BindFlags = 0;
+                    readDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+                    readDesc.MiscFlags = 0;
+                    wil::com_ptr<ID3D11Texture2D> staging;
+                    VERIFY_SUCCEEDED(device->CreateTexture2D(&readDesc, nullptr, staging.put()));
+                    context->CopyResource(staging.get(), target.get());
+                    D3D11_MAPPED_SUBRESOURCE mapped{};
+                    VERIFY_SUCCEEDED(context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
+                    std::vector<uint32_t> pixels(static_cast<size_t>(readDesc.Width) * readDesc.Height);
+                    for (UINT y = 0; y < readDesc.Height; ++y)
+                    {
+                        memcpy(pixels.data() + static_cast<size_t>(y) * readDesc.Width,
+                            static_cast<const char*>(mapped.pData) + static_cast<size_t>(y) * mapped.RowPitch,
+                            static_cast<size_t>(readDesc.Width) * sizeof(uint32_t));
+                    }
+                    context->Unmap(staging.get(), 0);
+                    return pixels;
+                };
+
+                const std::array<float,5> values{1.0f,0.99f,0.5f,0.0f,1.0f};
+                std::vector<std::vector<uint32_t>> tinted,plain;
+                for(auto value:values){opacity(value);tinted.push_back(draw(value<1?0u:0xff000000u));}
+                const auto beforeBypass=diagnostics->postprocessDraws.load();VERIFY_IS_TRUE(beforeBypass>=5);
+                engine.SetRetroTerminalEffect(false);
+                for(auto value:values){opacity(value);plain.push_back(draw(value<1?0u:0xff000000u));}
+                // Full intensity must color white, including transparent AA coverage.
+                // Relative luminance drives a black-to-selected-phosphor ramp; white
+                // never escapes to a neutral endpoint for this colored phosphor.
+                auto linear = [](double c) { return c <= 0.04045 ? c / 12.92 : std::pow((c + 0.055) / 1.055, 2.4); };
+                auto encoded = [](double c) { return c <= 0.0031308 ? c * 12.92 : 1.055 * std::pow(c, 1.0 / 2.4) - 0.055; };
+                auto expected = [&](uint32_t pixel, uint32_t endpoint = 0xff00ff41) {
+                    const auto alpha = (pixel >> 24) / 255.0;
+                    if (alpha == 0) { return uint32_t{ 0 }; }
+                    const std::array<double, 3> original{
+                        linear(std::min(1.0, ((pixel >> 16) & 255) / (255.0 * alpha))),
+                        linear(std::min(1.0, ((pixel >> 8) & 255) / (255.0 * alpha))),
+                        linear(std::min(1.0, (pixel & 255) / (255.0 * alpha))),
+                    };
+                    const std::array<double, 3> phosphor{ linear(((endpoint>>16)&255)/255.0), linear(((endpoint>>8)&255)/255.0), linear((endpoint&255)/255.0) };
+                    const auto luminance = original[0] * .2126 + original[1] * .7152 + original[2] * .0722;
+                    uint32_t result = pixel & 0xff000000;
+                    for (size_t channel = 0; channel < 3; ++channel)
+                    {
+                        const auto mapped = phosphor[channel] * luminance;
+                        const auto value = static_cast<uint32_t>(std::lround(encoded(std::clamp(mapped, 0.0, 1.0)) * alpha * 255));
+                        result |= value << (16 - 8 * channel);
+                    }
+                    return result;
+                };
+                auto difference = [](uint32_t a, uint32_t b) {
+                    int worst = 0;
+                    for (const auto shift : { 0, 8, 16, 24 })
+                    {
+                        worst = std::max(worst, std::abs(static_cast<int>((a >> shift) & 255) - static_cast<int>((b >> shift) & 255)));
+                    }
+                    return worst;
+                };
+                const auto cell=payload.s->font->cellSize;
+                for(size_t stage=0;stage<values.size();++stage)
+                {
+                    size_t whitePixels=0,whiteTinted=0,redPixels=0,redTinted=0,transparentPixels=0,alphaMismatch=0,holeMismatch=0,whiteEndpoints=0,endpointMismatch=0;
+                    int oracleError = 0;
+                    for(int y=0;y<2*cell.y;++y)for(int x=0;x<2*cell.x;++x)
+                    {
+                        const auto index=static_cast<size_t>(y)*desc.Width+x;const auto raw=plain[stage][index],out=tinted[stage][index];
+                        const auto r=(raw>>16)&255,g=(raw>>8)&255,b=raw&255,a=raw>>24;
+                        const auto rr=(out>>16)&255,gg=(out>>8)&255,bb=out&255;
+                        oracleError = std::max(oracleError, difference(expected(raw), out));
+                        if(a>8 && r==a && g==a && b==a){
+                            ++whiteEndpoints;
+                            const auto chosenPremultiplied = (raw & 0xff000000) | (a << 8) | static_cast<uint32_t>(std::lround(a * 65.0 / 255));
+                            if(difference(chosenPremultiplied,out)>1){++endpointMismatch;}
+                        }
+                        if(a!=(out>>24)){++alphaMismatch;}
+                        if(y<cell.y && r>8 && g>8 && b>8){++whitePixels;if(gg>rr && gg>bb){++whiteTinted;}}
+                        if(y>=cell.y && r>8){++redPixels;if(gg>rr && gg>bb){++redTinted;}}
+                    }
+                    for(size_t i=0;i<tinted[stage].size();++i){if((plain[stage][i]>>24)==0){++transparentPixels;if(tinted[stage][i]!=0){++holeMismatch;}}}
+                    Log::Comment(String().Format(L"PHOSPHOR_OPACITY %.2f white=%zu whiteTinted=%zu red=%zu redTinted=%zu transparent=%zu postprocess=%llu",values[stage],whitePixels,whiteTinted,redPixels,redTinted,transparentPixels,static_cast<unsigned long long>(beforeBypass)));
+                    VERIFY_IS_TRUE(alphaMismatch==0);VERIFY_IS_TRUE(holeMismatch==0);VERIFY_IS_TRUE(whitePixels>0);VERIFY_IS_TRUE(redPixels>0);VERIFY_IS_TRUE(redTinted>0);
+                    if(values[stage]<1){VERIFY_IS_TRUE(transparentPixels>0);}
+                    VERIFY_ARE_EQUAL(whitePixels,whiteTinted,L"Every visible white glyph sample must retain the phosphor hue at all opacities");
+                    VERIFY_IS_TRUE(whiteEndpoints > 0);VERIFY_IS_TRUE(endpointMismatch==0,L"White maps to the selected phosphor without changing coverage alpha");
+                    auto sample = [&](const auto& frame, int x, int y) { return frame[(y * cell.y + cell.y / 2) * desc.Width + x * cell.x + cell.x / 2]; };
+                    const std::array<const wchar_t*, 5> roles{ L"blue-cell", L"red-cursor", L"red-selection", L"black-endpoint", L"white-endpoint" };
+                    const std::array<til::point, 5> positions{ til::point{0,2}, til::point{4,2}, til::point{0,3}, til::point{0,4}, til::point{2,4} };
+                    const std::array<uint32_t, 5> originals{ 0xff0000ff, 0xffff0000, 0xffff0000, 0xff000000, 0xffffffff };
+                    for(size_t role=0;role<roles.size();++role)
+                    {
+                        const auto raw=sample(plain[stage],positions[role].x,positions[role].y);
+                        const auto out=sample(tinted[stage],positions[role].x,positions[role].y);
+                        VERIFY_ARE_EQUAL(originals[role],raw);
+                        oracleError=std::max(oracleError,difference(expected(raw),out));
+                        VERIFY_ARE_EQUAL(raw>>24,out>>24);
+                        if(role==3){VERIFY_IS_TRUE(difference(raw,out)<=1);}else{VERIFY_IS_TRUE(difference(raw,out)>8);}
+                        if(role==4){VERIFY_IS_TRUE(difference(uint32_t{0xff00ff41},out)<=1,L"Opaque white cell maps to the selected phosphor endpoint");}
+                        Log::Comment(String().Format(L"PHOSPHOR_ROLE %.2f %s raw=%08x tinted=%08x",values[stage],roles[role],raw,out));
+                    }
+                    VERIFY_IS_TRUE(oracleError<=2,L"Actual glyph/cell/cursor/selection pixels follow the hue-retaining ramp at every opacity");
+                    Log::Comment(String().Format(L"PHOSPHOR_ORACLE %.2f maxChannelError=%d whiteEndpoints=%zu",values[stage],oracleError,whiteEndpoints));
+                }
+                // Stable colored output at 99/50/0 proves background opacity does not
+                // scale terminal-content tint. Returning to opaque restores the AA samples.
+                VERIFY_IS_TRUE(tinted[1] == tinted[2] && tinted[2] == tinted[3]);
+                VERIFY_IS_TRUE(tinted[0] == tinted[4]);
+                // Representative warm/cool phosphors must also color white glyphs,
+                // with the same coverage and live opacity behavior as green.
+                engine.SetRetroTerminalEffect(true);
+                for(const auto endpoint : { uint32_t{0xffffb000}, uint32_t{0xff0000ff}, uint32_t{0xffb450ff} })
+                {
+                    engine.SetRetroTerminalTintColor(RGB((endpoint>>16)&255,(endpoint>>8)&255,endpoint&255));
+                    std::vector<std::vector<uint32_t>> frames;
+                    for(size_t stage=0;stage<values.size();++stage)
+                    {
+                        opacity(values[stage]);
+                        frames.push_back(draw(values[stage]<1?0u:0xff000000u));
+                        size_t whiteCount=0,coloredWhite=0,alphaErrors=0;
+                        int oracleError=0;
+                        for(int y=0;y<cell.y;++y)for(int x=0;x<2*cell.x;++x)
+                        {
+                            const auto i=static_cast<size_t>(y)*desc.Width+x;
+                            const auto raw=plain[stage][i],out=frames.back()[i];
+                            const auto r=(raw>>16)&255,g=(raw>>8)&255,b=raw&255;
+                            if(r>8 && g>8 && b>8){++whiteCount;if(((out>>16)&255)!=((out>>8)&255) || ((out>>8)&255)!=(out&255)){++coloredWhite;}}
+                            oracleError=std::max(oracleError,difference(expected(raw,endpoint),out));
+                            alphaErrors+=(raw>>24)!=(out>>24);
+                        }
+                        const auto whiteIndex=(4*cell.y+cell.y/2)*desc.Width+2*cell.x+cell.x/2;
+                        VERIFY_IS_TRUE(difference(endpoint,frames.back()[whiteIndex])<=1);
+                        VERIFY_IS_TRUE(whiteCount>0);VERIFY_ARE_EQUAL(whiteCount,coloredWhite);
+                        VERIFY_IS_TRUE(alphaErrors==0);VERIFY_IS_TRUE(oracleError<=2);
+                        Log::Comment(String().Format(L"PHOSPHOR_PALETTE %08x %.2f white=%zu colored=%zu alphaErrors=%zu maxChannelError=%d",endpoint,values[stage],whiteCount,coloredWhite,alphaErrors,oracleError));
+                    }
+                    VERIFY_IS_TRUE(frames[1]==frames[2] && frames[2]==frames[3]);
+                    VERIFY_IS_TRUE(frames[0]==frames[4]);
+                }
+                // Zero intensity is an exact terminal-content identity and needs no pass.
+                opacity(.5f);engine.SetRetroTerminalTintIntensity(0);
+                const auto drawsBeforeZero=diagnostics->postprocessDraws.load();
+                VERIFY_IS_TRUE(draw(0)==plain[2]);
+                VERIFY_ARE_EQUAL(drawsBeforeZero,diagnostics->postprocessDraws.load());
+                core->Close();
+            }
+            catch (...) { workerFailure=std::current_exception(); }
+        });
+        worker.join();if(workerFailure){std::rethrow_exception(workerFailure);}
     }
 
     void ControlCoreTests::BackslashPostProcessWARP()

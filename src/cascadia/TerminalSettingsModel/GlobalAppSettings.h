@@ -67,6 +67,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void AddTheme(const Model::Theme& theme);
         Model::Theme CurrentTheme() noexcept;
         bool ShouldUsePersistedLayout() const;
+        winrt::hstring SavedTabGroupsJson() const;
+        void SavedTabGroupsJson(const winrt::hstring& value);
 
         void ExpandCommands(const Windows::Foundation::Collections::IVectorView<Model::Profile>& profiles,
                             const Windows::Foundation::Collections::IMapView<winrt::hstring, Model::ColorScheme>& schemes);
@@ -94,6 +96,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static constexpr bool debugFeaturesDefault{ true };
 #endif
 
+        std::optional<Json::Value> _savedTabGroups;
         winrt::guid _defaultProfile{};
         bool _fixupsAppliedDuringLoad{ false };
         bool _legacyReloadEnvironmentVariables{ true };

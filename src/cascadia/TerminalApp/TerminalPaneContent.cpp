@@ -115,7 +115,10 @@ namespace winrt::TerminalApp::implementation
         {
             args.StartingDirectory(controlSettings.StartingDirectory());
         }
-        args.TabTitle(controlSettings.StartingTitle());
+        // Preserve explicit launch intent, without turning an implicit initial
+        // profile title into an explicit override on duplicate/move/persist.
+        if (_control.InitialTitleIsExplicit()) { args.TabTitle(_control.InitialStartingTitle()); }
+        else if (!_profile.TabTitle().empty()) { args.TabTitle(_profile.TabTitle()); }
         args.Commandline(controlSettings.Commandline());
         args.SuppressApplicationTitle(controlSettings.SuppressApplicationTitle());
         if (controlSettings.TabColor() || controlSettings.StartingTabColor())

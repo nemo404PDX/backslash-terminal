@@ -82,6 +82,8 @@
     X(bool, EnableColorGlyphs, true)                                                                                                                     \
     X(winrt::hstring, CellWidth)                                                                                                                         \
     X(winrt::hstring, CellHeight)                                                                                                                        \
+    X(winrt::hstring, ConnectionTitlePrefix) \
+    X(bool, StartingTitleIsExplicit, false) \
     X(winrt::hstring, Commandline)                                                                                                                       \
     X(winrt::hstring, StartingDirectory)                                                                                                                 \
     X(winrt::Microsoft::Terminal::Control::ScrollbarState, ScrollState, winrt::Microsoft::Terminal::Control::ScrollbarState::Visible)                    \

@@ -41,6 +41,9 @@ namespace Microsoft.Terminal.Settings.Editor
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Int32, InitialRows);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Int32, InitialCols);
 
+        Boolean StartupWithSavedGroup;
+        String StartupGroup;
+        String SavedTabGroupsJson;
         Boolean StartOnUserLogin { get; set; };
         Boolean StartOnUserLoginAvailable { get; };
         Boolean StartOnUserLoginConfigurable { get; };

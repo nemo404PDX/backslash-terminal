@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "GlobalAppSettings.h"
+#include "SavedTabGroups.h"
 #include <DefaultSettings.h>
 #include "../../types/inc/Utils.hpp"
 #include "JsonUtils.h"
@@ -62,6 +63,7 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::Copy() const
     globals->_UnparsedDefaultProfile = _UnparsedDefaultProfile;
 
     globals->_defaultProfile = _defaultProfile;
+    globals->_savedTabGroups = _savedTabGroups;
     globals->_actionMap = _actionMap->Copy();
     globals->_keybindingsWarnings = _keybindingsWarnings;
 
@@ -159,6 +161,11 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::FromJson(const Json::Value&
 void GlobalAppSettings::LayerJson(const Json::Value& json, const OriginTag origin)
 {
     JsonUtils::GetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
+    if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember("backslash.savedTabGroups"))
+    {
+        // Preserve unrecognized versions/fields rather than losing them on unrelated Save.
+        _savedTabGroups = json["backslash.savedTabGroups"];
+    }
 
     // GH#8076 - when adding enum values to this key, we also changed it from
     // "useTabSwitcher" to "tabSwitcherMode". Continue supporting
@@ -340,6 +347,7 @@ Json::Value GlobalAppSettings::ToJson()
     Json::Value json{ Json::ValueType::objectValue };
 
     JsonUtils::SetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
+    if (_savedTabGroups) { json["backslash.savedTabGroups"] = *_savedTabGroups; }
 
 #define GLOBAL_SETTINGS_TO_JSON(type, name, jsonKey, ...) \
     JsonUtils::SetValueForKey(json, jsonKey, _##name);
@@ -537,4 +545,16 @@ void GlobalAppSettings::LogSettingChanges(std::set<std::string>& changes, const 
     {
         changes.emplace(fmt::format(FMT_COMPILE("{}.{}"), context, setting));
     }
+}
+
+winrt::hstring GlobalAppSettings::SavedTabGroupsJson() const
+{
+    const auto value = _savedTabGroups.value_or(::Microsoft::Terminal::Backslash::SavedTabGroups{}.ToValue());
+    Json::StreamWriterBuilder builder;
+    return winrt::to_hstring(Json::writeString(builder, value));
+}
+
+void GlobalAppSettings::SavedTabGroupsJson(const winrt::hstring& value)
+{
+    _savedTabGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(value).ToValue();
 }

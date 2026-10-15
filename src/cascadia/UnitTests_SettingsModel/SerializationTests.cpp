@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include <fstream>
 
 #include "../TerminalSettingsModel/ColorScheme.h"
 #include "../TerminalSettingsModel/CascadiaSettings.h"
@@ -9,6 +10,11 @@
 #include "JsonTestClass.h"
 #include "TestUtils.h"
 #include "../TerminalSettingsModel/AppearanceConfig.h"
+#include "../TerminalSettingsModel/GlobalAppSettings.h"
+#include "../TerminalSettingsModel/SavedTabGroups.h"
+#include "../TerminalSettingsModel/StartupGroupPolicy.h"
+#include "../TerminalSettingsModel/GroupSavePolicy.h"
+#include "../TerminalSettingsModel/ApplicationState.h"
 
 using namespace Microsoft::Console;
 using namespace WEX::Logging;
@@ -40,6 +46,15 @@ namespace SettingsModelUnitTests
         TEST_METHOD(BackslashRetroIntensityModel);
         TEST_METHOD(BackslashScanlineDimensions);
         TEST_METHOD(BackslashPhosphorTint);
+        TEST_METHOD(BackslashStartupGroupScope);
+        TEST_METHOD(BackslashStartupGroupSelection);
+        TEST_METHOD(BackslashStartupGroupSettings);
+        TEST_METHOD(BackslashStartupGroupPicker);
+        TEST_METHOD(BackslashSavedGroupsRoundtrip);
+        TEST_METHOD(BackslashSavedGroupsRestore);
+        TEST_METHOD(BackslashGroupSaveEligibility);
+        TEST_METHOD(BackslashGroupSaveDraftMerge);
+        TEST_METHOD(BackslashGroupSaveNoticeState);
         TEST_METHOD(BackslashRetroIntensityValidation);
         TEST_METHOD(GlobalSettings);
         TEST_METHOD(Profile);
@@ -162,6 +177,258 @@ namespace SettingsModelUnitTests
         VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":1e100})")), winrt::hresult_invalid_argument);
         VERIFY_ARE_EQUAL(1.0f, appearance->RetroTerminalGlowIntensity());
         VERIFY_THROWS(appearance->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalGlowIntensity":"bad"})")), std::exception);
+    }
+
+    void SerializationTests::BackslashStartupGroupScope()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::StartupGroupPolicy;
+        // Initial ordinary launch only; every explicit/restore/transfer source excludes it.
+        for (unsigned mask = 0; mask < 64; ++mask)
+        {
+            const P::Context c{ (mask & 1u) != 0, (mask & 2u) != 0, (mask & 4u) != 0, (mask & 8u) != 0, (mask & 16u) != 0, (mask & 32u) != 0 };
+            VERIFY_ARE_EQUAL(mask == 1u, P::Eligible(c));
+        }
+        VERIFY_IS_TRUE(P::Matches(L"Development group", L"velop"));
+        VERIFY_IS_TRUE(P::Matches(L"Development group", L"GROUP"));
+        VERIFY_IS_TRUE(P::Matches(L"作業 Ω", L"作業"));
+        VERIFY_IS_FALSE(P::Matches(L"Development", L"unmatched"));
+    }
+
+    void SerializationTests::BackslashStartupGroupSelection()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::StartupGroupPolicy;
+        using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+        auto value = VerifyParseSucceeded(R"({"version":1,"groups":[{"id":"{11111111-1111-4111-8111-111111111111}","name":"Original","folderMode":"profileDefault","focusedTab":1,"tabs":[[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture"},{"kind":"split","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture","direction":"down","size":0.35}],[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture"}]]}]})");
+        const auto id = winrt::hstring{ L"{11111111-1111-4111-8111-111111111111}" };
+        const auto available = [](const winrt::guid&, const winrt::hstring& source) { return source == L"fixture"; };
+        const auto folders = [](const winrt::hstring&) { return true; };
+        const auto catalog = [&]() { return Store::ReadValue(value).Json(); };
+        auto p = P::Prepare(catalog(), id, available, folders);
+        VERIFY_IS_TRUE(p.group.has_value());VERIFY_ARE_EQUAL(size_t{2},p.restore.tabs.size());VERIFY_ARE_EQUAL(uint32_t{1},p.group->focusedTab);
+        VERIFY_ARE_EQUAL(size_t{2},p.restore.tabs[0].size());VERIFY_ARE_EQUAL(size_t{1},p.restore.tabs[1].size());
+        value["groups"][0]["name"] = "Renamed";p=P::Prepare(catalog(),id,available,folders);
+        VERIFY_IS_TRUE(p.group.has_value());VERIFY_ARE_EQUAL(std::string{"Renamed"},p.group->name);
+        value["groups"][0]["id"] = "{33333333-3333-4333-8333-333333333333}";
+        p=P::Prepare(catalog(),id,available,folders);VERIFY_IS_FALSE(p.group.has_value());VERIFY_IS_FALSE(p.notice.empty());
+        value["groups"][0]["id"] = winrt::to_string(id);
+        p=P::Prepare(catalog(),id,[](const winrt::guid&,const winrt::hstring&){return false;},folders);
+        VERIFY_IS_FALSE(p.group.has_value());VERIFY_IS_TRUE(p.restore.tabs.empty());
+        value["groups"][0]["folderMode"]="captured";p=P::Prepare(catalog(),id,available,folders);
+        VERIFY_ARE_EQUAL(uint32_t{3},p.restore.folderFallbacks);P::FolderChoice(p,true);VERIFY_IS_TRUE(p.group.has_value());
+        P::FolderChoice(p,false);VERIFY_IS_FALSE(p.group.has_value());VERIFY_IS_TRUE(p.restore.tabs.empty());VERIFY_IS_FALSE(p.notice.empty());
+        p=P::Prepare(L"{\"version\":2,\"groups\":[]}",id,available,folders);VERIFY_IS_FALSE(p.group.has_value());VERIFY_IS_FALSE(p.notice.empty());
+        p=P::Prepare(catalog(),L"invalid ID",available,folders);VERIFY_IS_FALSE(p.group.has_value());
+    }
+
+    void SerializationTests::BackslashStartupGroupSettings()
+    {
+        const auto settings = implementation::GlobalAppSettings::FromJson(VerifyParseSucceeded(R"({"defaultProfile":"{22222222-2222-4222-8222-222222222222}"})"),OriginTag::User);
+        VERIFY_IS_FALSE(settings->StartupWithSavedGroup());VERIFY_IS_TRUE(settings->StartupGroup().empty());
+        const auto defaultProfile = settings->DefaultProfile();
+        const auto draft = settings->Copy();draft->StartupWithSavedGroup(true);draft->StartupGroup(L"{11111111-1111-4111-8111-111111111111}");
+        VERIFY_IS_FALSE(settings->StartupWithSavedGroup());VERIFY_IS_TRUE(settings->StartupGroup().empty());
+        VERIFY_ARE_EQUAL(defaultProfile,draft->DefaultProfile());
+        const auto saved=implementation::GlobalAppSettings::FromJson(draft->ToJson(),OriginTag::User);
+        VERIFY_IS_TRUE(saved->StartupWithSavedGroup());VERIFY_ARE_EQUAL(draft->StartupGroup(),saved->StartupGroup());
+        saved->StartupWithSavedGroup(false);VERIFY_ARE_EQUAL(draft->StartupGroup(),saved->StartupGroup());
+        VERIFY_ARE_EQUAL(defaultProfile,saved->DefaultProfile());
+    }
+
+    void SerializationTests::BackslashStartupGroupPicker()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::StartupGroupPolicy;
+        using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+        auto catalog = VerifyParseSucceeded(R"({"version":1,"groups":[{"id":"{11111111-1111-4111-8111-111111111111}","name":"First group","folderMode":"profileDefault","focusedTab":0,"tabs":[[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture"}]]},{"id":"{33333333-3333-4333-8333-333333333333}","name":"Second group","folderMode":"profileDefault","focusedTab":0,"tabs":[[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture"}]]}]})");
+        auto saved = Store::ReadValue(catalog).Json();
+        const winrt::hstring first{L"{11111111-1111-4111-8111-111111111111}"}, second{L"{33333333-3333-4333-8333-333333333333}"};
+        auto state = P::Picker(saved,L"");VERIFY_ARE_EQUAL(size_t{2},state.choices.size());VERIFY_IS_FALSE(state.selected.has_value());
+        auto choice = P::Choose(saved,first);VERIFY_IS_TRUE(choice.has_value());VERIFY_ARE_EQUAL(first,choice->id);VERIFY_ARE_EQUAL(winrt::hstring{L"First group"},choice->name);
+        auto settings = implementation::GlobalAppSettings::FromJson(VerifyParseSucceeded(R"({})"),OriginTag::User);
+        settings->SavedTabGroupsJson(saved);settings->StartupWithSavedGroup(true);
+        const auto draft = settings->Copy();draft->StartupGroup(choice->id);
+        VERIFY_IS_TRUE(settings->StartupGroup().empty()); // selection edits only the draft
+        // Fresh process equivalent: serialize, reload an already-created group,
+        // select it, then change the selection again without rebuilding a UI list.
+        auto reopened = implementation::GlobalAppSettings::FromJson(draft->ToJson(),OriginTag::User);
+        state = P::Picker(reopened->SavedTabGroupsJson(),reopened->StartupGroup());
+        VERIFY_IS_TRUE(state.selected.has_value());VERIFY_ARE_EQUAL(first,state.selected->id);
+        choice = P::Choose(reopened->SavedTabGroupsJson(),first);VERIFY_IS_TRUE(choice.has_value());
+        choice = P::Choose(reopened->SavedTabGroupsJson(),second);VERIFY_IS_TRUE(choice.has_value());reopened->StartupGroup(choice->id);
+        VERIFY_ARE_EQUAL(second,reopened->StartupGroup());
+        VERIFY_IS_FALSE(P::Choose(saved,L"").has_value());VERIFY_IS_FALSE(P::Choose(saved,L"First group").has_value());
+        state=P::Picker(saved,L"{zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz}");VERIFY_ARE_EQUAL(size_t{2},state.choices.size());VERIFY_IS_FALSE(state.notice.empty());
+        state=P::Picker(saved,second,L"FIRST");VERIFY_ARE_EQUAL(size_t{1},state.choices.size());VERIFY_ARE_EQUAL(second,state.selected->id);
+        catalog["groups"][0]["name"]="Renamed group";saved=Store::ReadValue(catalog).Json();choice=P::Choose(saved,first);
+        VERIFY_ARE_EQUAL(winrt::hstring{L"Renamed group"},choice->name);VERIFY_ARE_EQUAL(first,choice->id);
+        catalog["groups"][0]["id"]="{44444444-4444-4444-8444-444444444444}";saved=Store::ReadValue(catalog).Json();
+        VERIFY_IS_FALSE(P::Choose(saved,first).has_value());state=P::Picker(saved,first);VERIFY_IS_FALSE(state.notice.empty());VERIFY_ARE_EQUAL(size_t{2},state.choices.size());
+        state=P::Picker(LR"({"version":1,"groups":[]})",first);VERIFY_IS_TRUE(state.choices.empty());VERIFY_IS_FALSE(state.selected.has_value());
+        state=P::Picker(LR"({"version":2,"groups":[]})",first);VERIFY_IS_TRUE(state.choices.empty());VERIFY_IS_FALSE(state.notice.empty());
+        // Actual user's already-persisted catalog is injected as a read-only
+        // fixture. Never open its profiles or rewrite its source settings.
+        wchar_t fixturePath[32768];
+        const auto pathLength = GetEnvironmentVariableW(L"BACKSLASH_TEST_SAVED_GROUPS_JSON",fixturePath,static_cast<DWORD>(std::size(fixturePath)));
+        if (pathLength > 0)
+        {
+            VERIFY_IS_TRUE(pathLength < std::size(fixturePath));
+            std::ifstream stream{std::filesystem::path{fixturePath},std::ios::binary};VERIFY_IS_TRUE(stream.good());
+            const std::string raw{std::istreambuf_iterator<char>{stream},std::istreambuf_iterator<char>{}};
+            const auto real = winrt::to_hstring(raw);const auto all=P::Picker(real,L"");VERIFY_IS_FALSE(all.choices.empty());
+            for (const auto& item : all.choices)
+            {
+                const auto initial=P::Choose(real,item.id);VERIFY_IS_TRUE(initial.has_value());VERIFY_ARE_EQUAL(item.name,initial->name);
+                const auto loaded=P::Picker(real,initial->id);VERIFY_IS_TRUE(loaded.selected.has_value());VERIFY_ARE_EQUAL(item.id,loaded.selected->id);
+                const auto again=P::Choose(real,loaded.selected->id);VERIFY_IS_TRUE(again.has_value());VERIFY_ARE_EQUAL(item.id,again->id);
+            }
+            const auto realDraft = settings->Copy();realDraft->SavedTabGroupsJson(real);realDraft->StartupGroup(all.choices.front().id);
+            const auto realReloaded = implementation::GlobalAppSettings::FromJson(realDraft->ToJson(),OriginTag::User);
+            VERIFY_ARE_EQUAL(all.choices.front().id,realReloaded->StartupGroup());
+            VERIFY_ARE_EQUAL(Store::Read(real).Json(),Store::Read(realReloaded->SavedTabGroupsJson()).Json());
+        }
+    }
+
+    void SerializationTests::BackslashGroupSaveEligibility()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
+        using K=P::PaneKind;
+        auto selection=P::Select({{K::Terminal}},0);VERIFY_ARE_EQUAL(size_t{1},selection.indices.size());VERIFY_ARE_EQUAL(0u,selection.focusedTab);VERIFY_IS_FALSE(selection.skippedSettings);
+        selection=P::Select({{K::Terminal,K::Terminal,K::Terminal}},0);VERIFY_ARE_EQUAL(size_t{1},selection.indices.size());VERIFY_ARE_EQUAL(0u,selection.focusedTab);
+        const std::vector<std::vector<K>> tabs{{K::Terminal},{K::Settings},{K::Terminal,K::Terminal},{K::Settings},{K::Terminal}};
+        selection=P::Select(tabs,4);VERIFY_ARE_EQUAL(size_t{3},selection.indices.size());VERIFY_ARE_EQUAL(0u,selection.indices[0]);VERIFY_ARE_EQUAL(2u,selection.indices[1]);VERIFY_ARE_EQUAL(4u,selection.indices[2]);VERIFY_ARE_EQUAL(2u,selection.focusedTab);VERIFY_IS_TRUE(selection.skippedSettings);
+        selection=P::Select(tabs,2);VERIFY_ARE_EQUAL(1u,selection.focusedTab);
+        selection=P::Select(tabs,3);VERIFY_ARE_EQUAL(0u,selection.focusedTab);
+        selection=P::Select(tabs,99);VERIFY_ARE_EQUAL(0u,selection.focusedTab);
+        VERIFY_THROWS(P::Select({},0),std::invalid_argument);
+        try { P::Select({{K::Settings}},0);VERIFY_FAIL(L"Settings-only must not save an empty group"); }
+        catch(const std::invalid_argument& e){VERIFY_ARE_EQUAL(std::string{"No terminal tabs to save."},std::string{e.what()});}
+        VERIFY_THROWS(P::Select({{K::Terminal,K::Settings}},0),std::invalid_argument);
+        VERIFY_THROWS(P::Select({{K::Terminal},{K::Unsupported}},0),std::invalid_argument);
+        VERIFY_THROWS(P::Select({{K::Settings,K::Settings}},0),std::invalid_argument);
+        VERIFY_THROWS(P::Select({{}},0),std::invalid_argument);
+        VERIFY_IS_TRUE(P::ShowSettingsNotice(selection,false,false));VERIFY_IS_FALSE(P::ShowSettingsNotice(selection,true,false));VERIFY_IS_FALSE(P::ShowSettingsNotice(selection,false,true));
+        VERIFY_IS_FALSE(P::ShowSettingsNotice(P::Select({{K::Terminal}},0),false,false));
+        for(unsigned flags=0;flags<8;++flags){VERIFY_ARE_EQUAL(flags==7u,P::PersistNoticeChoice((flags&1)!=0,(flags&2)!=0,(flags&4)!=0));}
+    }
+
+    void SerializationTests::BackslashGroupSaveDraftMerge()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;using Store=::Microsoft::Terminal::Backslash::SavedTabGroups;
+        auto value=VerifyParseSucceeded(R"({"version":1,"groups":[{"id":"{11111111-1111-4111-8111-111111111111}","name":"Existing","folderMode":"profileDefault","focusedTab":0,"tabs":[[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"fixture"}]]}]})");
+        const auto before=Store::ReadValue(value).Json();auto incoming=value;auto addition=value["groups"][0];addition["id"]="{33333333-3333-4333-8333-333333333333}";addition["name"]="Captured terminals";incoming["groups"].append(addition);const auto after=Store::ReadValue(incoming).Json();
+        auto globals=implementation::GlobalAppSettings::FromJson(VerifyParseSucceeded(R"({"defaultProfile":"{22222222-2222-4222-8222-222222222222}"})"),OriginTag::User);globals->SavedTabGroupsJson(before);
+        const auto draft=globals->Copy();draft->InitialRows(77);draft->StartupWithSavedGroup(true);draft->StartupGroup(L"{11111111-1111-4111-8111-111111111111}");
+        auto edited=value;edited["groups"][0]["name"]="Unsaved rename";draft->SavedTabGroupsJson(Store::ReadValue(edited).Json());
+        const auto merged=P::MergeAddedGroups(before,after,draft->SavedTabGroupsJson());draft->SavedTabGroupsJson(merged);
+        VERIFY_ARE_EQUAL(77,draft->InitialRows());VERIFY_IS_TRUE(draft->StartupWithSavedGroup());VERIFY_ARE_EQUAL(globals->DefaultProfile(),draft->DefaultProfile());VERIFY_ARE_EQUAL(before,globals->SavedTabGroupsJson());
+        const auto combined=Store::Read(merged);VERIFY_ARE_EQUAL(size_t{2},combined.groups.size());VERIFY_ARE_EQUAL(std::string{"Unsaved rename"},combined.groups[0].name);VERIFY_ARE_EQUAL(std::string{"Captured terminals"},combined.groups[1].name);
+        VERIFY_ARE_EQUAL(merged,P::MergeAddedGroups(before,after,merged)); // watcher replay, exactly one new GUID
+        const auto loaded=implementation::GlobalAppSettings::FromJson(draft->ToJson(),OriginTag::User);VERIFY_ARE_EQUAL(merged,loaded->SavedTabGroupsJson());VERIFY_ARE_EQUAL(77,loaded->InitialRows());
+        auto deleted=edited;deleted["groups"].clear();const auto keptDeletion=Store::Read(P::MergeAddedGroups(before,after,Store::ReadValue(deleted).Json()));VERIFY_ARE_EQUAL(size_t{1},keptDeletion.groups.size());VERIFY_ARE_EQUAL(std::string{"Captured terminals"},keptDeletion.groups[0].name);
+        edited["groups"][0]["name"]="CAPTURED TERMINALS";const auto conflicting=Store::ReadValue(edited).Json();VERIFY_THROWS(P::MergeAddedGroups(before,after,conflicting),std::invalid_argument);VERIFY_ARE_EQUAL(std::string{"Unsaved rename"},Store::Read(draft->SavedTabGroupsJson()).groups[0].name);
+        auto changed=incoming;changed["groups"][0]["name"]="External rename";VERIFY_IS_FALSE(P::AppendOnly(Store::Read(before),Store::ReadValue(changed)));
+        Json::Value oldSettings,newSettings;oldSettings["defaultProfile"]="same";newSettings=oldSettings;oldSettings["backslash.savedTabGroups"]=value;newSettings["backslash.savedTabGroups"]=incoming;
+        VERIFY_IS_TRUE(P::OnlyGroupsDiffer(oldSettings,newSettings));newSettings["initialRows"]=50;VERIFY_IS_FALSE(P::OnlyGroupsDiffer(oldSettings,newSettings));
+        // Canceled/failed writer never assigns the pure merge to source or draft.
+        VERIFY_ARE_EQUAL(before,globals->SavedTabGroupsJson());VERIFY_ARE_EQUAL(77,draft->InitialRows());
+        implementation::SettingsLoader loader{R"({"defaultProfile":"{22222222-2222-4222-8222-222222222222}","profiles":{"list":[{"guid":"{22222222-2222-4222-8222-222222222222}","name":"Local","commandline":"cmd.exe"}]}})","{}"};
+        loader.MergeInboxIntoUserSettings();loader.FinalizeLayering();loader.FixupUserSettings();
+        const auto live = winrt::make_self<implementation::CascadiaSettings>(std::move(loader));
+        live->GlobalSettings().SavedTabGroupsJson(before);const auto liveProjection=live.as<winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings>();
+        const auto updated=liveProjection.Copy();updated.GlobalSettings().SavedTabGroupsJson(after);
+        VERIFY_IS_FALSE(liveProjection.EqualsForGroupSave(updated,false));VERIFY_IS_TRUE(liveProjection.EqualsForGroupSave(updated,true));
+        const auto fullDraft=liveProjection.Copy();fullDraft.GlobalSettings().InitialRows(77);fullDraft.FindProfile(Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}")).Name(L"Unsaved profile name");
+        fullDraft.GlobalSettings().SavedTabGroupsJson(P::MergeAddedGroups(before,after,fullDraft.GlobalSettings().SavedTabGroupsJson()));
+        VERIFY_ARE_EQUAL(winrt::hstring{L"Unsaved profile name"},fullDraft.FindProfile(Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}")).Name());
+        VERIFY_ARE_EQUAL(winrt::hstring{L"Local"},liveProjection.FindProfile(Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}")).Name());
+        VERIFY_ARE_EQUAL(77,fullDraft.GlobalSettings().InitialRows());VERIFY_IS_FALSE(liveProjection.EqualsForGroupSave(fullDraft,true));
+        GUID writeId;THROW_IF_FAILED(CoCreateGuid(&writeId));const auto writeDirectory=std::filesystem::temp_directory_path()/(L"Backslash-group-write-tests-"+std::wstring{winrt::to_hstring(writeId)});std::filesystem::create_directory(writeDirectory);
+        const auto writeState=winrt::make_self<implementation::ApplicationState>(writeDirectory);
+        const auto liveJson=live->ToJson();const auto draftJson=winrt::get_self<implementation::CascadiaSettings>(fullDraft)->ToJson();
+        auto updatedImpl=winrt::get_self<implementation::CascadiaSettings>(updated);
+        const auto failed=updatedImpl->WriteSettingsToDisk([](std::string_view){throw std::runtime_error("injected group write failure");},*writeState);
+        VERIFY_IS_FALSE(failed);VERIFY_ARE_EQUAL(toString(liveJson),toString(live->ToJson()));VERIFY_ARE_EQUAL(toString(draftJson),toString(winrt::get_self<implementation::CascadiaSettings>(fullDraft)->ToJson()));VERIFY_IS_FALSE(writeState->SavedGroupSettingsNoticeDismissed());
+        std::string persisted;VERIFY_IS_TRUE(updatedImpl->WriteSettingsToDisk([&](std::string_view text){persisted=text;},*writeState));
+        const auto persistedRoot=VerifyParseSucceeded(persisted);VERIFY_ARE_EQUAL(size_t{2},Store::ReadValue(persistedRoot["backslash.savedTabGroups"]).groups.size());
+        VERIFY_ARE_EQUAL(toString(liveJson),toString(live->ToJson()));VERIFY_ARE_EQUAL(toString(draftJson),toString(winrt::get_self<implementation::CascadiaSettings>(fullDraft)->ToJson()));
+        // Normal Reset copies the newly saved source, retaining the addition and discarding draft edits.
+        const auto reset=updated.Copy();VERIFY_ARE_EQUAL(winrt::hstring{L"Local"},reset.FindProfile(Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}")).Name());VERIFY_ARE_EQUAL(size_t{2},Store::Read(reset.GlobalSettings().SavedTabGroupsJson()).groups.size());
+    }
+
+    void SerializationTests::BackslashGroupSaveNoticeState()
+    {
+        GUID id;THROW_IF_FAILED(CoCreateGuid(&id));const auto directory=std::filesystem::temp_directory_path()/(L"Backslash-group-notice-tests-"+std::wstring{winrt::to_hstring(id)});std::filesystem::create_directory(directory);Log::Comment(directory.c_str());
+        auto state=winrt::make_self<implementation::ApplicationState>(directory);VERIFY_IS_FALSE(state->SavedGroupSettingsNoticeDismissed());
+        state->DismissedMessages(winrt::single_threaded_vector<InfoBarMessage>({InfoBarMessage::CloseOnExitInfo}));
+        const auto seen = Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}");state->GeneratedProfiles({seen});
+        // Cancel, unchecked Continue and failed save keep the default preference.
+        namespace P=::Microsoft::Terminal::Backslash::GroupSavePolicy;
+        VERIFY_IS_FALSE(P::PersistNoticeChoice(false,true,true));VERIFY_IS_FALSE(P::PersistNoticeChoice(true,false,true));VERIFY_IS_FALSE(P::PersistNoticeChoice(true,true,false));
+        state->SavedGroupSettingsNoticeDismissed(true);state->Flush();state=nullptr;
+        const auto loaded=winrt::make_self<implementation::ApplicationState>(directory);VERIFY_IS_TRUE(loaded->SavedGroupSettingsNoticeDismissed());
+        VERIFY_ARE_EQUAL(uint32_t{1},loaded->DismissedMessages().Size());VERIFY_ARE_EQUAL(InfoBarMessage::CloseOnExitInfo,loaded->DismissedMessages().GetAt(0));VERIFY_IS_TRUE(loaded->GeneratedProfiles().contains(seen));
+        const auto selection=P::Select({{P::PaneKind::Terminal},{P::PaneKind::Settings}},1);VERIFY_IS_FALSE(P::ShowSettingsNotice(selection,loaded->SavedGroupSettingsNoticeDismissed(),false));
+        VERIFY_THROWS(P::Select({{P::PaneKind::Settings}},0),std::invalid_argument); // unsuppressible empty-group error
+    }
+
+    void SerializationTests::BackslashSavedGroupsRoundtrip()
+    {
+        using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+        const auto value = VerifyParseSucceeded(R"({"version":1,"groups":[{"id":"{11111111-1111-4111-8111-111111111111}","name":"Work","folderMode":"captured","focusedTab":0,"tabs":[[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":"","folder":"C:\\work"},{"kind":"split","profile":"{33333333-3333-4333-8333-333333333333}","source":"Windows.Terminal.Wsl","direction":"right","size":0.3},{"kind":"focus","id":0}],[{"kind":"newTab","profile":"{22222222-2222-4222-8222-222222222222}","source":""}]]}]})");
+        const auto store = Store::ReadValue(value);
+        VERIFY_ARE_EQUAL(toString(value), toString(store.ToValue()));
+        auto globals = winrt::make_self<implementation::GlobalAppSettings>();
+        globals->SavedTabGroupsJson(store.Json());
+        const auto original = globals->SavedTabGroupsJson();
+        auto clone = globals->Copy();
+        auto edit = Store::Read(clone->SavedTabGroupsJson());
+        const auto id = edit.groups[0].id;edit.groups[0].name = "Renamed";edit.groups[0].capturedFolders = false;
+        clone->SavedTabGroupsJson(edit.Json());
+        VERIFY_ARE_EQUAL(original, globals->SavedTabGroupsJson());
+        VERIFY_ARE_EQUAL(id, Store::Read(clone->SavedTabGroupsJson()).groups[0].id);
+        auto reloaded = implementation::GlobalAppSettings::FromJson(clone->ToJson(), OriginTag::User);
+        VERIFY_ARE_EQUAL(clone->SavedTabGroupsJson(), reloaded->SavedTabGroupsJson());
+        edit.groups.clear();clone->SavedTabGroupsJson(edit.Json());
+        VERIFY_ARE_EQUAL(size_t{ 1 }, Store::Read(globals->SavedTabGroupsJson()).groups.size());
+        edit = store;edit.groups[0].id = "{44444444-4444-4444-8444-444444444444}";edit.groups[0].name = "Work";
+        clone->SavedTabGroupsJson(edit.Json());
+        VERIFY_IS_TRUE(Store::Read(clone->SavedTabGroupsJson()).groups[0].id != id);
+        auto future = value;future["version"] = 2;future["futureMetadata"] = "preserve";
+        Json::Value root;root["backslash.savedTabGroups"] = future;
+        const auto unknown = implementation::GlobalAppSettings::FromJson(root, OriginTag::User);
+        VERIFY_ARE_EQUAL(toString(future), toString(unknown->Copy()->ToJson()["backslash.savedTabGroups"]));
+        VERIFY_THROWS(Store::Read(unknown->SavedTabGroupsJson()), std::exception);
+    }
+
+    void SerializationTests::BackslashSavedGroupsRestore()
+    {
+        using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+        NewTerminalArgs terminal;terminal.Profile(L"{22222222-2222-4222-8222-222222222222}");terminal.StartingDirectory(L"C:\\work");terminal.Commandline(L"arbitrary-in-session-command-and-secret");terminal.ContentId(42);
+        ActionAndArgs first;first.Action(ShortcutAction::NewTab);first.Args(NewTabArgs{ terminal });
+        ActionAndArgs split;split.Action(ShortcutAction::SplitPane);split.Args(SplitPaneArgs{ SplitType::Manual, SplitDirection::Down, 0.35f, terminal });
+        ActionAndArgs focus;focus.Action(ShortcutAction::FocusPane);focus.Args(FocusPaneArgs{ uint32_t{ 0 } });
+        ::Microsoft::Terminal::Backslash::SavedTabGroup group{ "{11111111-1111-4111-8111-111111111111}", "Work", true, 0, {} };
+        group.tabs.push_back(Store::CaptureTab({ first, split, focus }, [](const winrt::guid&) { return winrt::hstring{ L"Windows.Terminal.PowershellCore" }; }));
+        Store store;store.groups.push_back(group);const auto serialized = winrt::to_string(store.Json());
+        VERIFY_IS_TRUE(serialized.find("arbitrary") == std::string::npos);VERIFY_IS_TRUE(serialized.find("contentId") == std::string::npos);VERIFY_IS_TRUE(serialized.find("commandline") == std::string::npos);
+        const auto available = [](const winrt::guid&, const winrt::hstring& source) { return source == L"Windows.Terminal.PowershellCore"; };
+        const auto restored = Store::Build(group, available, [](const winrt::hstring&) { return true; });
+        VERIFY_ARE_EQUAL(size_t{ 1 }, restored.tabs.size());VERIFY_ARE_EQUAL(size_t{ 3 }, restored.tabs[0].size());VERIFY_ARE_EQUAL(uint32_t{ 0 }, restored.folderFallbacks);
+        const auto args = restored.tabs[0][0].Args().as<NewTabArgs>().ContentArgs().as<NewTerminalArgs>();
+        VERIFY_ARE_EQUAL(terminal.Profile(), args.Profile());VERIFY_ARE_EQUAL(winrt::hstring{ L"C:\\work" }, args.StartingDirectory());VERIFY_IS_TRUE(args.Commandline().empty());VERIFY_ARE_EQUAL(uint64_t{ 0 }, args.ContentId());
+        const auto splitArgs = restored.tabs[0][1].Args().as<SplitPaneArgs>();VERIFY_ARE_EQUAL(SplitDirection::Down, splitArgs.SplitDirection());VERIFY_ARE_EQUAL(0.35f, splitArgs.SplitSize());
+        VERIFY_ARE_EQUAL(uint32_t{ 2 }, Store::Build(group, available, [](const winrt::hstring&) { return false; }).folderFallbacks);
+        group.capturedFolders = false;
+        const auto defaults = Store::Build(group, available, [](const winrt::hstring&) { throw std::runtime_error("Defaults must not probe captured paths");return false; });
+        VERIFY_ARE_EQUAL(uint32_t{ 0 }, defaults.folderFallbacks);VERIFY_IS_TRUE(defaults.tabs[0][0].Args().as<NewTabArgs>().ContentArgs().as<NewTerminalArgs>().StartingDirectory().empty());
+        VERIFY_THROWS(Store::Build(group, [](const winrt::guid&, const winrt::hstring&) { return false; }, [](const winrt::hstring&) { return true; }), std::exception);
+        auto bad = store.ToValue();bad["groups"][0]["tabs"][0][0]["commandline"] = "must-never-run";
+        VERIFY_THROWS(Store::ReadValue(bad), std::exception);
+        bad = store.ToValue();bad["groups"][0]["tabs"][0][1]["size"] = 1;
+        VERIFY_THROWS(Store::ReadValue(bad), std::exception);
+        bad = store.ToValue();bad["groups"].append(bad["groups"][0]);bad["groups"][1]["id"] = "{55555555-5555-4555-8555-555555555555}";
+        VERIFY_THROWS(Store::ReadValue(bad), std::exception);
+        VERIFY_IS_FALSE(Store::LocalFolder("/home/user"));VERIFY_IS_FALSE(Store::LocalFolder("\\\\server\\share"));VERIFY_IS_FALSE(Store::LocalFolder("C:relative"));VERIFY_IS_FALSE(Store::LocalFolder("C:\\%USERPROFILE%"));
+        VERIFY_IS_TRUE(Store::LocalFolder("C:\\space and unicode-folder"));
     }
 
     void SerializationTests::BackslashPhosphorTint()

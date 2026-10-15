@@ -100,13 +100,14 @@ namespace winrt::TerminalApp::implementation
     // - insertPosition: Optional parameter to indicate the position of tab.
     void TerminalPage::_InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition)
     {
+        newTabImpl->ConnectionIdentityTitles(_settings.GlobalSettings().ShowConnectionIdentity());
         newTabImpl->Initialize();
 
         // If insert position is not passed, calculate it
         if (insertPosition == -1)
         {
             insertPosition = _tabs.Size();
-            if (_settings.GlobalSettings().NewTabPosition() == NewTabPosition::AfterCurrentTab)
+            if (!_openingSavedGroup && _settings.GlobalSettings().NewTabPosition() == NewTabPosition::AfterCurrentTab)
             {
                 auto currentTabIndex = _GetFocusedTabIndex();
                 if (currentTabIndex.has_value())
@@ -286,7 +287,7 @@ namespace winrt::TerminalApp::implementation
             // current control's live settings (which will include changes
             // made through VT).
             uint32_t insertPosition = _tabs.Size();
-            if (_settings.GlobalSettings().NewTabPosition() == NewTabPosition::AfterCurrentTab)
+            if (!_openingSavedGroup && _settings.GlobalSettings().NewTabPosition() == NewTabPosition::AfterCurrentTab)
             {
                 insertPosition = tab.TabViewIndex() + 1;
             }

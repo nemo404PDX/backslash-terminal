@@ -119,6 +119,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void SelectOutput(const bool goUp);
 
         winrt::hstring CurrentWorkingDirectory() const;
+        winrt::hstring InitialConnectionTitlePrefix() const;
+        winrt::hstring InitialStartingTitle() const;
+        bool InitialTitleIsExplicit() const;
+        winrt::hstring ReportedWorkingDirectory() const;
 #pragma endregion
 
         void ScrollViewport(int viewTop);

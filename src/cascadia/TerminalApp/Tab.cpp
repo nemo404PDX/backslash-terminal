@@ -4,7 +4,9 @@
 #include "pch.h"
 #include "ColorPickupFlyout.h"
 #include "Tab.h"
+#include "../inc/ConnectionIdentityTitle.h"
 #include "SettingsPaneContent.h"
+#include "TerminalPaneContent.h"
 #include "Tab.g.cpp"
 #include "Utils.h"
 #include "AppLogic.h"
@@ -391,6 +393,7 @@ namespace winrt::TerminalApp::implementation
     {
         ASSERT_UI_THREAD();
 
+        _showConnectionIdentity = settings.GlobalSettings().ShowConnectionIdentity();
         // The tabWidthMode may have changed, update the header control accordingly
         _UpdateHeaderControlMaxWidth();
 
@@ -399,6 +402,7 @@ namespace winrt::TerminalApp::implementation
             pane->UpdateSettings(settings);
             return false;
         });
+        UpdateTitle();
     }
 
     // Method Description:
@@ -510,6 +514,14 @@ namespace winrt::TerminalApp::implementation
             return RS_(L"MultiplePanes");
         }
         const auto activeContent = GetActiveContent();
+        if (const auto terminal = activeContent.try_as<TerminalApp::TerminalPaneContent>())
+        {
+            const auto content = get_self<TerminalPaneContent>(terminal);
+            const auto control = content->GetTermControl();
+            const auto profile = content->GetProfile();
+            const auto explicitTitle = control.InitialTitleIsExplicit() || !profile.TabTitle().empty() || control.Settings().SuppressApplicationTitle();
+            return hstring{ ::Microsoft::Terminal::Backslash::ConnectionIdentityTitle::Format(control.InitialConnectionTitlePrefix(), control.InitialStartingTitle(), activeContent.Title(), _showConnectionIdentity, explicitTitle) };
+        }
         return activeContent ? activeContent.Title() : winrt::hstring{};
     }
 
@@ -561,17 +573,17 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     // Return Value:
     // - A vector of commands
-    std::vector<ActionAndArgs> Tab::BuildStartupActions(BuildStartupKind kind) const
+    std::vector<ActionAndArgs> Tab::BuildStartupActions(BuildStartupKind kind, const Pane::StartupArgsFactory& factory) const
     {
         ASSERT_UI_THREAD();
 
         // Give initial ids (0 for the child created with this tab,
         // 1 for the child after the first split.
-        auto state = _rootPane->BuildStartupActions(0, 1, kind);
+        auto state = _rootPane->BuildStartupActions(0, 1, kind, factory);
 
         {
             ActionAndArgs newTabAction{};
-            INewContentArgs newContentArgs{ state.firstPane->GetTerminalArgsForPane(kind) };
+            INewContentArgs newContentArgs{ factory ? factory(state.firstPane) : state.firstPane->GetTerminalArgsForPane(kind) };
 
             // Special case here: if there was one pane (which results in no actions
             // being generated), and it was a settings pane, then promote that to an
@@ -2166,6 +2178,8 @@ namespace winrt::TerminalApp::implementation
     // - The value to populate in the title run of the tool tip
     winrt::hstring Tab::_CreateToolTipTitle()
     {
+        // The curated title already contains identity first; preserve it in full.
+        if (_showConnectionIdentity) { return Title(); }
         if (const auto profile{ GetFocusedProfile() })
         {
             const auto profileName{ profile.Name() };

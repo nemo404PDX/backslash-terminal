@@ -1585,6 +1585,14 @@ void CascadiaSettings::_writeSettingsToDisk(std::string_view contents)
 // - <none>
 // Return Value:
 // the JsonObject representing this instance
+bool CascadiaSettings::EqualsForGroupSave(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& other, bool ignoreGroups) const
+{
+    if (!other) { return false; }
+    auto before = ToJson();auto after = winrt::get_self<CascadiaSettings>(other)->ToJson();
+    if (ignoreGroups) { before.removeMember("backslash.savedTabGroups");after.removeMember("backslash.savedTabGroups"); }
+    return before == after;
+}
+
 Json::Value CascadiaSettings::ToJson() const
 {
     // top-level json object

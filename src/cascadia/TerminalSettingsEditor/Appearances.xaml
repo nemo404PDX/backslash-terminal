@@ -561,7 +561,7 @@
                                     Style="{StaticResource ExpanderSettingContainerStyleWithComplexPreview}">
                 <local:NullableColorPicker x:Uid="Profile_RetroTerminalTintColorPicker"
                                            ColorSchemeVM="{x:Bind Appearance.CurrentColorScheme, Mode=OneWay}"
-                                           ShowNullColorButton="False"
+                                           ShowNullColorButton="True"
                                            CurrentColor="{x:Bind Appearance.RetroTerminalTintColorForPicker, Mode=TwoWay}" />
             </local:SettingContainer>
             <local:SettingContainer x:Name="RetroTerminalTintIntensity"

@@ -27,6 +27,8 @@
 
         <StackPanel Grid.Row="1"
                     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <mux:InfoBar x:Name="StartupGroupNotice" x:Load="False" Title="Startup group"
+                         IsClosable="True" IsOpen="False" Severity="Warning" />
             <mux:InfoBar x:Name="CloseOnExitInfoBar"
                          x:Uid="CloseOnExitInfoBar"
                          x:Load="False"

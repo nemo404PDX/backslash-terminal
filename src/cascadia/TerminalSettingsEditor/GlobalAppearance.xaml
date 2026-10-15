@@ -27,6 +27,10 @@
     </Page.Resources>
 
     <StackPanel Style="{StaticResource SettingsStackStyle}">
+        <local:SettingContainer x:Name="ShowConnectionIdentity" x:Uid="Globals_ShowConnectionIdentity">
+            <ToggleSwitch IsOn="{x:Bind ViewModel.ShowConnectionIdentity, Mode=TwoWay}"
+                          Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+        </local:SettingContainer>
         <!--  Theme  -->
         <local:SettingContainer x:Name="Theme"
                                 x:Uid="Globals_Theme">

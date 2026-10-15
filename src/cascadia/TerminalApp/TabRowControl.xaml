@@ -47,8 +47,9 @@
 
         <mux:TabView.TabStripFooter>
             <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <!--  Remove this border after WinUI 2.8  -->
-                <Border Height="1"
+                <Border Grid.ColumnSpan="2" Height="1"
                         VerticalAlignment="Bottom"
                         Background="{ThemeResource CardStrokeColorDefaultBrush}" />
 
@@ -132,6 +133,7 @@
                         </ResourceDictionary>
                     </mux:SplitButton.Resources>
                 </mux:SplitButton>
+                <mux:DropDownButton x:Name="GroupsButton" x:Uid="SavedGroups_Button" Grid.Column="1" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control" />
             </Grid>
         </mux:TabView.TabStripFooter>
 

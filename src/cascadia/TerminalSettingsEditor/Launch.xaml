@@ -30,6 +30,17 @@
                 <Setter Property="LargeChange" Value="10" />
                 <Setter Property="Minimum" Value="2" />
             </Style>
+            <!-- The startup search field fills its own row at every card width. -->
+            <Style x:Key="StartupGroupSearchTextBoxStyle"
+                   BasedOn="{StaticResource DefaultTextBoxStyle}"
+                   TargetType="TextBox">
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="ContextFlyout">
+                    <Setter.Value><mtu:TextMenuFlyout /></Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="LaunchPositionNumberBoxStyle"
                    BasedOn="{StaticResource NumberBoxSettingStyle}"
                    TargetType="muxc:NumberBox">
@@ -75,6 +86,73 @@
                 </ComboBox>
             </local:SettingContainer>
 
+            <TextBlock x:Uid="StartupGroups_Header" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,16,0,8" />
+            <local:SettingContainer x:Name="StartupMode" x:Uid="StartupGroups_Mode">
+                <ComboBox x:Name="StartupModeChoice" SelectionChanged="StartupMode_SelectionChanged" Style="{StaticResource ComboBoxSettingStyle}">
+                    <ComboBoxItem x:Uid="StartupGroups_Default" />
+                    <ComboBoxItem x:Uid="StartupGroups_Saved" />
+                </ComboBox>
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="StartupGroup" x:Uid="StartupGroups_Group">
+                <local:SettingContainer.Template>
+                    <ControlTemplate TargetType="local:SettingContainer">
+                        <Grid Style="{StaticResource NonExpanderGrid}"
+                              AutomationProperties.Name="{TemplateBinding Header}"
+                              MinWidth="0" Padding="16,12,16,12" RowSpacing="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource SettingsPageItemHeaderStyle}"
+                                           Text="{TemplateBinding Header}" TextWrapping="Wrap" />
+                                <Button x:Name="ResetButton" Grid.Column="1"
+                                        Style="{StaticResource SettingContainerResetButtonStyle}">
+                                    <FontIcon Glyph="&#xE845;" Style="{StaticResource SettingContainerFontIconStyle}" />
+                                </Button>
+                            </Grid>
+                            <TextBlock x:Name="HelpTextBlock" Grid.Row="1"
+                                       Style="{StaticResource SettingsPageItemDescriptionStyle}"
+                                       Text="{TemplateBinding HelpText}" TextWrapping="Wrap" Margin="0" />
+                            <ContentPresenter Grid.Row="2" Margin="0,8,0,0"
+                                              HorizontalAlignment="Stretch"
+                                              Content="{TemplateBinding Content}" />
+                        </Grid>
+                    </ControlTemplate>
+                </local:SettingContainer.Template>
+                <StackPanel HorizontalAlignment="Stretch" Spacing="4">
+                    <AutoSuggestBox x:Name="StartupGroupPicker" x:Uid="StartupGroups_Picker"
+                                    HorizontalAlignment="Stretch" MinWidth="0"
+                                    TextBoxStyle="{StaticResource StartupGroupSearchTextBoxStyle}"
+                                    ToolTipService.ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"
+                                    UpdateTextOnSelect="False" TextChanged="StartupGroup_TextChanged"
+                                    QuerySubmitted="StartupGroup_QuerySubmitted">
+                        <AutoSuggestBox.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </AutoSuggestBox.ItemContainerStyle>
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate x:DataType="local:EnumEntry">
+                                <TextBlock Text="{x:Bind EnumName, Mode=OneWay}"
+                                           TextWrapping="Wrap" HorizontalAlignment="Stretch"
+                                           ToolTipService.ToolTip="{x:Bind EnumName, Mode=OneWay}"
+                                           AutomationProperties.Name="{x:Bind EnumName, Mode=OneWay}" />
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
+                    <TextBlock x:Name="StartupGroupStatus" TextWrapping="Wrap"
+                               AutomationProperties.LiveSetting="Polite" />
+                </StackPanel>
+            </local:SettingContainer>
             <!--  Default Terminal  -->
             <local:SettingContainer x:Name="DefaultTerminalDropdown"
                                     x:Uid="Globals_DefaultTerminal"
@@ -316,6 +394,21 @@
                                   Style="{StaticResource ToggleSwitchInExpanderStyle}" />
                 </Grid>
             </local:SettingContainer>
+            <StackPanel x:Name="SavedGroupsSection" Margin="0,20,0,0" Spacing="8">
+                <TextBlock x:Uid="SavedGroups_Header" Style="{StaticResource SubtitleTextBlockStyle}" />
+                <TextBlock x:Uid="SavedGroups_Help" TextWrapping="Wrap" />
+                <ComboBox x:Name="SavedGroupList" x:Uid="SavedGroups_List" SelectionChanged="SavedGroups_SelectionChanged" HorizontalAlignment="Stretch" />
+                <TextBox x:Name="SavedGroupName" x:Uid="SavedGroups_Name" MaxLength="80" />
+                <ComboBox x:Name="SavedGroupFolderMode" x:Uid="SavedGroups_FolderMode" HorizontalAlignment="Stretch">
+                    <ComboBoxItem x:Uid="SavedGroups_ProfileFolders" />
+                    <ComboBoxItem x:Uid="SavedGroups_CapturedFolders" />
+                </ComboBox>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="SavedGroupUpdateButton" x:Uid="SavedGroups_Update" Click="SavedGroups_Update" IsEnabled="False" />
+                    <Button x:Name="SavedGroupDeleteButton" x:Uid="SavedGroups_Delete" Click="SavedGroups_Delete" IsEnabled="False" />
+                </StackPanel>
+                <TextBlock x:Name="SavedGroupStatus" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
         </StackPanel>
     </StackPanel>
 </Page>

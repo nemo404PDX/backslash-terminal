@@ -26,6 +26,7 @@ namespace winrt::TerminalApp::implementation
         winrt::com_array<winrt::hstring> Commandline();
         til::property<winrt::hstring> CurrentDirectory;
         til::property<winrt::hstring> CurrentEnvironment;
+        til::property<bool> InitialAppLaunch{ false };
         til::property<uint32_t> ShowWindowCommand{ static_cast<uint32_t>(SW_NORMAL) }; // SW_NORMAL is 1, 0 is SW_HIDE
 
     private:

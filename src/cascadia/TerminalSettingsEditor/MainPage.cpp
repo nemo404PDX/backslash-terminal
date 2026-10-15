@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include "../TerminalSettingsModel/GroupSavePolicy.h"
 #include "MainPage.h"
 #include "MainPage.g.cpp"
 #include "Launch.h"
@@ -198,8 +199,52 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // - settings - the new settings source
     // Return value:
     // - <none>
+    winrt::hstring MainPage::SavedGroupAppendError(const winrt::hstring& before, const winrt::hstring& after)
+    {
+        try
+        {
+            ::Microsoft::Terminal::Backslash::GroupSavePolicy::MergeAddedGroups(
+                _savedGroupMergeBase ? _savedGroupMergeBase.GlobalSettings().SavedTabGroupsJson() : before,
+                after,_settingsClone.GlobalSettings().SavedTabGroupsJson());
+            return {};
+        }
+        catch (const std::exception& e) { return winrt::to_hstring(e.what()); }
+        catch (const winrt::hresult_error& e) { return e.message(); }
+    }
+
     void MainPage::UpdateSettings(const Model::CascadiaSettings& settings)
     {
+        namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
+        const auto identical = _settingsSource.EqualsForGroupSave(settings,false);
+        if (_preserveDraftOnGroupReload && identical) { _settingsSource = settings;return; }
+        if (!identical && _settingsSource.EqualsForGroupSave(settings,true))
+        {
+            const auto base = _savedGroupMergeBase ? _savedGroupMergeBase : _settingsSource;
+            try
+            {
+                const auto oldGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(base.GlobalSettings().SavedTabGroupsJson());
+                const auto newGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(settings.GlobalSettings().SavedTabGroupsJson());
+                if (P::AppendOnly(oldGroups,newGroups))
+                {
+                    try
+                    {
+                        const auto merged = P::MergeAddedGroups(base.GlobalSettings().SavedTabGroupsJson(),settings.GlobalSettings().SavedTabGroupsJson(),_settingsClone.GlobalSettings().SavedTabGroupsJson());
+                        _settingsClone.GlobalSettings().SavedTabGroupsJson(merged);
+                        _savedGroupMergeBase = nullptr;
+                    }
+                    catch (...) { if (!_savedGroupMergeBase) { _savedGroupMergeBase = _settingsSource; } }
+                    // Keep the same clone, page, controls, profile drafts and navigation.
+                    _settingsSource = settings;_preserveDraftOnGroupReload = true;return;
+                }
+            }
+            catch (...) { /* Other/unsupported settings updates retain the normal reload path. */ }
+        }
+        _ResetSettings(settings);
+    }
+
+    void MainPage::_ResetSettings(const Model::CascadiaSettings& settings)
+    {
+        _savedGroupMergeBase = nullptr;_preserveDraftOnGroupReload = false;
         _settingsSource = settings;
         _settingsClone = settings.Copy();
 
@@ -882,8 +927,26 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
+    safe_void_coroutine MainPage::_ShowSavedGroupMergeConflict()
+    {
+        const auto strong = get_strong();
+        WUX::Controls::ContentDialog dialog;
+        dialog.XamlRoot(XamlRoot());dialog.Title(box_value(L"Unsaved saved-group edits"));
+        WUX::Controls::TextBlock text;text.Text(L"A newly saved group conflicts with this Settings draft. Rename or resolve the conflicting group, then Save, or use Reset. Your edits were kept and nothing was written.");text.TextWrapping(WUX::TextWrapping::Wrap);
+        dialog.Content(text);dialog.CloseButtonText(L"OK");co_await dialog.ShowAsync();
+    }
+
     void MainPage::SaveButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
     {
+        if (_savedGroupMergeBase)
+        {
+            try
+            {
+                const auto merged = ::Microsoft::Terminal::Backslash::GroupSavePolicy::MergeAddedGroups(_savedGroupMergeBase.GlobalSettings().SavedTabGroupsJson(),_settingsSource.GlobalSettings().SavedTabGroupsJson(),_settingsClone.GlobalSettings().SavedTabGroupsJson());
+                _settingsClone.GlobalSettings().SavedTabGroupsJson(merged);_savedGroupMergeBase = nullptr;
+            }
+            catch (...) { _ShowSavedGroupMergeConflict();return; }
+        }
         _settingsClone.LogSettingChanges(false);
         if (!_settingsClone.WriteSettingsToDisk())
         {
@@ -893,7 +956,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     void MainPage::ResetButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
     {
-        UpdateSettings(_settingsSource);
+        _ResetSettings(_settingsSource);
     }
 
     void MainPage::BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& /*sender*/, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args)

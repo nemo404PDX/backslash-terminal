@@ -31,6 +31,9 @@ namespace Microsoft.Terminal.Control
     interface ICoreState
     {
         String Title { get; };
+        String InitialConnectionTitlePrefix { get; };
+        String InitialStartingTitle { get; };
+        Boolean InitialTitleIsExplicit { get; };
         UInt64 TaskbarState { get; };
         UInt64 TaskbarProgress { get; };
 
@@ -61,6 +64,7 @@ namespace Microsoft.Terminal.Control
         IVector<ScrollMark> ScrollMarks { get; };
 
         String CurrentWorkingDirectory { get; };
+        String ReportedWorkingDirectory { get; };
 
     };
 }

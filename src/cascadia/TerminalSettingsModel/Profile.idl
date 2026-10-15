@@ -54,6 +54,8 @@ namespace Microsoft.Terminal.Settings.Model
         Int32 SshShell { get; };
         String SshCustomCommand { get; };
         Boolean SetSshShell(Int32 mode, String customCommand);
+        String ConnectionIdentity(String launchCommandline);
+        String GeneratedConnectionProfileName { get; };
 
         // True if the user explicitly removed this Profile from settings.json.
         Boolean Deleted { get; };

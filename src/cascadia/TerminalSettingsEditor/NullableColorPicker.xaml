@@ -105,9 +105,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel Spacing="4">
-                <ToggleButton AutomationProperties.Name="{x:Bind NullColorButtonLabel}"
+                <ToggleButton AutomationProperties.Name="{x:Bind NullColorButtonLabel, Mode=OneWay}"
                               Click="NullColorButton_Clicked"
-                              IsChecked="{x:Bind IsNull(CurrentColor), Mode=OneWay}">
+                              IsChecked="{x:Bind IsNull(CurrentColor), Mode=OneWay}"
+                              ToolTipService.ToolTip="{x:Bind NullColorButtonLabel, Mode=OneWay}"
+                              Visibility="{x:Bind ShowNullColorButton, Mode=OneWay}">
                     <Grid ColumnSpacing="4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -122,7 +124,7 @@
                                 CornerRadius="{StaticResource ControlCornerRadius}" />
 
                         <TextBlock Grid.Column="1"
-                                   Text="{x:Bind NullColorButtonLabel}" />
+                                   Text="{x:Bind NullColorButtonLabel, Mode=OneWay}" />
                     </Grid>
                 </ToggleButton>
 

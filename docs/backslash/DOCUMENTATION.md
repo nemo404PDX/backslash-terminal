@@ -21,6 +21,8 @@ Current inventory on 2026-10-13. Paths below are relative to D:\codex-workspace\
 | [docs/backslash/SSH-LOCAL-EDITOR-AUDIT.md](SSH-LOCAL-EDITOR-AUDIT.md) | Independent source-grounded audit and capability-proof gates; report preserved unchanged. |
 | [docs/backslash/SSH-LOCAL-EDITOR-RESEARCH.md](SSH-LOCAL-EDITOR-RESEARCH.md) | Grounded SSH/source comparison, rendering lifecycle, local presentation expansion and staged feasibility gates. |
 | [docs/backslash/BASELINE.md](BASELINE.md) | Reused upstream capabilities, pinned source evidence and official research links. |
+| [docs/backslash/KEYBOARD-SOUNDS-DESIGN.md](KEYBOARD-SOUNDS-DESIGN.md) | Future optional keyboard audio: coherent mechanics, Normal/Silent/Mixed, overall Weight, input lifecycle and source seams; not implemented. |
+| [docs/backslash/TERMINAL-STATUS-BARS-DESIGN.md](TERMINAL-STATUS-BARS-DESIGN.md) | Optional reserved top/bottom status rows, TL/TR/BL/BR slots, metadata/layout research and acceptance; design only. |
 | [docs/backslash/ROADMAP.md](ROADMAP.md) | Future bounded phases and acceptance criteria; research is not implementation authorization. |
 | [docs/backslash/DOCUMENTATION.md](DOCUMENTATION.md) | This exact path-and-purpose inventory. |
 

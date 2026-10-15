@@ -38,6 +38,7 @@ namespace SettingsModelUnitTests
     class ProfileSourceTests : public JsonTestClass
     {
         TEST_CLASS(ProfileSourceTests);
+        TEST_METHOD(BackslashGeneratedConnectionTitle);
         TEST_METHOD(BackslashSshCommandConstruction);
         TEST_METHOD(BackslashSshShellRoundtrip);
         TEST_METHOD(BackslashSshRestoreLifecycle);
@@ -106,6 +107,29 @@ namespace SettingsModelUnitTests
             return result;
         }
     };
+
+    void ProfileSourceTests::BackslashGeneratedConnectionTitle()
+    {
+        FixtureSshGenerator generator;auto state = tempState();
+        const auto settings = load(localJSON, generator, *state);
+        const auto profile = settings->FindProfile(hostGuid(L"sameHost"));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH sameHost" }, profile.ConnectionIdentity(profile.Commandline()));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH - sameHost" }, profile.GeneratedConnectionProfileName());
+        profile.Name(L"Edited display name");
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH sameHost" }, profile.ConnectionIdentity(profile.Commandline()));
+        VERIFY_IS_TRUE(profile.SetSshShell(3, L""));
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"SSH sameHost" }, profile.ConnectionIdentity(profile.Commandline()));
+        VERIFY_IS_TRUE(profile.ConnectionIdentity(L"ssh.exe otherHost").empty());
+        VERIFY_IS_TRUE(profile.ConnectionIdentity(L"cmd.exe").empty());
+        profile.Commandline(L"ssh.exe -J jump otherHost");
+        VERIFY_IS_TRUE(profile.ConnectionIdentity(profile.Commandline()).empty());
+        const auto generated = winrt::make_self<implementation::Profile>(winrt::guid{ L"{11111111-1111-4111-8111-111111111111}" });
+        generated->Origin(OriginTag::Generated);generated->Source(L"Windows.Terminal.Wsl");generated->Name(L"Ubuntu-24.04");generated->Commandline(L"C:\\Windows\\System32\\wsl.exe -d Ubuntu-24.04");
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"WSL Ubuntu-24.04" }, generated->ConnectionIdentity(generated->Commandline()));
+        VERIFY_IS_TRUE(generated->ConnectionIdentity(L"wsl.exe -d Other").empty());
+        const auto child = winrt::make_self<implementation::Profile>(generated->Guid());child->Source(L"Windows.Terminal.Wsl");child->Name(L"Edited Ubuntu");child->AddLeastImportantParent(generated);
+        VERIFY_ARE_EQUAL(winrt::hstring{ L"WSL Ubuntu-24.04" }, child->ConnectionIdentity(generated->Commandline()));
+    }
 
     void ProfileSourceTests::BackslashSshCommandConstruction()
     {

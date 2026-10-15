@@ -49,6 +49,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         MainPage(const Model::CascadiaSettings& settings);
 
         void UpdateSettings(const Model::CascadiaSettings& settings);
+        winrt::hstring SavedGroupAppendError(const winrt::hstring& before, const winrt::hstring& after);
+        void _ResetSettings(const Model::CascadiaSettings& settings);
+        safe_void_coroutine _ShowSavedGroupMergeConflict();
+        Model::CascadiaSettings _savedGroupMergeBase{ nullptr };
+        bool _preserveDraftOnGroupReload = false;
 
         safe_void_coroutine SettingsSearchBox_TextChanged(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxTextChangedEventArgs& args);
         void SettingsSearchBox_QuerySubmitted(const Windows::UI::Xaml::Controls::AutoSuggestBox& sender, const Windows::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs& args);

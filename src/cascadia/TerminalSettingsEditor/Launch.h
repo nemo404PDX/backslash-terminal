@@ -15,6 +15,15 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         void OnNavigatedTo(const winrt::Windows::UI::Xaml::Navigation::NavigationEventArgs& e);
 
+        void SavedGroups_SelectionChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::Controls::SelectionChangedEventArgs&);
+        void SavedGroups_Update(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void SavedGroups_Delete(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void _RefreshSavedGroups(int selected = -1);
+        void _RefreshStartupGroup();
+        void StartupMode_SelectionChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::Controls::SelectionChangedEventArgs&);
+        void StartupGroup_TextChanged(const Windows::UI::Xaml::Controls::AutoSuggestBox&, const Windows::UI::Xaml::Controls::AutoSuggestBoxTextChangedEventArgs&);
+        void StartupGroup_QuerySubmitted(const Windows::UI::Xaml::Controls::AutoSuggestBox&, const Windows::UI::Xaml::Controls::AutoSuggestBoxQuerySubmittedEventArgs&);
+        bool _refreshingStartup{ false };
         til::property_changed_event PropertyChanged;
         WINRT_OBSERVABLE_PROPERTY(Editor::LaunchViewModel, ViewModel, PropertyChanged.raise, nullptr);
     };

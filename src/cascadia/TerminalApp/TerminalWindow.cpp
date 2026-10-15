@@ -3,6 +3,8 @@
 
 #include "pch.h"
 #include "TerminalWindow.h"
+#include "../TerminalSettingsModel/StartupGroupPolicy.h"
+#include <filesystem>
 
 #include "AppLogic.h"
 
@@ -143,6 +145,7 @@ namespace winrt::TerminalApp::implementation
     // - Implements the IInitializeWithWindow interface from shobjidl_core.
     HRESULT TerminalWindow::Initialize(HWND hwnd)
     {
+        _startupOwnerHwnd = hwnd;
         // Now that we know we can do XAML, build our page.
         _root = winrt::make_self<TerminalPage>(*_WindowProperties, _manager);
 
@@ -183,6 +186,46 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     // Return Value:
     // - <none>
+    bool TerminalWindow::_StartupGroupEligible()
+    {
+        return ::Microsoft::Terminal::Backslash::StartupGroupPolicy::Eligible({ _initialAppLaunch, _hasCommandLineArguments,
+            static_cast<bool>(_startupConnection), !_initialContentArgs.empty(), static_cast<bool>(LoadPersistedLayout()), _gotSettingsStartupActions });
+    }
+
+    void TerminalWindow::_PrepareStartupGroup()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::StartupGroupPolicy;
+        namespace B = ::Microsoft::Terminal::Backslash;
+        if (!_StartupGroupEligible() || !_settings.GlobalSettings().StartupWithSavedGroup()) { return; }
+        const auto available = [&](const winrt::guid& id, const winrt::hstring& source) {
+            for (const auto& profile : _settings.ActiveProfiles()) {
+                if (profile.Guid() == id && profile.Source() == source) { return !profile.Elevate() || _root->IsRunningElevated(); }
+            }
+            return false;
+        };
+        auto p = P::Prepare(_settings.GlobalSettings().SavedTabGroupsJson(), _settings.GlobalSettings().StartupGroup(), available,
+            [](const winrt::hstring& folder) {
+                if (!B::SavedTabGroups::LocalFolder(winrt::to_string(folder))) { return false; }
+                std::error_code error;return std::filesystem::is_directory(std::filesystem::path{ folder.c_str() }, error);
+            });
+        if (p.group && p.restore.folderFallbacks)
+        {
+            // The window is cloaked until a first tab exists. A XAML ContentDialog
+            // cannot collect a prelaunch decision there; use an owned native prompt.
+            const auto message = winrt::to_hstring(std::to_string(p.restore.folderFallbacks) + " pane(s) have no supported saved folder. OK opens the startup group using profile-default folders for them. Cancel opens one default-profile tab instead.");
+            P::FolderChoice(p, MessageBoxW(_startupOwnerHwnd, message.c_str(), L"Startup group folders", MB_OKCANCEL | MB_ICONQUESTION | MB_DEFBUTTON2) == IDOK);
+        }
+        if (p.group) { _root->SetStartupTabGroup(std::move(*p.group), std::move(p.restore)); }
+        else
+        {
+            _root->SetStartupGroupNotice(winrt::to_hstring(p.notice));
+            const auto defaultProfile = _settings.GetProfileForArgs(nullptr);
+            if (defaultProfile.Elevate() && !_root->IsRunningElevated()) {
+                MessageBoxW(_startupOwnerHwnd, winrt::to_hstring(p.notice).c_str(), L"Startup group", MB_OK | MB_ICONINFORMATION);
+            }
+        }
+    }
+
     void TerminalWindow::Create()
     {
         _root->DialogPresenter(*this);
@@ -195,12 +238,14 @@ namespace winrt::TerminalApp::implementation
         // case of a tear-out / reattach. GH#16050
         if (!_hasCommandLineArguments &&
             _initialContentArgs.empty() &&
+            !LoadPersistedLayout() && !_startupConnection &&
             _gotSettingsStartupActions)
         {
             _root->SetStartupActions(_settingsStartupArgs);
         }
 
         _root->SetSettings(_settings, false); // We're on our UI thread right now, so this is safe
+        _PrepareStartupGroup();
         _root->Loaded({ get_weak(), &TerminalWindow::_OnLoaded });
         _root->Initialized({ get_weak(), &TerminalWindow::_pageInitialized });
         _root->WindowSizeChanged({ get_weak(), &TerminalWindow::_WindowSizeChanged });
@@ -1002,6 +1047,7 @@ namespace winrt::TerminalApp::implementation
     //   or 0. (see TerminalWindow::_ParseArgs)
     int32_t TerminalWindow::SetStartupCommandline(TerminalApp::CommandlineArgs args)
     {
+        _initialAppLaunch = args.InitialAppLaunch();
         _appArgs = winrt::get_self<CommandlineArgs>(args);
         _startupConnection = args.Connection();
         auto& parsedArgs = _appArgs->ParsedArgs();
@@ -1253,6 +1299,7 @@ namespace winrt::TerminalApp::implementation
 
     bool TerminalWindow::ShouldImmediatelyHandoffToElevated()
     {
+        if (_StartupGroupEligible() && _settings.GlobalSettings().StartupWithSavedGroup()) { return false; }
         return _root != nullptr ? _root->ShouldImmediatelyHandoffToElevated(_settings) : false;
     }
 

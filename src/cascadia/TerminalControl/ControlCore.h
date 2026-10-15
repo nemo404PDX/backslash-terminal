@@ -194,6 +194,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void ContextMenuSelectOutput();
 
         winrt::hstring CurrentWorkingDirectory() const;
+        winrt::hstring InitialConnectionTitlePrefix() const { return _initialConnectionTitlePrefix; }
+        winrt::hstring InitialStartingTitle() const { return _initialStartingTitle; }
+        bool InitialTitleIsExplicit() const { return _initialTitleIsExplicit; }
+        winrt::hstring ReportedWorkingDirectory() const;
 #pragma endregion
 
 #pragma region ITerminalInput
@@ -412,6 +416,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         // Other stuff.
         winrt::Windows::System::DispatcherQueue _dispatcher{ nullptr };
+        winrt::hstring _initialConnectionTitlePrefix;
+        winrt::hstring _initialStartingTitle;
+        bool _initialTitleIsExplicit{ false };
         IControlSettings _settings{ nullptr };
         bool _hasUnfocusedAppearance{ false };
         IControlAppearance _unfocusedAppearance{ nullptr };

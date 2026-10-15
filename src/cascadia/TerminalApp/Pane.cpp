@@ -115,7 +115,7 @@ INewContentArgs Pane::GetTerminalArgsForPane(BuildStartupKind kind) const
 // - The state from building the startup actions, includes a vector of commands,
 //   the original root pane, the id of the focused pane, and the number of panes
 //   created.
-Pane::BuildStartupState Pane::BuildStartupActions(uint32_t currentId, uint32_t nextId, BuildStartupKind kind)
+Pane::BuildStartupState Pane::BuildStartupActions(uint32_t currentId, uint32_t nextId, BuildStartupKind kind, const StartupArgsFactory& factory)
 {
     // Normally, if we're a leaf, return an empt set of actions, because the
     // parent pane will build the SplitPane action for us. If we're building
@@ -135,7 +135,7 @@ Pane::BuildStartupState Pane::BuildStartupActions(uint32_t currentId, uint32_t n
     auto buildSplitPane = [&](auto newPane) {
         ActionAndArgs actionAndArgs;
         actionAndArgs.Action(ShortcutAction::SplitPane);
-        const auto terminalArgs{ newPane->GetTerminalArgsForPane(kind) };
+        const auto terminalArgs{ factory ? factory(newPane) : newPane->GetTerminalArgsForPane(kind) };
         // When creating a pane the split size is the size of the new pane
         // and not position.
         const auto splitDirection = _splitState == SplitState::Horizontal ? SplitDirection::Down : SplitDirection::Right;
@@ -193,10 +193,10 @@ Pane::BuildStartupState Pane::BuildStartupActions(uint32_t currentId, uint32_t n
     // We now need to execute the commands for each side of the tree
     // We've done one split, so the first-most child will have currentId, and the
     // one after it will be incremented.
-    auto firstState = _firstChild->BuildStartupActions(currentId, nextId + 1, kind);
+    auto firstState = _firstChild->BuildStartupActions(currentId, nextId + 1, kind, factory);
     // the next id for the second branch depends on how many splits were in the
     // first child.
-    auto secondState = _secondChild->BuildStartupActions(nextId, nextId + firstState.panesCreated + 1, kind);
+    auto secondState = _secondChild->BuildStartupActions(nextId, nextId + firstState.panesCreated + 1, kind, factory);
 
     std::vector<ActionAndArgs> actions{};
     actions.reserve(firstState.args.size() + secondState.args.size() + 3);

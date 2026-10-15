@@ -54,6 +54,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_Settings.GlobalSettings(), InitialRows);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(_Settings.GlobalSettings(), InitialCols);
 
+        bool StartupWithSavedGroup() const { return _Settings.GlobalSettings().StartupWithSavedGroup(); }
+        void StartupWithSavedGroup(bool value) { _Settings.GlobalSettings().StartupWithSavedGroup(value); }
+        winrt::hstring StartupGroup() const { return _Settings.GlobalSettings().StartupGroup(); }
+        void StartupGroup(const winrt::hstring& value) { _Settings.GlobalSettings().StartupGroup(value); }
+        winrt::hstring SavedTabGroupsJson() const { return _Settings.GlobalSettings().SavedTabGroupsJson(); }
+        void SavedTabGroupsJson(const winrt::hstring& value) { _Settings.GlobalSettings().SavedTabGroupsJson(value); }
         bool StartOnUserLoginAvailable();
         safe_void_coroutine PrepareStartOnUserLoginSettings();
         bool StartOnUserLoginConfigurable();

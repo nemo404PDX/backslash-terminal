@@ -79,6 +79,7 @@
     </ClInclude>
     <ClInclude Include="DynamicProfileUtils.h" />
     <ClInclude Include="FileUtils.h" />
+    <ClInclude Include="SavedTabGroups.h" />
     <ClInclude Include="GlobalAppSettings.h">
       <DependentUpon>GlobalAppSettings.idl</DependentUpon>
     </ClInclude>

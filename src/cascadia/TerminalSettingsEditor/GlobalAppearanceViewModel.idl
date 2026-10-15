@@ -25,6 +25,7 @@ namespace Microsoft.Terminal.Settings.Editor
 
         void ShowTitlebarToggled(IInspectable sender, Windows.UI.Xaml.RoutedEventArgs args);
 
+        PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, ShowConnectionIdentity);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, AlwaysShowTabs);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, ShowTabsFullscreen);
         PERMANENT_OBSERVABLE_PROJECTED_SETTING(Boolean, ShowTabsInTitlebar);

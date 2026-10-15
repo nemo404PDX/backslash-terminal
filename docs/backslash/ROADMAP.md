@@ -64,7 +64,23 @@ Acceptance: [CRT quality bar](CRT-APPEARANCE.md), saved profile state, reset/com
 
 Task: research specific font versions, ligature/patched glyph coverage and licenses, choose maintainable catalog data and installation scope, then implement explicit official-asset Install/apply and representative previews. Reuse verified font feature support. Acceptance: [font catalog checks](FONTS.md), accurate independent badges, operator/ambiguous glyph/box drawing/prompt previews, explicit downloads, pinned version/hash verification, offline/error recovery and retained notices.
 
+## Deferred follow-up - optional keyboard sounds
+
+[Keyboard sounds design](KEYBOARD-SOUNDS-DESIGN.md) preserves the future bounded slice: coherent mechanical press/release audio with exactly Normal, Silent (dampened, not mute) and Mixed sound profiles; separate candidate switch styles, one overall Weight and independent Volume. Resolve key classification, listening model and settings scope before separately authorized implementation. Acceptance includes silent paste/output, actual down/up pairing, held-key repeat, focus cleanup, bounded latency/resources and disabled no-work behavior. No keyboard-sounds implementation is approved; groups and current fixes remain the priority.
+
+## Release-readiness update (2026-10-15)
+
+User-confirmed checks: group creation, startup and saving while Settings is open work. This is user-reported interactive evidence, not a substitute for remaining automated/native verification. The user subsequently confirmed background opacity and phosphor tint passed after the hue-retaining correction; see CRT-RENDERING-PLAN.md. Branding must be fixed before any preview release. Version and tag remain undecided; no release, tag or publication is authorized by this note.
+
+[Terminal status bars](TERMINAL-STATUS-BARS-DESIGN.md) remain a separate future design: optional top/bottom rows reserve space inside the screen/bezel, with two anchored items per row. Path/host/user/time first and folder counts later are proposals, not implemented scope.
+
 ## Phase 7 — release readiness
 
 Only after authorized builds and implementation: test upgrades/migrations, accessibility, packaging/signing, coexistence, graphics/performance and recovery; finalize vector/ICO assets and typeface rights, review name/trademark clearance, licenses and notices. Publication, remote setup and installs remain separately authorized actions.
 
+
+## Follow-up designs: commands, session ownership and settings navigation
+
+Review [internal app commands](APP-COMMANDS-DESIGN.md), [resumable sessions](RESUMABLE-SESSIONS-DESIGN.md) and the [source-backed settings layout proposal](SETTINGS-LAYOUT-PROPOSAL.md) as separate bounded slices. Dedicated local app-command ownership/typed dispatch precedes any optional inline interception. A first resumable job must survive disconnect and return the same session's result/missed output; viewers, input locks and opt-in presence follow later. Presence then progresses to organization-enforced identity/access, with server/gateway policy covering alternate clients. Saved tab groups are implemented layout recipes and do not provide these persistence or identity features.
+
+The settings proposal places Workspaces, Connections and Retro Appearance prominently and inventories inherited controls without changing runtime navigation. Search should reuse existing indexing/navigation and gain exact-control coverage plus ancestor expansion. Animated background/noise optimization requires the source/runtime distinctions and measured comparison in [CRT rendering research](CRT-RENDERING-PLAN.md); no benchmark result is implied.

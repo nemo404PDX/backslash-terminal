@@ -20,6 +20,10 @@
 #include "Remoting.h"
 #include "ScratchpadContent.h"
 #include "SettingsPaneContent.h"
+#include "TerminalPaneContent.h"
+#include "../TerminalSettingsModel/SavedTabGroups.h"
+#include <filesystem>
+#include <shellapi.h>
 #include "SnippetsPaneContent.h"
 #include "TabRowControl.h"
 #include "TerminalSettingsCache.h"
@@ -669,6 +673,10 @@ namespace winrt::TerminalApp::implementation
             {
                 CreateTabFromConnection(std::move(_startupConnection));
             }
+            else if (_startupTabGroup)
+            {
+                _StartSavedTabGroup();
+            }
             else if (!_startupActions.empty())
             {
                 ProcessStartupActions(std::move(_startupActions));
@@ -945,6 +953,7 @@ namespace winrt::TerminalApp::implementation
     //   Below the profiles are the static menu items: settings, command palette
     void TerminalPage::_CreateNewTabFlyout()
     {
+        _CreateSavedGroupsFlyout();
         auto newTabFlyout = WUX::Controls::MenuFlyout{};
         newTabFlyout.Placement(WUX::Controls::Primitives::FlyoutPlacementMode::BottomEdgeAlignedLeft);
 
@@ -5784,4 +5793,355 @@ namespace winrt::TerminalApp::implementation
 
         return profileMenuItemFlyout;
     }
+    void TerminalPage::_CreateSavedGroupsFlyout()
+    {
+        using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+        WUX::Controls::MenuFlyout flyout;
+        WUX::Controls::MenuFlyoutItem save;save.Text(RS_(L"SavedGroups_Save"));
+        save.Click([weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get()) { self->_SaveCurrentTabGroup(); } });
+        flyout.Items().Append(save);
+        flyout.Items().Append(WUX::Controls::MenuFlyoutSeparator{});
+        try
+        {
+            const auto store = Store::Read(_settings.GlobalSettings().SavedTabGroupsJson());
+            for (const auto& group : store.groups)
+            {
+                WUX::Controls::MenuFlyoutItem item;item.Text(winrt::to_hstring(group.name));
+                item.Click([weak = get_weak(), id = winrt::to_hstring(group.id)](auto&&, auto&&) { if (const auto self = weak.get()) { self->_OpenSavedTabGroup(id); } });
+                flyout.Items().Append(item);
+            }
+            if (store.groups.empty()) { WUX::Controls::MenuFlyoutItem empty;empty.Text(L"No saved groups");empty.IsEnabled(false);flyout.Items().Append(empty); }
+        }
+        catch (const std::exception& error) { WUX::Controls::MenuFlyoutItem invalid;invalid.Text(winrt::to_hstring(error.what()));invalid.IsEnabled(false);flyout.Items().Append(invalid); }
+        flyout.Items().Append(WUX::Controls::MenuFlyoutSeparator{});
+        WUX::Controls::MenuFlyoutItem manage;manage.Text(RS_(L"SavedGroups_Manage"));manage.Click({ this, &TerminalPage::_SettingsButtonOnClick });flyout.Items().Append(manage);
+        get_self<TabRowControl>(_tabRow)->GroupsButton().Flyout(flyout);
+    }
+
+    static bool _groupFolderExists(const winrt::hstring& folder)
+    {
+        if (!::Microsoft::Terminal::Backslash::SavedTabGroups::LocalFolder(winrt::to_string(folder))) { return false; }
+        std::error_code error;
+        return std::filesystem::is_directory(std::filesystem::path{ folder.c_str() }, error);
+    }
+
+    static bool _groupCanCaptureFolder(const Profile& profile, const TermControl& control, const winrt::hstring& reportedFolder)
+    {
+        // A local ssh client or WSL process cwd says nothing about the remote/Linux cwd.
+        if (profile.Source() == L"Windows.Terminal.SSH" || profile.Source() == L"Windows.Terminal.Wsl") { return false; }
+        int count = 0;
+        const wil::unique_hlocal_ptr<wchar_t*[]> argv{ CommandLineToArgvW(control.Settings().Commandline().c_str(), &count) };
+        if (!argv || count < 1) { return false; }
+        auto executable = std::filesystem::path{ argv[0] }.filename().wstring();
+        std::transform(executable.begin(), executable.end(), executable.begin(), [](wchar_t c) { return static_cast<wchar_t>(towlower(c)); });
+        if (executable != L"pwsh.exe" && executable != L"powershell.exe" && executable != L"cmd.exe" && executable != L"pwsh" && executable != L"powershell" && executable != L"cmd") { return false; }
+        for (int i = 1; i < count; ++i)
+        {
+            std::wstring flag{ argv[i] };
+            std::transform(flag.begin(), flag.end(), flag.begin(), [](wchar_t c) { return static_cast<wchar_t>(towlower(c)); });
+            if (flag == L"-command" || flag == L"-c" || flag == L"-file" || flag == L"-f" || flag == L"-encodedcommand" || flag == L"-enc" || flag == L"-configurationname" || flag == L"-hostname" || flag == L"-computername" || flag == L"/c" || flag == L"/k") { return false; }
+        }
+        return _groupFolderExists(reportedFolder);
+    }
+
+    ::Microsoft::Terminal::Backslash::GroupSavePolicy::Selection TerminalPage::_SelectGroupTerminalTabs()
+    {
+        namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
+        std::vector<std::vector<P::PaneKind>> tabs;
+        for (const auto& tab : _tabs)
+        {
+            std::vector<P::PaneKind> kinds;
+            const auto root = _GetTabImpl(tab)->GetRootPane();
+            if (root)
+            {
+                root->WalkTree([&](const auto& pane) {
+                    if (const auto content = pane->GetContent())
+                    {
+                        kinds.push_back(content.template try_as<TerminalApp::TerminalPaneContent>() ? P::PaneKind::Terminal :
+                            content.GetRoot().template try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>() ? P::PaneKind::Settings : P::PaneKind::Unsupported);
+                    }
+                });
+                if (kinds.size() != static_cast<size_t>(root->GetLeafPaneCount())) { kinds.push_back(P::PaneKind::Unsupported); }
+            }
+            tabs.emplace_back(std::move(kinds));
+        }
+        return P::Select(tabs,_GetFocusedTabIndex().value_or(0));
+    }
+
+    winrt::Windows::Foundation::IAsyncOperation<bool> TerminalPage::_ConfirmSettingsGroupSkip(bool& suppressOnSave)
+    {
+        const auto strong = get_strong();
+        get_self<TabRowControl>(_tabRow)->GroupsButton().Flyout().Hide();
+        co_await wil::resume_foreground(Dispatcher(),CoreDispatcherPriority::Low);
+        MUX::Controls::TeachingTip tip;tip.Title(RS_(L"SavedGroups_SettingsSkipTitle"));
+        tip.IsLightDismissEnabled(false);tip.PreferredPlacement(MUX::Controls::TeachingTipPlacementMode::Center);tip.TailVisibility(MUX::Controls::TeachingTipTailVisibility::Collapsed);
+        WUX::Controls::StackPanel form;form.Spacing(8);form.MaxWidth(420);form.TabFocusNavigation(WUX::Input::KeyboardNavigationMode::Cycle);
+        WUX::Controls::TextBlock text;text.Text(RS_(L"SavedGroups_SettingsSkipMessage"));text.TextWrapping(TextWrapping::Wrap);
+        WUX::Controls::CheckBox suppress;suppress.Content(box_value(RS_(L"SavedGroups_SettingsSkipSuppress")));
+        WUX::Automation::AutomationProperties::SetName(suppress,RS_(L"SavedGroups_SettingsSkipSuppress"));
+        WUX::Controls::Button proceed;proceed.Content(box_value(RS_(L"SavedGroups_SettingsSkipContinue")));
+        WUX::Controls::Button cancel;cancel.Content(box_value(RS_(L"SavedGroups_SettingsSkipCancel")));
+        WUX::Controls::StackPanel buttons;buttons.Orientation(Controls::Orientation::Horizontal);buttons.Spacing(8);buttons.Children().Append(proceed);buttons.Children().Append(cancel);
+        form.Children().Append(text);form.Children().Append(suppress);form.Children().Append(buttons);tip.Content(form);Root().Children().Append(tip);_UpdateTeachingTipTheme(tip);
+        auto removeTip = wil::scope_exit([&] { uint32_t i=0;if (Root().Children().IndexOf(tip,i)) { Root().Children().RemoveAt(i); } });
+        wil::unique_event closed;closed.create(wil::EventOptions::ManualReset);bool accepted=false,hostUnloaded=false,pressedEnter=false;int layouts=0;
+        WUX::Controls::Button::LayoutUpdated_revoker focus;
+        focus = proceed.LayoutUpdated(winrt::auto_revoke,[&](auto&&,auto&&) { if (++layouts >= 2 && tip.IsOpen() && proceed.Focus(FocusState::Programmatic)) { focus.revoke(); } });
+        const auto go = proceed.Click(winrt::auto_revoke,[&](auto&&,auto&&) { accepted=true;tip.IsOpen(false); });
+        const auto stop = cancel.Click(winrt::auto_revoke,[&](auto&&,auto&&) { tip.IsOpen(false); });
+        const auto down = form.KeyDown(winrt::auto_revoke,[&](auto&&,const WUX::Input::KeyRoutedEventArgs& e) { if (e.OriginalKey()==Windows::System::VirtualKey::Enter) { pressedEnter=true;e.Handled(true); }else if(e.OriginalKey()==Windows::System::VirtualKey::Escape){e.Handled(true);} });
+        const auto up = form.KeyUp(winrt::auto_revoke,[&](auto&&,const WUX::Input::KeyRoutedEventArgs& e) { if(e.OriginalKey()==Windows::System::VirtualKey::Enter){e.Handled(true);if(pressedEnter){accepted=true;tip.IsOpen(false);}pressedEnter=false;}else if(e.OriginalKey()==Windows::System::VirtualKey::Escape){e.Handled(true);tip.IsOpen(false);} });
+        const auto close = tip.Closed(winrt::auto_revoke,[&](auto&&,auto&&) { closed.SetEvent(); });
+        const auto unload = Unloaded(winrt::auto_revoke,[&](auto&&,auto&&) { hostUnloaded=true;accepted=false;tip.IsOpen(false);closed.SetEvent(); });
+        tip.IsOpen(true);co_await winrt::resume_on_signal(closed.get());co_await wil::resume_foreground(Dispatcher());focus.revoke();
+        if (!hostUnloaded) { _FocusCurrentTab(false); }
+        if (accepted && !hostUnloaded) { const auto checked = suppress.IsChecked();suppressOnSave = checked && checked.Value(); }
+        co_return accepted && !hostUnloaded;
+    }
+
+    safe_void_coroutine TerminalPage::_SaveCurrentTabGroup()
+    {
+        const auto strong = get_strong();
+        if (_groupOperation) { co_return; }
+        _groupOperation = true;auto done = wil::scope_exit([&] { _groupOperation = false; });
+        try
+        {
+            using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+            using Group = ::Microsoft::Terminal::Backslash::SavedTabGroup;
+            namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
+            auto selection = _SelectGroupTerminalTabs();
+            bool noticeShown = false,suppressOnSave = false;
+            const auto original = _settings;
+            if (P::ShowSettingsNotice(selection,ApplicationState::SharedInstance().SavedGroupSettingsNoticeDismissed(),noticeShown))
+            {
+                noticeShown = true;if (!co_await _ConfirmSettingsGroupSkip(suppressOnSave)) { co_return; }
+            }
+            auto store = Store::Read(original.GlobalSettings().SavedTabGroupsJson());
+            // Match the window renamer's XAML Islands input pattern (GH#12021).
+            // A TextBox in ContentDialog does not receive keypresses in this host.
+            // Finish closing the menu before opening another popup/focusing its editor.
+            get_self<TabRowControl>(_tabRow)->GroupsButton().Flyout().Hide();
+            co_await wil::resume_foreground(Dispatcher(), CoreDispatcherPriority::Low);
+            MUX::Controls::TeachingTip tip;
+            tip.Title(L"Save current tabs as group");
+            tip.IsLightDismissEnabled(false);
+            tip.PreferredPlacement(MUX::Controls::TeachingTipPlacementMode::Center);
+            tip.TailVisibility(MUX::Controls::TeachingTipTailVisibility::Collapsed);
+            WUX::Controls::StackPanel form;form.Spacing(8);form.MaxWidth(420);
+            form.TabFocusNavigation(WUX::Input::KeyboardNavigationMode::Cycle);
+            WUX::Controls::TextBlock help;help.Text(L"Save profiles, tab order and split layout. Reopening appends fresh sessions, not running processes or scrollback. Captured folders use only reported, available local shell folders; SSH, WSL and unsupported/unreported folders fall back to profile defaults.");help.TextWrapping(TextWrapping::Wrap);
+            WUX::Controls::TextBox name;name.Header(box_value(L"Group name"));name.MaxLength(80);
+            name.ContextFlyout(winrt::Microsoft::Terminal::UI::TextMenuFlyout{});
+            WUX::Controls::ComboBox mode;mode.Header(box_value(L"Starting folders"));mode.Items().Append(box_value(L"Profile default folders"));mode.Items().Append(box_value(L"Folders captured at save"));mode.SelectedIndex(0);
+            WUX::Controls::StackPanel buttons;buttons.Orientation(Controls::Orientation::Horizontal);buttons.Spacing(8);
+            WUX::Controls::Button save;save.Content(box_value(L"Save"));save.IsEnabled(false);
+            WUX::Controls::Button cancel;cancel.Content(box_value(L"Cancel"));
+            buttons.Children().Append(save);buttons.Children().Append(cancel);
+            form.Children().Append(help);form.Children().Append(name);form.Children().Append(mode);form.Children().Append(buttons);tip.Content(form);
+            Root().Children().Append(tip);
+            auto removeTip = wil::scope_exit([&] {
+                uint32_t index = 0;
+                if (Root().Children().IndexOf(tip, index)) { Root().Children().RemoveAt(index); }
+            });
+            _UpdateTeachingTipTheme(tip);
+            wil::unique_event closedEvent;
+            closedEvent.create(wil::EventOptions::ManualReset);
+            bool accepted = false;
+            bool hostUnloaded = false;
+            bool pressedEnter = false;
+            int layoutCount = 0;
+            WUX::Controls::TextBox::LayoutUpdated_revoker focusRevoker;
+            // On a newly created TeachingTip the first layout is too early. Focus
+            // after the second, and revoke once successful so editing/Tab is free.
+            focusRevoker = name.LayoutUpdated(winrt::auto_revoke, [&](auto&&, auto&&) {
+                if (layoutCount < 2) { ++layoutCount; }
+                if (layoutCount >= 2 && tip.IsOpen() && name.Focus(FocusState::Programmatic)) { focusRevoker.revoke(); }
+            });
+            const auto changed = name.TextChanged(winrt::auto_revoke, [name, save](auto&&, auto&&) {
+                try { Store::Name(winrt::to_string(name.Text()));save.IsEnabled(true); }
+                catch (...) { save.IsEnabled(false); }
+            });
+            const auto saveClick = save.Click(winrt::auto_revoke, [&](auto&&, auto&&) {
+                accepted = true;tip.IsOpen(false);
+            });
+            const auto cancelClick = cancel.Click(winrt::auto_revoke, [&](auto&&, auto&&) { tip.IsOpen(false); });
+            const auto keyDown = form.KeyDown(winrt::auto_revoke, [&](auto&&, const WUX::Input::KeyRoutedEventArgs& args) {
+                if (args.OriginalKey() == Windows::System::VirtualKey::Enter) { pressedEnter = true;args.Handled(true); }
+                else if (args.OriginalKey() == Windows::System::VirtualKey::Escape) { args.Handled(true); }
+            });
+            const auto keyUp = form.KeyUp(winrt::auto_revoke, [&](auto&&, const WUX::Input::KeyRoutedEventArgs& args) {
+                if (args.OriginalKey() == Windows::System::VirtualKey::Enter) {
+                    args.Handled(true);
+                    if (pressedEnter && save.IsEnabled()) { accepted = true;tip.IsOpen(false); }
+                    pressedEnter = false;
+                }
+                else if (args.OriginalKey() == Windows::System::VirtualKey::Escape) { args.Handled(true);tip.IsOpen(false); }
+            });
+            const auto tipClosed = tip.Closed(winrt::auto_revoke, [&](auto&&, auto&&) { closedEvent.SetEvent(); });
+            const auto unloaded = Unloaded(winrt::auto_revoke, [&](auto&&, auto&&) {
+                hostUnloaded = true;accepted = false;tip.IsOpen(false);closedEvent.SetEvent();
+            });
+            tip.IsOpen(true);
+            co_await winrt::resume_on_signal(closedEvent.get());
+            co_await wil::resume_foreground(Dispatcher());
+            focusRevoker.revoke();
+            if (hostUnloaded) { co_return; }
+            _FocusCurrentTab(false);
+            if (!accepted) { co_return; }
+            if (_settings != original) { throw std::invalid_argument("Settings changed while the dialog was open. Try saving the group again."); }
+            Group group;GUID raw{};THROW_IF_FAILED(CoCreateGuid(&raw));group.id = winrt::to_string(::Microsoft::Console::Utils::GuidToString(raw));group.name = Store::Name(winrt::to_string(name.Text()));group.capturedFolders = mode.SelectedIndex() == 1;
+            selection = _SelectGroupTerminalTabs();
+            if (P::ShowSettingsNotice(selection,ApplicationState::SharedInstance().SavedGroupSettingsNoticeDismissed(),noticeShown))
+            {
+                noticeShown = true;if (!co_await _ConfirmSettingsGroupSkip(suppressOnSave)) { co_return; }
+                if (_settings != original) { throw std::invalid_argument("Settings changed while saving. Try again."); }
+                selection = _SelectGroupTerminalTabs();
+            }
+            group.focusedTab = selection.focusedTab;
+            uint32_t defaultFolders = 0;
+            const Pane::StartupArgsFactory factory = [&](const std::shared_ptr<Pane>& pane) -> INewContentArgs {
+                const auto content = pane->GetContent().try_as<TerminalApp::TerminalPaneContent>();
+                if (!content) { throw std::invalid_argument("Only terminal panes can be saved in a group."); }
+                const auto implementation = get_self<TerminalPaneContent>(content);
+                const auto profile = implementation->GetProfile();
+                NewTerminalArgs args;args.Profile(::Microsoft::Console::Utils::GuidToString(profile.Guid()));
+                if (group.capturedFolders)
+                {
+                    const auto control = implementation->GetTermControl();
+                    const auto reportedFolder = control.ReportedWorkingDirectory();
+                    if (_groupCanCaptureFolder(profile, control, reportedFolder)) { args.StartingDirectory(reportedFolder); }
+                    else { ++defaultFolders; }
+                }
+                return args;
+            };
+            for (const auto index : selection.indices)
+            {
+                const auto actions = _GetTabImpl(_tabs.GetAt(index))->BuildStartupActions(BuildStartupKind::None, factory);
+                group.tabs.emplace_back(Store::CaptureTab(actions, [&](const winrt::guid& id) {
+                    const auto profile = _settings.FindProfile(id);
+                    if (!profile) { throw std::invalid_argument("A tab references a profile that no longer exists. Restore the profile before saving."); }
+                    return profile.Source();
+                }));
+            }
+            store.groups.emplace_back(std::move(group));
+            const auto updated = original.Copy();updated.GlobalSettings().SavedTabGroupsJson(store.Json());
+            std::vector<winrt::Microsoft::Terminal::Settings::Editor::MainPage> editors;
+            for (const auto& tab : _tabs)
+            {
+                if (const auto content = _GetTabImpl(tab)->GetRootPane()->GetContent())
+                {
+                    if (const auto editor = content.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+                    {
+                        const auto error = editor.SavedGroupAppendError(original.GlobalSettings().SavedTabGroupsJson(),updated.GlobalSettings().SavedTabGroupsJson());
+                        if (!error.empty()) { throw std::invalid_argument(winrt::to_string(error)); }
+                        editors.push_back(editor);
+                    }
+                }
+            }
+            if (!updated.WriteSettingsToDisk()) { throw std::invalid_argument("The group could not be saved to settings. Existing groups were not changed."); }
+            _settings = updated;_CreateSavedGroupsFlyout();
+            for (const auto& editor : editors) { editor.UpdateSettings(updated); }
+            if (P::PersistNoticeChoice(noticeShown,suppressOnSave,true))
+            {
+                const auto state = ApplicationState::SharedInstance();state.SavedGroupSettingsNoticeDismissed(true);state.Flush();
+            }
+            if (defaultFolders) { _ShowControlNoticeDialog(L"Group saved", winrt::to_hstring(std::to_string(defaultFolders) + " pane(s) had no supported reported local folder; profile defaults will be used for them. No remote directory was captured.")); }
+        }
+        catch (const std::exception& error) { _ShowControlNoticeDialog(L"Saved tab groups", winrt::to_hstring(error.what())); }
+        catch (const winrt::hresult_error& error) { _ShowControlNoticeDialog(L"Saved tab groups",error.message()); }
+    }
+
+    safe_void_coroutine TerminalPage::_OpenSavedTabGroup(winrt::hstring id)
+    {
+        const auto strong = get_strong();
+        if (_groupOperation) { co_return; }
+        _groupOperation = true;auto done = wil::scope_exit([&] { _groupOperation = false;_openingSavedGroup = false; });
+        try
+        {
+            using Store = ::Microsoft::Terminal::Backslash::SavedTabGroups;
+            const auto store = Store::Read(_settings.GlobalSettings().SavedTabGroupsJson());
+            const auto found = std::find_if(store.groups.begin(), store.groups.end(), [&](const auto& group) { return group.id == winrt::to_string(id); });
+            if (found == store.groups.end()) { throw std::invalid_argument("This saved group no longer exists."); }
+            const auto available = [&](const winrt::guid& profileId, const winrt::hstring& source) {
+                for (const auto& profile : _settings.ActiveProfiles())
+                {
+                    if (profile.Guid() == profileId && profile.Source() == source) { return !profile.Elevate() || IsRunningElevated(); }
+                }
+                return false;
+            };
+            const auto restore = Store::Build(*found, available, _groupFolderExists);
+            if (restore.folderFallbacks)
+            {
+                const auto presenter = _dialogPresenter.get();if (!presenter) { co_return; }
+                WUX::Controls::ContentDialog dialog;dialog.Title(box_value(L"Starting folder fallback"));dialog.PrimaryButtonText(L"Open with profile defaults");dialog.CloseButtonText(L"Cancel");
+                dialog.Content(box_value(winrt::to_hstring(std::to_string(restore.folderFallbacks) + " pane(s) have no saved, supported or available folder. Their profile-default starting folders will be used. Existing tabs are preserved.")));
+                if (co_await presenter.ShowDialog(dialog) != ContentDialogResult::Primary) { co_return; }
+            }
+            _openingSavedGroup = true;
+            co_await _RestoreSavedGroup(*found, restore);
+        }
+        catch (const std::exception& error) { _ShowControlNoticeDialog(L"Saved tab groups", winrt::to_hstring(error.what())); }
+    }
+
+    void TerminalPage::SetStartupTabGroup(::Microsoft::Terminal::Backslash::SavedTabGroup group, ::Microsoft::Terminal::Backslash::SavedTabGroups::Restore restore)
+    {
+        _startupTabGroup = std::move(group);_startupGroupRestore = std::move(restore);_startupActions.clear();
+    }
+
+    void TerminalPage::SetStartupGroupNotice(const winrt::hstring& notice)
+    {
+        if (const auto bar = FindName(L"StartupGroupNotice").try_as<MUX::Controls::InfoBar>()) { bar.Message(notice);bar.IsOpen(true); }
+    }
+
+    safe_void_coroutine TerminalPage::_StartSavedTabGroup()
+    {
+        const auto strong = get_strong();_groupOperation = true;_openingSavedGroup = true;
+        auto done = wil::scope_exit([&] { _groupOperation = false;_openingSavedGroup = false; });
+        try { co_await _RestoreSavedGroup(std::move(*_startupTabGroup), std::move(_startupGroupRestore)); }
+        catch (const std::exception& error) {
+            SetStartupGroupNotice(winrt::to_hstring(error.what()));
+            if (_tabs.Size() == 0) { NewTerminalArgs args;_OpenNewTab(args); }
+        }
+        _startupTabGroup.reset();
+    }
+
+    winrt::Windows::Foundation::IAsyncAction TerminalPage::_RestoreSavedGroup(::Microsoft::Terminal::Backslash::SavedTabGroup group, ::Microsoft::Terminal::Backslash::SavedTabGroups::Restore restore)
+    {
+        const auto strong = get_strong();
+        const auto available = [&](const winrt::guid& id, const winrt::hstring& source) {
+            for (const auto& profile : _settings.ActiveProfiles()) { if (profile.Guid() == id && profile.Source() == source) { return !profile.Elevate() || IsRunningElevated(); } }
+            return false;
+        };
+            std::vector<TerminalApp::Tab> created;
+            for (size_t tabIndex = 0; tabIndex < restore.tabs.size(); ++tabIndex)
+            {
+                for (size_t stepIndex = 0; stepIndex < restore.tabs[tabIndex].size(); ++stepIndex)
+                {
+                    if (_tabs.Size() > 0) { co_await wil::resume_foreground(Dispatcher(), CoreDispatcherPriority::Low); }
+                    const auto& step = group.tabs[tabIndex][static_cast<Json::ArrayIndex>(stepIndex)];
+                    if (step.isMember("profile") && !available(::Microsoft::Console::Utils::GuidFromString(winrt::to_hstring(step["profile"].asString()).c_str()), winrt::to_hstring(step["source"].asString()))) { throw std::invalid_argument("A group profile changed during reopening. Previously created group tabs were kept; existing tabs were not replaced."); }
+                    const auto& action = restore.tabs[tabIndex][stepIndex];
+                    if (stepIndex == 0)
+                    {
+                        const auto before = _tabs.Size();
+                        THROW_IF_FAILED(_OpenNewTab(action.Args().as<NewTabArgs>().ContentArgs()));
+                        if (_tabs.Size() != before + 1) { throw std::invalid_argument("A group tab could not be created in this window."); }
+                        created.emplace_back(_tabs.GetAt(_tabs.Size() - 1));
+                    }
+                    else
+                    {
+                        uint32_t index;
+                        if (!_tabs.IndexOf(created.back(), index)) { throw std::invalid_argument("A group tab was closed during reopening. Reopening stopped without modifying other tabs."); }
+                        // Re-select our exact new tab before each layout action, so interleaved
+                        // user selection cannot split an unrelated pre-existing tab.
+                        _tabView.SelectedItem(created.back().TabViewItem());
+                        _actionDispatch->DoAction(action);
+                    }
+                }
+            }
+            uint32_t index;
+            if (!created.empty() && _tabs.IndexOf(created.at(group.focusedTab), index)) { _tabView.SelectedItem(created.at(group.focusedTab).TabViewItem()); }
+            if (const auto tab = _GetFocusedTabImpl()) { if (const auto content = tab->GetActiveContent()) { content.Focus(FocusState::Programmatic); } }
+    }
+
 }

@@ -3,6 +3,147 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Microsoft's Windows Terminal Settings Profile Schema",
   "$defs": {
+    "SavedTabGroups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "groups"
+      ],
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "groups": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "name",
+              "folderMode",
+              "focusedTab",
+              "tabs"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}$"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "folderMode": {
+                "enum": [
+                  "profileDefault",
+                  "captured"
+                ]
+              },
+              "focusedTab": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 31
+              },
+              "tabs": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 32,
+                "items": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 512,
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "profile",
+                          "source"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "newTab",
+                              "split"
+                            ]
+                          },
+                          "profile": {
+                            "type": "string",
+                            "pattern": "^\\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\}$"
+                          },
+                          "source": {
+                            "type": "string",
+                            "maxLength": 1024
+                          },
+                          "folder": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z]:[\\\\/][^%\\u0000\\r\\n]*$"
+                          },
+                          "direction": {
+                            "enum": [
+                              "right",
+                              "down"
+                            ]
+                          },
+                          "size": {
+                            "type": "number",
+                            "exclusiveMinimum": 0,
+                            "exclusiveMaximum": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "id"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "focus"
+                          },
+                          "id": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 63
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "direction"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "moveFocus"
+                          },
+                          "direction": {
+                            "enum": [
+                              "previous",
+                              "next"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "KeyChordSegment": {
       "pattern": "^(?:(?:ctrl|alt|shift|win)\\+)*(?:app|backspace|browser_(?:back|forward|refresh|stop|search|favorites|home)|comma|delete|down|end|enter|esc|escape|home|insert|left|menu|minus|pagedown|pageup|period|pgdn|pgup|plus|right|space|tab|up|f(?:1\\d?|2[0-4]?|[3-9])|numpad\\d|numpad_(?:\\d|add|decimal|divide|minus|multiply|period|plus|subtract)|(?:vk|sc)\\((?:[1-9]|1?\\d{2}|2[0-4]\\d|25[0-5])\\)|[^\\s+])(?:\\+(?:ctrl|alt|shift|win))*$",
       "type": "string",
@@ -305,7 +446,7 @@
           "default": 0
         },
         "experimental.retroTerminalTintColor": {
-          "description": "RGB phosphor color for a luminance-preserving black-to-phosphor-to-white ramp. Excludes background images, acrylic, bezel and chrome.",
+          "description": "RGB phosphor endpoint: full-strength white becomes this color at any background opacity. Dark colors dim content; black uses grayscale. Excludes background images, acrylic, bezel and chrome.",
           "$ref": "#/$defs/Color",
           "default": "#00FF41"
         },
@@ -2388,6 +2529,17 @@
       "description": "Properties that affect the entire window, regardless of the profile settings.",
       "type": "object",
       "properties": {
+        "backslash.startupWithSavedGroup": { "type": "boolean", "default": false, "description": "Use a saved group only for the initial ordinary app launch. Explicit requests, configured startupActions, transfers and actual previous-session restoration take precedence." },
+        "backslash.startupGroup": { "type": "string", "default": "", "description": "Stable saved group GUID for initial startup selection. Missing/invalid groups fall back to one default-profile tab with notice; names are not identifiers." },
+        "backslash.showConnectionIdentity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show configured connection/local launch identity first in tabs and Ctrl+Tab. Preserve explicit title overrides; keep dynamic application titles as details. False restores ordinary Terminal titles."
+        },
+        "backslash.savedTabGroups": {
+          "$ref": "#/$defs/SavedTabGroups",
+          "description": "Named local saved terminal layouts. Versioned profile GUID/source and safe pane geometry only; reopening appends fresh sessions. No process, scrollback, command or credential snapshot."
+        },
         "alwaysOnTop": {
           "default": false,
           "description": "When set to true, the window is created on top of all other windows. If multiple windows are all \"always on top\", the most recently focused one will be the topmost",
@@ -3016,7 +3168,7 @@
           "default": 0
         },
         "experimental.retroTerminalTintColor": {
-          "description": "RGB phosphor color for a luminance-preserving black-to-phosphor-to-white ramp. Excludes background images, acrylic, bezel and chrome.",
+          "description": "RGB phosphor endpoint: full-strength white becomes this color at any background opacity. Dark colors dim content; black uses grayscale. Excludes background images, acrylic, bezel and chrome.",
           "$ref": "#/$defs/Color",
           "default": "#00FF41"
         },

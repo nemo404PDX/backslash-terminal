@@ -17,12 +17,19 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 - [Independent SSH editor audit](SSH-LOCAL-EDITOR-AUDIT.md): capability gates and source-confirmed gaps.
 - [SSH local editor research](SSH-LOCAL-EDITOR-RESEARCH.md): preferred inline composition feasibility, source seams and validation gates.
 - [Shell productivity setup](SHELL-PRODUCTIVITY.md): opt-in provider setup and access to older history matches.
+- [Saved tab groups](SAVED-TAB-GROUPS.md): implemented named terminal layouts, folder modes, management and validation limits.
+- [Connection identity titles](CONNECTION-TITLES.md): curated default and Appearance opt-out, explicit title precedence and safe launch metadata.
+- [Internal app commands](APP-COMMANDS-DESIGN.md): future dedicated command field, dispatch reuse, slash/collision rules and native pane actions.
+- [Resumable remote sessions](RESUMABLE-SESSIONS-DESIGN.md): future opt-in ownership, missed output/results, lifecycle and shared-session identity.
+- [Settings layout proposal](SETTINGS-LAYOUT-PROPOSAL.md) and [JSONC inventory](settings-layout.proposed.jsonc): reviewable task categories, actual controls, key/resource references and search gaps.
 - [Feature scope](FEATURES.md): requested behavior, proposed safeguards and open choices.
 - [Palette design](PALETTE.md): agreed copy behavior and precise color categories.
 - [Font catalog](FONTS.md): requested opt-in font discovery and download design.
 - [CRT Appearance design](CRT-APPEARANCE.md): controls, rendering constraints and quality requirements.
 - [CRT rendering plan and performance audit](CRT-RENDERING-PLAN.md): visibility/resource findings, isolated measurements, implemented tint/scanline controls and acceptance gates.
 - [Bezel implementation and future material design](BEZEL-DESIGN.md): implemented frame controls, corner/centering fixes, validation and remaining visual checks.
+- [Keyboard sounds design](KEYBOARD-SOUNDS-DESIGN.md): future optional coherent press/release audio, three sound profiles, overall Weight and silent paste/output.
+- [Terminal status bars design](TERMINAL-STATUS-BARS-DESIGN.md): optional top/bottom rows, four anchored slots, reserved layout space and metadata limits; not implemented.
 - [Phased roadmap](ROADMAP.md): bounded future tasks with acceptance checks.
 - [Baseline evidence](BASELINE.md): reused capabilities, source paths and upstream research.
 - [Brand concept](../../branding/concepts/README.md): approved visual direction and exact image transfer status.
@@ -36,4 +43,3 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 The following paragraph records the original preparation scope, before the separately authorized implementation slices linked above.
 
 This preparation authorizes the folder rename, documentation and concept asset retrieval. It does not authorize code changes, builds, package restoration, installations, Git initialization, remotes, commits, pushes or publication. The user will configure their own remote later. Future implementation should start with a concrete, separately authorized slice of the roadmap.
-

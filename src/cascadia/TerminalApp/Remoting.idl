@@ -15,6 +15,7 @@ namespace TerminalApp
         String[] Commandline;
         String CurrentDirectory;
         UInt32 ShowWindowCommand;
+        Boolean InitialAppLaunch;
         String CurrentEnvironment;
     };
 
