@@ -1,5 +1,7 @@
 # Backslash badge SVG inspection and conservative cleanup
 
+**Current assets:** the user re-exported all styles. See [the authoritative export record](#authoritative-user-exports-2026-10-16); the earlier cleanup account below is historical.
+
 Completed 2026-10-16 UTC. The supplied solid-backed and cutout-backed artwork was inspected, backed up byte-for-byte, then conservatively cleaned with the user's explicit authorization. A separate `currentColor` duplicate of the solid-backed artwork was created. This work prepares assets and records integration constraints; product code and the delivered portable ZIP are unchanged.
 
 ## Working assets and backups
@@ -65,3 +67,21 @@ The later [badge integration slice](BEZEL-BADGE-IMPLEMENTATION.md) packages thes
 ## Rendering correction
 
 The initial c69 integration decoded the files but composed a square. [The rendering fix](BEZEL-BADGE-RENDER-FIX.md) supplies an explicit finite source raster viewport matching this unchanged 527x100 viewBox and adds painted-pixel regression checks. Original, working and backup SVG hashes above remain unchanged. Placement now uses the screen-opening span, excluding side rails.
+
+## Authoritative user exports, 2026-10-16
+
+These current files supersede the historical cleanup description above. They are packaged byte-for-byte as supplied: no optimization, regeneration, layer replacement, copied style derivation, or fill rewriting is applied to the files. The authoring sources are preserved exactly. The original backups and previous commits/packages remain available.
+
+| File | Bytes | SHA256 |
+| --- | ---: | --- |
+| `backslash-badge.svg` | 33580 | `77905E1C478398CAC4F3705CFAA14D9147B70CB7DC3E2CBF72B24795C30CBDEB` |
+| `backslash-badge-outline.svg` | 19574 | `1AF2CBFCB2B2B7F5DB32AEBB5132C093D88AE5F56E216A25B47B9078EBC092AC` |
+| `backslash-badge-currentcolor.svg` | 33607 | `73DF39D8FD75A81E61DC32879901F0A8338976F88FB6A4C05691F406B0C4D3ED` |
+| `backslash-badge.afdesign` | 51459 | `73FA0E93F0A6ABE318FE1523B1D52248ACDE497B37B7621238D84C12A8CB16ED` |
+| `backslash-badge-outline.afdesign` | 69167 | `7018453B3A3196521BBE889BAA898A5A5A8758AD8CEF4E2DAEACF715B3B33938` |
+
+All three SVGs retain the 527x100 viewBox. The normal file has an evenodd compound backing with letter-shaped holes plus a separate white letter/slash path. Outline contains only that compound backing, so its letter-shaped holes expose the bezel. The currentColor file has both regions: its root `fill="currentColor"` reaches the backing, and the letter path explicitly uses `fill:currentColor`. Its backing and letter path data hashes match those in the normal file; the user authored the fill assignments.
+
+The current runtime example supplies `color="#FFFFFF"` in memory without changing the saved SVG. Thus **both CurrentColor backing and letter faces resolve to white**. The host does not inherit XAML Foreground into this external SVG, and there is no separate badge tint, backing-opacity or letter-opacity setting. The file keeps separate regions for a future host that controls their paint/opacity, but this build does not add such controls or alter bezel opacity. No older outline/CurrentColor file is substituted to create another appearance.
+
+The composed test now distinguishes Outline's exposed casing from the visible authored letter faces in the normal/CurrentColor styles. Tests and visual checks were explicitly skipped/stopped at the user's request for this delivery; no fresh test or visual pass is claimed. Validation for this build is limited to build success and exact package-file integrity. Historical test results above concern their recorded assets/builds.

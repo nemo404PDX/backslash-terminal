@@ -2897,7 +2897,7 @@
   <data name="Profile_RetroBezelFillerBottom.Content" xml:space="preserve"><value>Bottom</value></data>
   <data name="Profile_RetroBezelFillerTop.Content" xml:space="preserve"><value>Top</value></data>
   <data name="Profile_RetroBezelBadgeStyle.Header" xml:space="preserve"><value>Badge artwork</value></data>
-  <data name="Profile_RetroBezelBadgeStyle.HelpText" xml:space="preserve"><value>Solid or cutout backing. CurrentColor uses explicitly white lettering in this version. The SVG backing is preserved; no separate rectangular plate is drawn.</value></data>
+  <data name="Profile_RetroBezelBadgeStyle.HelpText" xml:space="preserve"><value>Solid has white letter faces and a dark cutout backing. Outline exposes the casing through the letters. CurrentColor resolves both backing and letter faces to white in this version.</value></data>
   <data name="Profile_RetroBezelBadgeStyleSolid.Content" xml:space="preserve"><value>Solid backing</value></data>
   <data name="Profile_RetroBezelBadgeStyleOutline.Content" xml:space="preserve"><value>Cutout backing</value></data>
   <data name="Profile_RetroBezelBadgeStyleCurrentColor.Content" xml:space="preserve"><value>CurrentColor (white)</value></data>

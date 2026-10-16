@@ -1,5 +1,7 @@
 # Badge composed-render fix and aperture anchors
 
+**Latest delivery:** [exact current user assets](#exact-user-asset-delivery-2026-10-16). This supersedes the prior artifact that staged older artwork. Tests were skipped at the user’s request for the latest build.
+
 Validated 2026-10-16 UTC, uncommitted on master atop `602009965b8861778291c8176bbad146195f001e`. This supersedes the badge delivery **c69d5ac7**, which decoded the SVG but painted a gray square. The preceding uncommitted badge slice, original/working SVGs, authoring assets, backups and previous packages are preserved. No user settings, SSH/WSL behavior, palette/default value, shader, or automatic window-sizing behavior is changed.
 
 ## Reproduced cause and narrow correction
@@ -63,3 +65,13 @@ Executable: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-
 Clean ZIP: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-0.0.1.0-BadgeFinal-x64-d669fc48.zip`. Extract the whole archive into a fresh folder and keep `.portable`. It contains no fixture settings, test logs, object files or authoring assets. SHA256, source inventory/checkpoint and publication results are recorded in `badge-final-delivery-summary.json` and `badge-publication-results.json` under the final build run. Validation evidence is under `artifacts/badge-final-order-20261016-918732c7`, with the approved-asset composed matrix in `badge-composed-approved-assets-34a9a5fa` and the successful native Settings check in `owned-order-check4`.
 
 The final approval covers the accumulated badge integration/render fix, tests/documentation and presentation ordering, with ordinary pushes to both existing remotes. The opening-relative geometry, source artwork, shader/defaults and accepted live-sizing behavior were not changed by this ordering work.
+
+## Exact user-asset delivery, 2026-10-16
+
+This delivery supersedes the previous `ApprovedBadgeAssets` artifact. All three current user SVG exports are used directly and copied byte-for-byte into the build/portable; none is derived from another style or replaced with an older committed file. Their exact hashes and layer/fill semantics are recorded in [the authoritative asset record](BACKSLASH-BADGE-ASSET.md#authoritative-user-exports-2026-10-16). The normal and CurrentColor files each retain separate backing/letter regions. Outline retains transparent letter holes. CurrentColor white applies to both authored regions; no independent badge opacity/tint controls are introduced.
+
+Fresh Release/x64 build: **`20261015-211157-321-Release-x64-fc122494`**, **0 errors / 134 warnings**, **00:00:15.65**. **Tests and visual validation were skipped at the user's explicit request.** The owned in-progress composed fixture was stopped; partial output is not a passing matrix. The previously recorded test/visual results are historical and are not claimed for these updated assets. Only necessary build/package integrity checks were performed: each runtime SVG matches the current supplied file's SHA256, the fresh ZIP includes `.portable`, and it contains no fixture settings or authoring sources.
+
+Executable: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-20261015-211157-321-Release-x64-fc122494/WindowsTerminal.exe`.
+
+Clean ZIP: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-0.0.1.0-UserBadgeAssets-x64-fc122494.zip`. SHA256: `17EDB9FA8C08C39D3B5B03FE1FAAEE3C375120404D54C60F8DBE7192462AF4D7`. Extract the complete ZIP into a fresh folder and keep `.portable`. Prior packages and the user's working portable copies/settings remain unchanged. Snapshot, input structure/hashes and build/package records are under `artifacts/badge-user-assets-20261016-4a730a72` and this build run. The finite 527x100 raster viewport, dropdown saved identities/order, opening-relative 12 DIP placement, defaults and live-sizing behavior remain unchanged.

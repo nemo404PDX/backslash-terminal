@@ -72,8 +72,8 @@ static void SavePng(std::filesystem::path const& path,Pixels const& pixels)
     ComPtr<IWICBitmapFrameEncode> frame;check_hresult(encoder->CreateNewFrame(&frame,nullptr));check_hresult(frame->Initialize(nullptr));check_hresult(frame->SetSize(static_cast<UINT>(pixels.width),static_cast<UINT>(pixels.height)));
     auto format=GUID_WICPixelFormat32bppBGRA;check_hresult(frame->SetPixelFormat(&format));check_hresult(frame->WritePixels(static_cast<UINT>(pixels.height),static_cast<UINT>(pixels.width*4),static_cast<UINT>(pixels.data.size()),const_cast<BYTE*>(pixels.data.data())));check_hresult(frame->Commit());check_hresult(encoder->Commit());
 }
-struct Ink{int left,top,right,bottom,changed,white,black,whiteColumns;};
-static Ink Inspect(Pixels const& background,Pixels const& painted,winrt::Windows::Foundation::Rect rect,double sx,double sy)
+struct Ink{int left,top,right,bottom,changed,white,black,whiteColumns;int letterSamples=0,transparentLetters=0;};
+static Ink Inspect(Pixels const& background,Pixels const& painted,winrt::Windows::Foundation::Rect rect,double sx,double sy,int style,Pixels const* solid)
 {
     Require(background.width==painted.width && background.height==painted.height,"Stable captured size");
     Ink ink{painted.width,painted.height,-1,-1,0,0,0,0};std::vector<bool> columns(static_cast<size_t>(painted.width));
@@ -93,7 +93,36 @@ static Ink Inspect(Pixels const& background,Pixels const& painted,winrt::Windows
     for(bool c:columns)ink.whiteColumns+=c;
     std::cout<<"Pixel evidence: changed="<<ink.changed<<" white="<<ink.white<<" black="<<ink.black<<" whiteColumns="<<ink.whiteColumns<<"\n";
     Require(ink.changed>100,"Badge silhouette differs from unbranded casing");
-    Require(ink.white>20 && ink.black>50 && ink.whiteColumns>20,"Actual lettering/logo and dark artwork backing are painted");
+    if(style==2)Require(ink.white>50 && ink.whiteColumns>20,"CurrentColor backing and letter faces resolve to white");
+    else Require(ink.black>50,"Dark artwork backing is painted");
+    if(style==1)
+    {
+        Require(solid && solid->width==painted.width && solid->height==painted.height,"Cutout has matching solid reference");
+        // Use the solid style's opaque letter/slash interiors as the hole oracle.
+        // Erode one pixel to exclude antialiased path edges. Transparent holes
+        // must reproduce the actual unbranded casing, not white SVG lettering.
+        for(int y=1;y<painted.height-1;++y)for(int x=1;x<painted.width-1;++x)
+        {
+            if(x<rect.X*sx || x>=(rect.X+rect.Width)*sx || y<rect.Y*sy || y>=(rect.Y+rect.Height)*sy)continue;
+            bool letter=true;
+            for(int dy=-1;dy<=1;++dy)for(int dx=-1;dx<=1;++dx)
+            {
+                const auto k=static_cast<size_t>(((y+dy)*painted.width+x+dx)*4);
+                letter=letter && solid->data[k]>235 && solid->data[k+1]>235 && solid->data[k+2]>235 && solid->data[k+3]>240;
+            }
+            if(!letter)continue;
+            ++ink.letterSamples;const auto k=static_cast<size_t>((y*painted.width+x)*4);int delta=0;
+            for(size_t c=0;c<4;++c)delta=std::max(delta,std::abs(static_cast<int>(painted.data[k+c])-background.data[k+c]));
+            if(delta<=8)++ink.transparentLetters;
+        }
+        Require(ink.letterSamples>50,"Letter/slash mask has meaningful interior samples");
+        Require(ink.transparentLetters*100>=ink.letterSamples*95,"Cutout letter/slash interiors expose the underlying casing");
+        std::cout<<"Cutout transparency: "<<ink.transparentLetters<<"/"<<ink.letterSamples<<" interior samples match casing\n";
+    }
+    else
+    {
+        Require(ink.white>20 && ink.whiteColumns>20,"Solid/currentColor retain their authored visible letter faces");
+    }
     const auto width=ink.right-ink.left+1,height=ink.bottom-ink.top+1;
     Require(width>rect.Width*sx*0.85 && width<rect.Width*sx*1.06+2,"Painted badge has full wide aspect, not a square");
     Require(height>rect.Height*sy*0.75 && height<rect.Height*sy*1.06+2,"Painted badge height matches layout");
@@ -132,6 +161,7 @@ int wmain(int argc,wchar_t** argv)
             image.ImageFailed([&](auto const&,ExceptionRoutedEventArgs const& e){++failures;std::wcerr<<L"ImageFailed "<<e.ErrorMessage().c_str()<<L"\n";});
             unsigned imageOpened=0;
             image.ImageOpened([&](auto const&,auto const&){++imageOpened;});
+            std::array<Pixels,6> solidReferences;
             for(int style=0;style<3;++style)for(int placement=1;placement<=6;++placement)
             {
                 const auto previousSource=image.Source();const auto openedBefore=imageOpened;
@@ -156,9 +186,11 @@ int wmain(int argc,wchar_t** argv)
                 if(placement==4 || placement==6)Require(std::abs(local.X+local.Width-opening.right+B::BezelBadgeCornerInset)<0.01f,"Right badge anchors to screen-opening span");
                 const auto file=std::string{contextName}+"-size"+std::to_string(size)+"-style"+std::to_string(style)+"-"+positions[static_cast<size_t>(placement)]+".png";
                 SavePng(std::filesystem::path{argv[1]}/file,painted);
-                const auto ink=Inspect(background,painted,rect,painted.width/hostWidth,painted.height/hostHeight);
+                const auto ink=Inspect(background,painted,rect,painted.width/hostWidth,painted.height/hostHeight,style,
+                                       style==1?&solidReferences[static_cast<size_t>(placement-1)]:nullptr);
+                if(style==0)solidReferences[static_cast<size_t>(placement-1)]=painted;
                 auto source=image.Source().as<Media::Imaging::SvgImageSource>();Require(source.RasterizePixelWidth()==527 && source.RasterizePixelHeight()==100,"Finite SVG raster viewport is retained");
-                if(!first)report<<",";first=false;report<<"{\"context\":\""<<contextName<<"\",\"size\":"<<size<<",\"style\":"<<style<<",\"placement\":\""<<positions[static_cast<size_t>(placement)]<<"\",\"whitePixels\":"<<ink.white<<",\"blackPixels\":"<<ink.black<<",\"whiteColumns\":"<<ink.whiteColumns<<",\"paintedWidth\":"<<ink.right-ink.left+1<<",\"paintedHeight\":"<<ink.bottom-ink.top+1<<",\"png\":\""<<file<<"\"}";
+                if(!first)report<<",";first=false;report<<"{\"context\":\""<<contextName<<"\",\"size\":"<<size<<",\"style\":"<<style<<",\"placement\":\""<<positions[static_cast<size_t>(placement)]<<"\",\"whitePixels\":"<<ink.white<<",\"blackPixels\":"<<ink.black<<",\"whiteColumns\":"<<ink.whiteColumns<<",\"letterSamples\":"<<ink.letterSamples<<",\"transparentLetters\":"<<ink.transparentLetters<<",\"paintedWidth\":"<<ink.right-ink.left+1<<",\"paintedHeight\":"<<ink.bottom-ink.top+1<<",\"png\":\""<<file<<"\"}";
                 ++passed;std::cout<<"PASS "<<contextName<<" style="<<style<<" "<<positions[static_cast<size_t>(placement)]<<" silhouette="<<ink.right-ink.left+1<<"x"<<ink.bottom-ink.top+1<<" white="<<ink.white<<"\n";
             }
             island.Content(nullptr);Pump(50);

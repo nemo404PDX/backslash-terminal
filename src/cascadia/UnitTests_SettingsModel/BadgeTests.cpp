@@ -154,7 +154,7 @@ namespace SettingsModelUnitTests
     {
         VERIFY_ARE_EQUAL(3u, static_cast<unsigned int>(B::BezelBadgeAssetNames.size()));
         VERIFY_ARE_EQUAL(std::wstring_view{ L"backslash-badge.svg" }, B::BezelBadgeAssetNames[0]);
-        const std::string svg = R"(<svg viewBox="0 0 527 100"><g id="backer"><path fill="#000" d="M0 0"/></g><g id="letters" fill="currentColor"><path d="M1 1"/></g></svg>)";
+        const std::string svg = R"(<svg fill="currentColor" viewBox="0 0 527 100"><g id="backer"><path fill-rule="evenodd" d="M0 0H20V20H0Z M5 5V15H15V5Z"/></g><g id="letters"><path fill="currentColor" d="M5 5V15H15V5Z"/></g></svg>)";
         const auto colored = B::BadgeSvgWithWhiteCurrentColor(svg);
         VERIFY_ARE_EQUAL(svg.size() + 16u, colored.size());
         VERIFY_IS_TRUE(colored.find("<svg color=\"#FFFFFF\"") == 0);
