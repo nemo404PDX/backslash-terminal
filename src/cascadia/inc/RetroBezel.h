@@ -29,6 +29,7 @@ namespace Microsoft::Terminal::Backslash
         Border _surround, _rim;
         Image _badge;
         int _badgePlacement = 0, _badgeStyle = 0, _loadedBadgeStyle = -1;
+        std::wstring _badgeLettering{ L"#FFFFFF" }, _badgeBacking{ L"#000000" };
         BezelInsets _frameInsets{};
         bool _enabled = false;
         winrt::Windows::UI::Xaml::FrameworkElement _content{ nullptr };
@@ -148,7 +149,7 @@ namespace Microsoft::Terminal::Backslash
                 Media::Imaging::SvgImageSource source;
                 _badge.Source(source);
                 _loadedBadgeStyle = _badgeStyle;
-                LoadBezelBadgeSvg(source, _badgeStyle);
+                LoadBezelBadgeSvg(source, _badgeStyle, _badgeLettering, _badgeBacking);
             }
         }
 
@@ -204,7 +205,7 @@ namespace Microsoft::Terminal::Backslash
             _frame.Children().Append(content);
         }
 
-        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false, int filler = 0, int badgeStyle = 0)
+        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false, int filler = 0, int badgeStyle = 0, std::wstring_view lettering = L"#FFFFFF", std::wstring_view backing = L"#000000")
         {
             using namespace winrt::Windows::UI::Xaml;
             // Balance inside the full-size material casing. An outer Grid margin
@@ -226,6 +227,12 @@ namespace Microsoft::Terminal::Backslash
             _aperture.Visibility(visibility);
             _badgePlacement = badge;
             _badgeStyle = badgeStyle;
+            if (_badgeLettering != lettering || _badgeBacking != backing)
+            {
+                _badgeLettering = lettering;
+                _badgeBacking = backing;
+                if (_badgeStyle == 2) { _loadedBadgeStyle = -1; }
+            }
             _updateBadge();
 
             // One continuous brush per hollow ring keeps corners seamless and

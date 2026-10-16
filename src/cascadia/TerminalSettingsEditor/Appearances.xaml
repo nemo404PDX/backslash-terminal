@@ -20,6 +20,41 @@
                 <ResourceDictionary Source="CommonResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- Isolate the new typed bindings from the main page tracker,
+                 whose generated property-change chain is at the MSVC limit. -->
+            <DataTemplate x:Key="CurrentColorBadgeControlsTemplate" x:DataType="local:AppearanceViewModel">
+                <StackPanel>
+                <local:SettingContainer x:Name="RetroBezelBadgeLettering" x:Uid="Profile_RetroBezelBadgeLettering"
+                                        Visibility="{x:Bind IsCurrentColorBadge, Mode=OneWay}"
+                                        ClearSettingValue="{x:Bind ClearRetroBezelBadgeLettering}"
+                                        HasSettingValue="{x:Bind HasRetroBezelBadgeLettering, Mode=OneWay}"
+                                        SettingOverrideSource="{x:Bind RetroBezelBadgeLetteringOverrideSource, Mode=OneWay}"
+                                        CurrentValue="{x:Bind RetroBezelBadgeLetteringPreview, Mode=OneWay}"
+                                        CurrentValueAccessibleName="{x:Bind RetroBezelBadgeLetteringPreview, Converter={StaticResource ColorToStringConverter}, Mode=OneWay}"
+                                        CurrentValueTemplate="{StaticResource ColorPreviewTemplate}"
+                                        Style="{StaticResource ExpanderSettingContainerStyleWithComplexPreview}">
+                    <local:NullableColorPicker x:Uid="Profile_RetroBezelBadgeLetteringPicker"
+                                               ColorSchemeVM="{x:Bind CurrentColorScheme, Mode=OneWay}"
+                                               ShowNullColorButton="True" NullColorPreview="Transparent"
+                                               CurrentColor="{x:Bind RetroBezelBadgeLetteringForPicker, Mode=TwoWay}" />
+                </local:SettingContainer>
+                <local:SettingContainer x:Name="RetroBezelBadgeBacking" x:Uid="Profile_RetroBezelBadgeBacking"
+                                        Visibility="{x:Bind IsCurrentColorBadge, Mode=OneWay}"
+                                        ClearSettingValue="{x:Bind ClearRetroBezelBadgeBacking}"
+                                        HasSettingValue="{x:Bind HasRetroBezelBadgeBacking, Mode=OneWay}"
+                                        SettingOverrideSource="{x:Bind RetroBezelBadgeBackingOverrideSource, Mode=OneWay}"
+                                        CurrentValue="{x:Bind RetroBezelBadgeBackingPreview, Mode=OneWay}"
+                                        CurrentValueAccessibleName="{x:Bind RetroBezelBadgeBackingPreview, Converter={StaticResource ColorToStringConverter}, Mode=OneWay}"
+                                        CurrentValueTemplate="{StaticResource ColorPreviewTemplate}"
+                                        Style="{StaticResource ExpanderSettingContainerStyleWithComplexPreview}">
+                    <local:NullableColorPicker x:Uid="Profile_RetroBezelBadgeBackingPicker"
+                                               ColorSchemeVM="{x:Bind CurrentColorScheme, Mode=OneWay}"
+                                               ShowNullColorButton="True" NullColorPreview="Transparent"
+                                               CurrentColor="{x:Bind RetroBezelBadgeBackingForPicker, Mode=TwoWay}" />
+                </local:SettingContainer>
+                </StackPanel>
+            </DataTemplate>
+
             <DataTemplate x:Key="EnumComboBoxTemplate"
                           x:DataType="local:EnumEntry">
                 <TextBlock Text="{x:Bind EnumName, Mode=OneWay}" />
@@ -665,6 +700,9 @@
                           SelectedItem="{x:Bind CurrentRetroBezelBadgeStyle, Mode=TwoWay}"
                           Style="{StaticResource ComboBoxSettingStyle}" />
             </local:SettingContainer>
+            <ContentControl IsTabStop="False"
+                            Content="{x:Bind Appearance, Mode=OneWay}"
+                            ContentTemplate="{StaticResource CurrentColorBadgeControlsTemplate}" />
             <local:SettingContainer x:Name="RetroBezelCenterFullscreen" x:Uid="Profile_RetroBezelCenterFullscreen"
                                     ClearSettingValue="{x:Bind Appearance.ClearRetroBezelCenterFullscreen}"
                                     HasSettingValue="{x:Bind Appearance.HasRetroBezelCenterFullscreen, Mode=OneWay}"

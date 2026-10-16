@@ -131,6 +131,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> RetroTerminalTintColorForPicker() const;
         void RetroTerminalTintColorForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value);
         Windows::UI::Color RetroTerminalTintColorPreview() const;
+        Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> RetroBezelBadgeLetteringForPicker() const;
+        void RetroBezelBadgeLetteringForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value);
+        Windows::UI::Color RetroBezelBadgeLetteringPreview() const;
+        Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> RetroBezelBadgeBackingForPicker() const;
+        void RetroBezelBadgeBackingForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value);
+        Windows::UI::Color RetroBezelBadgeBackingPreview() const;
+        bool IsCurrentColorBadge() const;
         void SetBackgroundImagePath(winrt::hstring path);
         hstring BackgroundImageAlignmentCurrentValue() const;
 
@@ -161,6 +168,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadge);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelFiller);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadgeStyle);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadgeLettering);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadgeBacking);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineIntensity);

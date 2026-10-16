@@ -42,6 +42,11 @@ namespace Microsoft.Terminal.Settings.Editor
         void SetRetroTerminalTintIntensityFromPercentageValue(Double percentageValue);
         Windows.Foundation.IReference<Microsoft.Terminal.Core.Color> RetroTerminalTintColorForPicker;
         Windows.UI.Color RetroTerminalTintColorPreview { get; };
+        Windows.Foundation.IReference<Microsoft.Terminal.Core.Color> RetroBezelBadgeLetteringForPicker;
+        Windows.UI.Color RetroBezelBadgeLetteringPreview { get; };
+        Windows.Foundation.IReference<Microsoft.Terminal.Core.Color> RetroBezelBadgeBackingForPicker;
+        Windows.UI.Color RetroBezelBadgeBackingPreview { get; };
+        Boolean IsCurrentColorBadge { get; };
         void SetBackgroundImagePath(String path);
 
         String CurrentBackgroundImagePath { get; };
@@ -88,6 +93,8 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadge, RetroBezelBadge);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelFiller, RetroBezelFiller);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadgeStyle, RetroBezelBadgeStyle);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, RetroBezelBadgeLettering);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, RetroBezelBadgeBacking);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);

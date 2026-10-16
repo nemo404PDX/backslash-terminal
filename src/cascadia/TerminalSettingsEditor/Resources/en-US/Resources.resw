@@ -2897,10 +2897,18 @@
   <data name="Profile_RetroBezelFillerBottom.Content" xml:space="preserve"><value>Bottom</value></data>
   <data name="Profile_RetroBezelFillerTop.Content" xml:space="preserve"><value>Top</value></data>
   <data name="Profile_RetroBezelBadgeStyle.Header" xml:space="preserve"><value>Badge artwork</value></data>
-  <data name="Profile_RetroBezelBadgeStyle.HelpText" xml:space="preserve"><value>Solid has white letter faces and a dark cutout backing. Outline exposes the casing through the letters. CurrentColor resolves both backing and letter faces to white in this version.</value></data>
+  <data name="Profile_RetroBezelBadgeStyle.HelpText" xml:space="preserve"><value>Solid and Outline use the supplied artwork. CurrentColor lets you choose Lettering and Backing independently, including None for transparency.</value></data>
   <data name="Profile_RetroBezelBadgeStyleSolid.Content" xml:space="preserve"><value>Solid backing</value></data>
   <data name="Profile_RetroBezelBadgeStyleOutline.Content" xml:space="preserve"><value>Cutout backing</value></data>
-  <data name="Profile_RetroBezelBadgeStyleCurrentColor.Content" xml:space="preserve"><value>CurrentColor (white)</value></data>
+  <data name="Profile_RetroBezelBadgeStyleCurrentColor.Content" xml:space="preserve"><value>CurrentColor</value></data>
   <data name="Profile_RetroBezelBadgeBottomCenter.Content" xml:space="preserve"><value>Bottom center</value></data>
   <data name="Profile_RetroBezelBadgeTopCenter.Content" xml:space="preserve"><value>Top center</value></data>
+  <data name="Profile_RetroBezelBadgeLettering.Header" xml:space="preserve"><value>Lettering</value></data>
+  <data name="Profile_RetroBezelBadgeLettering.HelpText" xml:space="preserve"><value>Choose the CurrentColor badge lettering color, or None to make this part transparent.</value></data>
+  <data name="Profile_RetroBezelBadgeLetteringPicker.NullColorButtonLabel" xml:space="preserve"><value>None (transparent)</value></data>
+  <data name="Profile_RetroBezelBadgeBacking.Header" xml:space="preserve"><value>Backing</value></data>
+  <data name="Profile_RetroBezelBadgeBacking.HelpText" xml:space="preserve"><value>Choose the CurrentColor badge backing color, or None to make this part transparent.</value></data>
+  <data name="Profile_RetroBezelBadgeBackingPicker.NullColorButtonLabel" xml:space="preserve"><value>None (transparent)</value></data>
+  <data name="Profile_RetroBezelColorMutedRed.Content" xml:space="preserve"><value>Muted retro red</value></data>
+  <data name="Profile_RetroBezelColorWarmMustard.Content" xml:space="preserve"><value>Warm mustard</value></data>
 </root>

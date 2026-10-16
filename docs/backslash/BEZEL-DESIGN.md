@@ -466,3 +466,9 @@ The user subsequently confirmed the separate live-toggle behavior should remain:
 ## Composed badge fix and side-rail exclusions (2026-10-16)
 
 The [rendering follow-up](BEZEL-BADGE-RENDER-FIX.md) corrects c69's gray-square failure with an explicit 527x100 SVG raster viewport, without changing artwork or stream handling. The newly approved horizontal rule anchors/scales badges inside the screen-opening span with a 12 DIP inset, excluding both side rails at every thickness. Centered positions and vertical band centering are retained. All 162 shared-control composition cases passed; the actual running terminal and Defaults > Appearance preview were captured and inspected. Live-toggle sizing remains as accepted; no window-resize code is added.
+
+## Pending CurrentColor part controls and appended finishes (2026-10-16)
+
+[CurrentColor controls](CURRENTCOLOR-BADGE-CONTROLS.md) add only Lettering and Backing color/None choices, with white/black readable defaults and existing inheritance/reset/Save/preview behavior. They apply only to CurrentColor and paint derived runtime data; the supplied SVGs and Affinity sources remain unchanged. No opacity sliders or geometry changes are added.
+
+[Two appended finishes](BEZEL-FINISH-EXTENSIONS.md) add `mutedRed` = 9, #7C5955 and `warmMustard` = 10, #95814F through the existing dark material branch. All prior enum/RGB values, blend percentages and frozen references remain unchanged. This slice is uncommitted for user review; build/package only, with no test suite or rendering matrix run.

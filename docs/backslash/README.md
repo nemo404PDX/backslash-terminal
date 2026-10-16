@@ -50,3 +50,8 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 The following paragraph records the original preparation scope, before the separately authorized implementation slices linked above.
 
 This preparation authorizes the folder rename, documentation and concept asset retrieval. It does not authorize code changes, builds, package restoration, installations, Git initialization, remotes, commits, pushes or publication. The user will configure their own remote later. Future implementation should start with a concrete, separately authorized slice of the roadmap.
+
+## Pending badge colors and finishes
+
+- [CurrentColor Lettering and Backing controls](CURRENTCOLOR-BADGE-CONTROLS.md): independent RGB/None choices using existing profile and picker patterns; supplied artwork is unchanged.
+- [Appended bezel finishes](BEZEL-FINISH-EXTENSIONS.md): muted retro red and warm mustard, exact RGB/material values, with original palette baselines unchanged.

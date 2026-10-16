@@ -19,7 +19,8 @@ namespace Microsoft.Terminal.Settings.Model
     // Persisted/adapter values: append new finishes, never renumber existing shades.
     enum RetroBezelColor {
         OffWhite = 0, Cream = 1, LightYellow = 2, AgedYellow = 3,
-        Graphite = 4, Charcoal = 5, NearBlack = 6, SlateBlue = 7, MutedOlive = 8
+        Graphite = 4, Charcoal = 5, NearBlack = 6, SlateBlue = 7, MutedOlive = 8,
+        MutedRed = 9, WarmMustard = 10
     };
 
     // Preserve Bottom=1 / Top=2; both are centered placement choices.
@@ -83,6 +84,8 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_PROFILE_SETTING(RetroBezelBadge, RetroBezelBadge);
         INHERITABLE_PROFILE_SETTING(RetroBezelFiller, RetroBezelFiller);
         INHERITABLE_PROFILE_SETTING(RetroBezelBadgeStyle, RetroBezelBadgeStyle);
+        INHERITABLE_PROFILE_SETTING(String, RetroBezelBadgeLettering);
+        INHERITABLE_PROFILE_SETTING(String, RetroBezelBadgeBacking);
         INHERITABLE_PROFILE_SETTING(Boolean, RetroBezelCenterFullscreen);
 
         INHERITABLE_PROFILE_SETTING(String, Commandline);

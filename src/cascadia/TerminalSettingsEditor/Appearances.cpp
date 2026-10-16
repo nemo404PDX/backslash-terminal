@@ -231,6 +231,18 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 _NotifyChanges(L"BackgroundImageAlignmentCurrentValue");
             }
+            else if (viewModelProperty == L"RetroBezelBadgeLettering")
+            {
+                _NotifyChanges(L"RetroBezelBadgeLetteringForPicker", L"RetroBezelBadgeLetteringPreview");
+            }
+            else if (viewModelProperty == L"RetroBezelBadgeBacking")
+            {
+                _NotifyChanges(L"RetroBezelBadgeBackingForPicker", L"RetroBezelBadgeBackingPreview");
+            }
+            else if (viewModelProperty == L"RetroBezelBadgeStyle")
+            {
+                _NotifyChanges(L"IsCurrentColorBadge");
+            }
             else if (viewModelProperty == L"RetroTerminalTintColor")
             {
                 _NotifyChanges(L"RetroTerminalTintColorForPicker", L"RetroTerminalTintColorPreview");
@@ -935,6 +947,54 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         if (value) { RetroTerminalTintColor(value.Value()); }
         else { ClearRetroTerminalTintColor(); }
+    }
+
+    static Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> _badgeColorForPicker(std::wstring_view text, uint32_t fallback)
+    {
+        const auto paint = ::Microsoft::Terminal::Backslash::ParseBezelBadgePaint(text, fallback);
+        if (paint.none) { return nullptr; }
+        return Microsoft::Terminal::Core::Color{ static_cast<uint8_t>(paint.rgb >> 16), static_cast<uint8_t>(paint.rgb >> 8), static_cast<uint8_t>(paint.rgb), 255 };
+    }
+
+    static Windows::UI::Color _badgeColorPreview(std::wstring_view text, uint32_t fallback)
+    {
+        const auto paint = ::Microsoft::Terminal::Backslash::ParseBezelBadgePaint(text, fallback);
+        return { static_cast<uint8_t>(paint.none ? 0 : 255), static_cast<uint8_t>(paint.rgb >> 16), static_cast<uint8_t>(paint.rgb >> 8), static_cast<uint8_t>(paint.rgb) };
+    }
+
+    Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> AppearanceViewModel::RetroBezelBadgeLetteringForPicker() const
+    {
+        return _badgeColorForPicker(RetroBezelBadgeLettering(), 0xffffff);
+    }
+
+    void AppearanceViewModel::RetroBezelBadgeLetteringForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value)
+    {
+        RetroBezelBadgeLettering(value ? hstring{ til::color{ value.Value() }.ToHexString(true) } : hstring{ L"none" });
+    }
+
+    Windows::UI::Color AppearanceViewModel::RetroBezelBadgeLetteringPreview() const
+    {
+        return _badgeColorPreview(RetroBezelBadgeLettering(), 0xffffff);
+    }
+
+    Windows::Foundation::IReference<Microsoft::Terminal::Core::Color> AppearanceViewModel::RetroBezelBadgeBackingForPicker() const
+    {
+        return _badgeColorForPicker(RetroBezelBadgeBacking(), 0x000000);
+    }
+
+    void AppearanceViewModel::RetroBezelBadgeBackingForPicker(const Windows::Foundation::IReference<Microsoft::Terminal::Core::Color>& value)
+    {
+        RetroBezelBadgeBacking(value ? hstring{ til::color{ value.Value() }.ToHexString(true) } : hstring{ L"none" });
+    }
+
+    Windows::UI::Color AppearanceViewModel::RetroBezelBadgeBackingPreview() const
+    {
+        return _badgeColorPreview(RetroBezelBadgeBacking(), 0x000000);
+    }
+
+    bool AppearanceViewModel::IsCurrentColorBadge() const
+    {
+        return RetroBezelBadgeStyle() == Model::RetroBezelBadgeStyle::CurrentColor;
     }
 
     Windows::UI::Color AppearanceViewModel::RetroTerminalTintColorPreview() const
