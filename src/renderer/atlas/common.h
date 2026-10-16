@@ -408,10 +408,10 @@ namespace Microsoft::Console::Render::Atlas
         til::generational<FontSettings> font;
         til::generational<CursorSettings> cursor;
         til::generational<MiscellaneousSettings> misc;
-        f32 retroTerminalGlowIntensity = 0.3f;
-        f32 retroTerminalScanlineIntensity = 0.5f;
-        f32 retroTerminalScanlineThickness = 1.0f;
-        f32 retroTerminalScanlineGap = 1.0f;
+        f32 retroTerminalGlowIntensity = 0.15f;
+        f32 retroTerminalScanlineIntensity = 0.10f;
+        f32 retroTerminalScanlineThickness = 4.0f;
+        f32 retroTerminalScanlineGap = 4.0f;
         f32 retroTerminalTintIntensity = 0.0f;
         u32 retroTerminalTintColor = 0xff41ff00;
         // Size of the viewport / swap chain in pixel.

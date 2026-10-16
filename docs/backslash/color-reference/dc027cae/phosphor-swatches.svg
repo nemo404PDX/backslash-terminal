@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="950" height="430" viewBox="0 0 950 430"><title>Frozen phosphor dc027cae: default and test endpoints, not a preset catalog</title><rect width="100%" height="100%" fill="white"/>
+<text x="20" y="28" font-family="monospace" font-size="16">dc027cae: default #00FF41; remaining labels are test colors</text>
+<rect x="20" y="50" width="165" height="40" fill="#00FF41" stroke="black"/><text x="20" y="108" font-family="monospace" font-size="12">green #00FF41</text>
+<rect x="205" y="50" width="165" height="40" fill="#FFB000" stroke="black"/><text x="205" y="108" font-family="monospace" font-size="12">amber #FFB000</text>
+<rect x="390" y="50" width="165" height="40" fill="#FF0000" stroke="black"/><text x="390" y="108" font-family="monospace" font-size="12">red #FF0000</text>
+<rect x="575" y="50" width="165" height="40" fill="#0000FF" stroke="black"/><text x="575" y="108" font-family="monospace" font-size="12">blue #0000FF</text>
+<rect x="760" y="50" width="165" height="40" fill="#B450FF" stroke="black"/><text x="760" y="108" font-family="monospace" font-size="12">purple #B450FF</text>
+<rect x="20" y="145" width="165" height="40" fill="#051F08" stroke="black"/><text x="20" y="203" font-family="monospace" font-size="12">darkGreen #051F08</text>
+<rect x="205" y="145" width="165" height="40" fill="#E6FFF2" stroke="black"/><text x="205" y="203" font-family="monospace" font-size="12">nearWhite #E6FFF2</text>
+<rect x="390" y="145" width="165" height="40" fill="#1A1A1A" stroke="black"/><text x="390" y="203" font-family="monospace" font-size="12">gray #1A1A1A approx</text>
+<rect x="575" y="145" width="165" height="40" fill="#000000" stroke="black"/><text x="575" y="203" font-family="monospace" font-size="12">black #000000</text>
+<rect x="760" y="145" width="165" height="40" fill="#FFFFFF" stroke="black"/><text x="760" y="203" font-family="monospace" font-size="12">white #FFFFFF</text>
+<text x="20" y="258" font-family="monospace" font-size="14">Campbell picker chips (other active schemes use other chip values)</text>
+<rect x="20" y="277" width="100" height="28" fill="#0C0C0C" stroke="black"/><text x="20" y="319" font-family="monospace" font-size="10">black</text><text x="20" y="331" font-family="monospace" font-size="10">#0C0C0C</text>
+<rect x="135" y="277" width="100" height="28" fill="#C50F1F" stroke="black"/><text x="135" y="319" font-family="monospace" font-size="10">red</text><text x="135" y="331" font-family="monospace" font-size="10">#C50F1F</text>
+<rect x="250" y="277" width="100" height="28" fill="#13A10E" stroke="black"/><text x="250" y="319" font-family="monospace" font-size="10">green</text><text x="250" y="331" font-family="monospace" font-size="10">#13A10E</text>
+<rect x="365" y="277" width="100" height="28" fill="#C19C00" stroke="black"/><text x="365" y="319" font-family="monospace" font-size="10">yellow</text><text x="365" y="331" font-family="monospace" font-size="10">#C19C00</text>
+<rect x="480" y="277" width="100" height="28" fill="#0037DA" stroke="black"/><text x="480" y="319" font-family="monospace" font-size="10">blue</text><text x="480" y="331" font-family="monospace" font-size="10">#0037DA</text>
+<rect x="595" y="277" width="100" height="28" fill="#881798" stroke="black"/><text x="595" y="319" font-family="monospace" font-size="10">purple</text><text x="595" y="331" font-family="monospace" font-size="10">#881798</text>
+<rect x="710" y="277" width="100" height="28" fill="#3A96DD" stroke="black"/><text x="710" y="319" font-family="monospace" font-size="10">cyan</text><text x="710" y="331" font-family="monospace" font-size="10">#3A96DD</text>
+<rect x="825" y="277" width="100" height="28" fill="#CCCCCC" stroke="black"/><text x="825" y="319" font-family="monospace" font-size="10">white</text><text x="825" y="331" font-family="monospace" font-size="10">#CCCCCC</text>
+<rect x="20" y="346" width="100" height="28" fill="#767676" stroke="black"/><text x="20" y="388" font-family="monospace" font-size="10">brightBlack</text><text x="20" y="400" font-family="monospace" font-size="10">#767676</text>
+<rect x="135" y="346" width="100" height="28" fill="#E74856" stroke="black"/><text x="135" y="388" font-family="monospace" font-size="10">brightRed</text><text x="135" y="400" font-family="monospace" font-size="10">#E74856</text>
+<rect x="250" y="346" width="100" height="28" fill="#16C60C" stroke="black"/><text x="250" y="388" font-family="monospace" font-size="10">brightGreen</text><text x="250" y="400" font-family="monospace" font-size="10">#16C60C</text>
+<rect x="365" y="346" width="100" height="28" fill="#F9F1A5" stroke="black"/><text x="365" y="388" font-family="monospace" font-size="10">brightYellow</text><text x="365" y="400" font-family="monospace" font-size="10">#F9F1A5</text>
+<rect x="480" y="346" width="100" height="28" fill="#3B78FF" stroke="black"/><text x="480" y="388" font-family="monospace" font-size="10">brightBlue</text><text x="480" y="400" font-family="monospace" font-size="10">#3B78FF</text>
+<rect x="595" y="346" width="100" height="28" fill="#B4009E" stroke="black"/><text x="595" y="388" font-family="monospace" font-size="10">brightPurple</text><text x="595" y="400" font-family="monospace" font-size="10">#B4009E</text>
+<rect x="710" y="346" width="100" height="28" fill="#61D6D6" stroke="black"/><text x="710" y="388" font-family="monospace" font-size="10">brightCyan</text><text x="710" y="400" font-family="monospace" font-size="10">#61D6D6</text>
+<rect x="825" y="346" width="100" height="28" fill="#F2F2F2" stroke="black"/><text x="825" y="388" font-family="monospace" font-size="10">brightWhite</text><text x="825" y="400" font-family="monospace" font-size="10">#F2F2F2</text>
+</svg>

@@ -9,7 +9,7 @@
     X(til::color, DefaultForeground, DEFAULT_FOREGROUND)                                                                  \
     X(til::color, DefaultBackground, DEFAULT_BACKGROUND)                                                                  \
     X(til::color, CursorColor, DEFAULT_CURSOR_COLOR)                                                                      \
-    X(winrt::Microsoft::Terminal::Core::CursorStyle, CursorShape, winrt::Microsoft::Terminal::Core::CursorStyle::Vintage) \
+    X(winrt::Microsoft::Terminal::Core::CursorStyle, CursorShape, winrt::Microsoft::Terminal::Core::CursorStyle::FilledBox) \
     X(uint32_t, CursorHeight, DEFAULT_CURSOR_HEIGHT)                                                                      \
     X(til::color, SelectionBackground, DEFAULT_FOREGROUND)                                                                \
     X(bool, IntenseIsBold)                                                                                                \
@@ -26,10 +26,10 @@
     X(winrt::Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode, winrt::Windows::UI::Xaml::Media::Stretch::UniformToFill)            \
     X(winrt::Windows::UI::Xaml::HorizontalAlignment, BackgroundImageHorizontalAlignment, winrt::Windows::UI::Xaml::HorizontalAlignment::Center) \
     X(winrt::Windows::UI::Xaml::VerticalAlignment, BackgroundImageVerticalAlignment, winrt::Windows::UI::Xaml::VerticalAlignment::Center)       \
-    X(float, RetroTerminalGlowIntensity, 0.3f) \
-    X(float, RetroTerminalScanlineIntensity, 0.5f) \
-    X(float, RetroTerminalScanlineThickness, 1.0f) \
-    X(float, RetroTerminalScanlineGap, 1.0f) \
+    X(float, RetroTerminalGlowIntensity, 0.15f) \
+    X(float, RetroTerminalScanlineIntensity, 0.10f) \
+    X(float, RetroTerminalScanlineThickness, 4.0f) \
+    X(float, RetroTerminalScanlineGap, 4.0f) \
     X(float, RetroTerminalTintIntensity, 0.0f) \
     X(til::color, RetroTerminalTintColor, til::color(0, 255, 65)) \
     X(bool, RetroTerminalEffect, false)                                                                                                         \
@@ -40,7 +40,7 @@
 //  All of these settings are defined in ICoreSettings.
 #define CORE_SETTINGS(X)                                                                                          \
     X(int32_t, HistorySize, DEFAULT_HISTORY_SIZE)                                                                 \
-    X(int32_t, InitialRows, 30)                                                                                   \
+    X(int32_t, InitialRows, 28)                                                                                   \
     X(int32_t, InitialCols, 80)                                                                                   \
     X(bool, SnapOnInput, true)                                                                                    \
     X(bool, AltGrAliasing, true)                                                                                  \
@@ -71,10 +71,10 @@
     X(bool, EnableUnfocusedAcrylic, false)                                                                                                               \
     X(bool, RetroBezelEnabled, false) \
     X(int32_t, RetroBezelSize, 1) \
-    X(int32_t, RetroBezelBadge, 1) \
+    X(int32_t, RetroBezelBadge, 0) \
     X(winrt::hstring, Padding, DEFAULT_PADDING)                                                                                                          \
     X(winrt::hstring, FontFace, L"Consolas")                                                                                                             \
-    X(float, FontSize, DEFAULT_FONT_SIZE)                                                                                                                \
+    X(float, FontSize, 16.0f)                                                                                                                \
     X(winrt::Windows::UI::Text::FontWeight, FontWeight)                                                                                                  \
     X(IFontFeatureMap, FontFeatures)                                                                                                                     \
     X(IFontAxesMap, FontAxes)                                                                                                                            \
@@ -89,7 +89,7 @@
     X(bool, StartingTitleIsExplicit, false) \
     X(winrt::hstring, Commandline)                                                                                                                       \
     X(winrt::hstring, StartingDirectory)                                                                                                                 \
-    X(winrt::Microsoft::Terminal::Control::ScrollbarState, ScrollState, winrt::Microsoft::Terminal::Control::ScrollbarState::Visible)                    \
+    X(winrt::Microsoft::Terminal::Control::ScrollbarState, ScrollState, winrt::Microsoft::Terminal::Control::ScrollbarState::Hidden)                    \
     X(winrt::Microsoft::Terminal::Control::TextAntialiasingMode, AntialiasingMode, winrt::Microsoft::Terminal::Control::TextAntialiasingMode::Grayscale) \
     X(winrt::Microsoft::Terminal::Control::GraphicsAPI, GraphicsAPI)                                                                                     \
     X(bool, DisablePartialInvalidation, false)                                                                                                           \

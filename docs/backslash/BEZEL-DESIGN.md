@@ -1,5 +1,9 @@
 # Configurable bezel design and research
 
+Current requested fallbacks are recorded in [Curated defaults](CURATED-DEFAULTS.md); earlier build evidence and the frozen color references keep their historical values.
+
+Exact older palettes, gradient endpoints, badge/gap colors and an append-only addition procedure: [frozen dc027cae bezel reference](BEZEL-COLOR-REFERENCE-dc027cae.md). This backup is independent of current source.
+
 [Project entry point](README.md) · [CRT Appearance design](CRT-APPEARANCE.md) · [Baseline sample map](BASELINE.md) · [Inline editor geometry research](SSH-LOCAL-EDITOR-RESEARCH.md)
 
 Research date: 2026-10-13. A limited first bezel slice is now implemented; its scope and evidence are recorded below. The remaining sections retain historical research and future options, not a promise that those features have shipped. No commit or push was made for this slice.
@@ -442,3 +446,13 @@ SHA256: **`447DA43FBCFD895E1C156CC7345F5312A65DAB40A7C17C406F2FEA44855BA2FE`**.
 Changed files for this follow-up: new `src/cascadia/inc/AppearancePreviewLayout.h`; `TerminalSettingsEditor/Profiles_Appearance.cpp`, `.h`, `.xaml`; `Resources/en-US/Resources.resw`; `inc/RetroBezel.h`, `BezelBadgeMaterial.h`; `UnitTests_SettingsModel/ProfileSourceTests.cpp`; and this document. Full source checkpoint/diff/status, regression logs, integration and preservation evidence are in the build directory.
 
 **Manual checks:** Defaults and profile Appearance; all sizes and badge top/bottom/off; enable/disable, inherited overrides/reset, large font/padding and live changes; narrow and wide page horizontal/vertical scrolling; monitor 125/150/200% DPI changes; compare casing/recess lighting and all rounded corners to the arrow photo across nine palettes, top/bottom/off badge and transparent/acrylic screens. Native preview viewport, gesture/keyboard scrolling, font rendering, corner shading and photo matching remain unverified because node_repl/native Computer Use is unavailable (CUA native APIs disabled). Root inspected the references; this worker followed their supplied dimensions/directions. Tests establish sizing/color/geometry math and source integration, not screenshot verification. User settings, actual production bezel values, installed Terminal, SSH configuration and security/installation/registration were not changed.
+
+## Accepted usable-grid invariant (2026-10-16)
+
+**Rows and columns describe usable terminal cells, never overall window dimensions.** The user accepted the verified behavior, tested the thickest bezel and confirmed thinner choices are fine. Keep the curated **80x28** grid unchanged. No further sizing redesign or defaults change is requested.
+
+A fresh extraction of the CuratedDefaults `f86a758f` ZIP was used for owned ordinary-window launches with bezel off/on, medium size, badge none and center-aperture off. Both consoles measured **80 columns x 28 rows**. Bezel off outer Win32 bounds were `(304,156)-(1348,911)`, **1044x755**; bezel on was `(224,76)-(1428,991)`, **1204x915**. The outer window gained **160 in width and height** in that probe's coordinate space while its center and usable grid stayed stable. Both test sessions exited naturally, **0 forced stops**. Thickest-size acceptance is the user's visual check; the two-case native measurement here is medium-size only.
+
+`TermControl::GetProposedDimensions` computes grid pixels plus padding/scrollbar, then adds DPI-scaled bezel insets outside them; `TerminalWindow::GetLaunchDimensions` uses that result. Medium's 56 DIP casing + 18 DIP recess + 6 DIP clearance is 80 DIP per side. This evidence concerns initial ordinary-window launch. Existing live setting changes update bezel layout inside the current window; automatic outer-window resizing for a live toggle was not tested or added.
+
+Evidence: `artifacts/build/20261015-165707-949-Release-x64-f86a758f/bezel-grid-smoke/bezel-grid-results.json` and `bezel-grid-smoke-console.log`. The running user copies were not reused or stopped. [Curated defaults](CURATED-DEFAULTS.md) and the delivered ZIP remain unchanged; [badge SVG preparation](BACKSLASH-BADGE-ASSET.md) does not implement new casing/logo layout.

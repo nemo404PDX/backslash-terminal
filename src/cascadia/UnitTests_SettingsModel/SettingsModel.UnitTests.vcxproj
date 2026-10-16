@@ -36,6 +36,7 @@
   <!-- ========================= Cpp Files ======================== -->
   <ItemGroup>
     <ClCompile Include="ProfileTests.cpp" />
+    <ClCompile Include="CuratedDefaultsTests.cpp" />
     <ClCompile Include="ProfileSourceTests.cpp" />
     <ClCompile Include="PinnedDestinationTests.cpp" />
     <ClCompile Include="PinnedStoreTests.cpp" />

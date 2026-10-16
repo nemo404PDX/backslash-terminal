@@ -1,0 +1,59 @@
+# Backslash badge SVG inspection and conservative cleanup
+
+Completed 2026-10-16 UTC. The supplied solid-backed and cutout-backed artwork was inspected, backed up byte-for-byte, then conservatively cleaned with the user's explicit authorization. A separate `currentColor` duplicate of the solid-backed artwork was created. This work prepares assets and records integration constraints; product code and the delivered portable ZIP are unchanged.
+
+## Working assets and backups
+
+| Asset | Supplied bytes | Working bytes | Result |
+| --- | ---: | ---: | --- |
+| [backslash-badge.svg](../images/backslash-badge.svg) | 19,813 | **19,411** | Solid dark backing, white lettering/logo; 402 bytes removed (2.03%) |
+| [backslash-badge-currentcolor.svg](../images/backslash-badge-currentcolor.svg) | Derived duplicate | **19,425** | Solid dark backing; lettering and slash/logo inherit `currentColor` |
+| [backslash-badge-outline.svg](../images/backslash-badge-outline.svg) | 33,734 | **33,332** | Filled backing with letter cutouts plus separate white lettering/logo; 402 bytes removed (1.19%) |
+
+Exact originals are preserved in [docs/asset-backups](../asset-backups/README.md), outside runtime asset candidates. Working SHA256 values:
+
+* Solid: `817D98BE673A969BA36C1FD7CBCCFF66FB95B25D0A25549DB251E335FF72A691`.
+* CurrentColor: `3D8DECE0462CB3E7114209762A470FF57F0CDCF27EA53F10E8A29AE7532920F0`.
+* Cutout: `43A25EF96FE5EFF8232D821AA7B57D0B382B55C23EB217E649D5669F45920262`.
+
+`backslash-badge.afdesign` and `backslash-badge-outline.afdesign` remain untouched authoring files.
+
+## Structure preserved
+
+All three working SVGs retain `viewBox="0 0 527 100"`, width/height `100%`, aspect ratio **5.27:1**, three groups and two filled paths. Text and the slash mark are already path geometry: there is no live text/font dependency. Group IDs and transforms are unchanged:
+
+| Group | Transform | Component |
+| --- | --- | --- |
+| `badge` | `matrix(2.11562,0,0,2.11562,-210.341,-185.892)` | Common parent |
+| `backer` | `matrix(1.30253,0,0,0.712199,-19.8012,34.8411)` | Dark backing path |
+| `letters` | `matrix(1.5384,0,0,1.5384,-92.3637,-44.4099)` | Lettering and slash/logo path |
+
+Every `d` string is exact. The solid backing path has 5,176 characters; the cutout backing has 19,097 characters and 17 move commands. Both lettering paths have the same 13,840 characters and 16 move commands. The outline variant is a **filled compound path with letter holes**, not stroke-only lettering. Its `evenodd` fill rule and component separation are retained.
+
+Cleanup removed the XML declaration and SVG 1.1 public DOCTYPE, unused namespace declarations, `version`/`xml:space`, indentation, and unused clip/stroke presentation properties. Equivalent white paint was shortened. The supplied DOCTYPE identified a W3C DTD, but no artwork resource depends on it. There are no image elements, external asset references, scripts, animation or `foreignObject`. No geometry was simplified, rounded, merged or flattened.
+
+In the currentColor duplicate, `backer` explicitly remains `#000`, `letters` has `fill="currentColor"`, and its child path has no hardcoded fill overriding that inheritance. Both the name and slash mark therefore recolor together. Without a supplied SVG `color`, currentColor defaults to black; a host must set a suitable color explicitly.
+
+## Native render verification
+
+The installed Direct2D SVG renderer with WARP rendered at **1054x200** onto a transparent target. Comparisons use complete BGRA buffers, not PNG compression or a visual approximation:
+
+* Supplied solid versus cleaned solid: **0 differing pixels**, no antialiasing tolerance.
+* Supplied solid versus currentColor with white: **0 differing pixels**.
+* CurrentColor at green `#00FF41` and amber `#FFB000`: **0 alpha differences**, **0 errors across 89,306 opaque dark-backing samples**, and **0 errors across 49,838 opaque lettering/logo samples** for each color. The actual SVG root `color` was set through Direct2D's DOM.
+* Supplied cutout versus cleaned cutout: **0 differing pixels**, no antialiasing tolerance. Path data, transforms and evenodd rule also match structurally.
+* With the separate lettering hidden in memory, the solid backing stays opaque at all **49,838** solid-letter sample positions. The cutout backing is transparent at **49,833/49,838**, with the remaining five antialiased positions and **zero opaque backing samples**. This confirms the exported holes instead of inferring them from the name.
+
+Evidence: [solid/currentColor validation](../../artifacts/badge-svg-inspection-20261016/cleanup-render-validation.json), [cutout validation](../../artifacts/badge-svg-inspection-20261016/outline-render-validation.json), native probe sources/build logs and before/after PNG/BGRA files in `artifacts/badge-svg-inspection-20261016`. [Green preview](../../artifacts/badge-svg-inspection-20261016/currentcolor-green.png), [amber preview](../../artifacts/badge-svg-inspection-20261016/currentcolor-amber.png), [cutout backing alone](../../artifacts/badge-svg-inspection-20261016/outline-backing-only.png). These are offscreen asset tests; no live XAML bezel render or Settings interaction is claimed.
+
+## Independent fills and opacity
+
+Separate backing and lettering groups allow later DOM paint/opacity changes without altering paths. With the solid version, fading or hiding lettering exposes its opaque dark backing. With the cutout version, the holes expose the underlying bezel, so semitransparent lettering blends with the bezel there. Fading the common parent affects both components. Preserve the compound backing and evenodd rule to retain this distinction. The cutout variant keeps its supplied white lettering; no additional cutout-currentColor file was requested or created.
+
+## Integration constraints and design context
+
+A future implementation can explicitly package the selected working SVG as Content in an `Assets/branding` location and load it with `Image`/`SvgImageSource`, preserving 5.27:1 with uniform sizing. Keep backup and `.afdesign` authoring inputs out of runtime asset globs. Microsoft's [SvgImageSource API](https://learn.microsoft.com/en-us/uwp/api/windows.ui.xaml.media.imaging.svgimagesource?view=winrt-26100) describes URI/stream loading; [Direct2D SVG support](https://learn.microsoft.com/en-us/windows/win32/direct2d/svg-support) lists supported path/group/paint/transform attributes. This simple path-only artwork decoded successfully in the native probe.
+
+Current `RetroBezel.h` uses a `TextBlock` inside a rectangular badge `Border`. Replacing that label alone would leave the existing plate. Dynamic color also needs explicit SVG color/paint supplied through an in-memory SVG stream or native DOM; setting XAML `Foreground` does not establish inheritance across an external image boundary. The probe verifies native DOM coloring, not that future XAML binding.
+
+The agreed design context is a continuous casing gradient with **no separate recessed rectangular plate**. The SVG's intentional backing is a distinct artwork component and remains preserved. Proposed logo placement is top-left/center/right, bottom-left/center/right, or off; optional extra bezel filler is independent of logo visibility. These are future UI/layout requirements, not implemented modes or an approval to change geometry/defaults. The existing delivered badge-none default and all casing values remain unchanged.

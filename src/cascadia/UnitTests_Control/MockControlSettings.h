@@ -26,7 +26,9 @@ namespace ControlUnitTests
 #undef SETTINGS_GEN
 
     public:
-        MockControlSettings() = default;
+        // Geometry tests use the original 12-point grid explicitly; application
+        // defaults are validated through the actual model/settings adapter.
+        MockControlSettings() { FontSize(DEFAULT_FONT_SIZE); }
 
         void SetColorTable(const std::array<winrt::Microsoft::Terminal::Core::Color, 16>& colors)
         {

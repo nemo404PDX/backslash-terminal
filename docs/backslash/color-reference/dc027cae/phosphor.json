@@ -1,0 +1,750 @@
+{
+  "schemaVersion": 1,
+  "referenceKind": "frozen extracted baseline; never regenerate from current source",
+  "baselineCommit": "dc027cae58b9414c4c0bdcb5790093fb7165ba8e",
+  "acceptedBuild": "20261014-171049-545-Release-x64-13ebff74",
+  "baselineSelection": "dc027cae is the earlier commit containing the accepted build shader. The exact two builds in the new complaint are not identified.",
+  "defaultColor": {
+    "rgbHex": "#00FF41",
+    "rgba8": [
+      0,
+      255,
+      65,
+      255
+    ],
+    "coreColorFieldOrder": "R,G,B,A",
+    "windowsUIColorFieldOrder": "A,R,G,B",
+    "colorRefBgrHex": "0x0041FF00",
+    "rendererPackedAbgrHex": "0xFF41FF00"
+  },
+  "defaults": {
+    "experimental.retroTerminalEffect": false,
+    "experimental.retroTerminalGlowIntensity": 0.3,
+    "experimental.retroTerminalScanlineIntensity": 0.5,
+    "experimental.retroTerminalScanlineThickness": 1.0,
+    "experimental.retroTerminalScanlineGap": 1.0,
+    "experimental.retroTerminalTintColor": "#00FF41",
+    "experimental.retroTerminalTintIntensity": 0.0
+  },
+  "tintIntensityRange": [
+    0,
+    1
+  ],
+  "uiIntensityPercentRange": [
+    0,
+    100
+  ],
+  "hasNamedPhosphorPresetCatalog": false,
+  "pickerChipSource": "Appearance.CurrentColorScheme -> ColorSchemeVM -> ColorEntryAt(0..15)",
+  "inboxColorSchemes": [
+    {
+      "name": "Dimidium",
+      "background": "#141414",
+      "foreground": "#BAB7B6",
+      "cursorColor": "#37E57B",
+      "selectionBackground": "#8DB8E5",
+      "black": "#000000",
+      "red": "#CF494C",
+      "green": "#60B442",
+      "yellow": "#DB9C11",
+      "blue": "#0575D8",
+      "purple": "#AF5ED2",
+      "cyan": "#1DB6BB",
+      "white": "#BAB7B6",
+      "brightBlack": "#817E7E",
+      "brightRed": "#FF643B",
+      "brightGreen": "#37E57B",
+      "brightYellow": "#FCCD1A",
+      "brightBlue": "#688DFD",
+      "brightPurple": "#ED6FE9",
+      "brightCyan": "#32E0FB",
+      "brightWhite": "#DEE3E4"
+    },
+    {
+      "name": "Ottosson",
+      "background": "#000000",
+      "foreground": "#bebebe",
+      "cursorColor": "#ffffff",
+      "selectionBackground": "#92a4fd",
+      "black": "#000000",
+      "red": "#be2c21",
+      "green": "#3fae3a",
+      "yellow": "#be9a4a",
+      "blue": "#204dbe",
+      "purple": "#bb54be",
+      "cyan": "#00a7b2",
+      "white": "#bebebe",
+      "brightBlack": "#808080",
+      "brightRed": "#ff3e30",
+      "brightGreen": "#58ea51",
+      "brightYellow": "#ffc944",
+      "brightBlue": "#2f6aff",
+      "brightPurple": "#fc74ff",
+      "brightCyan": "#00e1f0",
+      "brightWhite": "#ffffff"
+    },
+    {
+      "name": "Campbell",
+      "foreground": "#CCCCCC",
+      "background": "#0C0C0C",
+      "cursorColor": "#FFFFFF",
+      "black": "#0C0C0C",
+      "red": "#C50F1F",
+      "green": "#13A10E",
+      "yellow": "#C19C00",
+      "blue": "#0037DA",
+      "purple": "#881798",
+      "cyan": "#3A96DD",
+      "white": "#CCCCCC",
+      "brightBlack": "#767676",
+      "brightRed": "#E74856",
+      "brightGreen": "#16C60C",
+      "brightYellow": "#F9F1A5",
+      "brightBlue": "#3B78FF",
+      "brightPurple": "#B4009E",
+      "brightCyan": "#61D6D6",
+      "brightWhite": "#F2F2F2"
+    },
+    {
+      "name": "Campbell Powershell",
+      "foreground": "#CCCCCC",
+      "background": "#012456",
+      "cursorColor": "#FFFFFF",
+      "black": "#0C0C0C",
+      "red": "#C50F1F",
+      "green": "#13A10E",
+      "yellow": "#C19C00",
+      "blue": "#0037DA",
+      "purple": "#881798",
+      "cyan": "#3A96DD",
+      "white": "#CCCCCC",
+      "brightBlack": "#767676",
+      "brightRed": "#E74856",
+      "brightGreen": "#16C60C",
+      "brightYellow": "#F9F1A5",
+      "brightBlue": "#3B78FF",
+      "brightPurple": "#B4009E",
+      "brightCyan": "#61D6D6",
+      "brightWhite": "#F2F2F2"
+    },
+    {
+      "name": "Vintage",
+      "foreground": "#C0C0C0",
+      "background": "#000000",
+      "cursorColor": "#FFFFFF",
+      "black": "#000000",
+      "red": "#800000",
+      "green": "#008000",
+      "yellow": "#808000",
+      "blue": "#000080",
+      "purple": "#800080",
+      "cyan": "#008080",
+      "white": "#C0C0C0",
+      "brightBlack": "#808080",
+      "brightRed": "#FF0000",
+      "brightGreen": "#00FF00",
+      "brightYellow": "#FFFF00",
+      "brightBlue": "#0000FF",
+      "brightPurple": "#FF00FF",
+      "brightCyan": "#00FFFF",
+      "brightWhite": "#FFFFFF"
+    },
+    {
+      "name": "One Half Dark",
+      "foreground": "#DCDFE4",
+      "background": "#282C34",
+      "cursorColor": "#FFFFFF",
+      "black": "#282C34",
+      "red": "#E06C75",
+      "green": "#98C379",
+      "yellow": "#E5C07B",
+      "blue": "#61AFEF",
+      "purple": "#C678DD",
+      "cyan": "#56B6C2",
+      "white": "#DCDFE4",
+      "brightBlack": "#5A6374",
+      "brightRed": "#E06C75",
+      "brightGreen": "#98C379",
+      "brightYellow": "#E5C07B",
+      "brightBlue": "#61AFEF",
+      "brightPurple": "#C678DD",
+      "brightCyan": "#56B6C2",
+      "brightWhite": "#DCDFE4"
+    },
+    {
+      "name": "One Half Light",
+      "foreground": "#383A42",
+      "background": "#FAFAFA",
+      "cursorColor": "#4F525D",
+      "selectionBackground": "#383A42",
+      "black": "#383A42",
+      "red": "#E45649",
+      "green": "#50A14F",
+      "yellow": "#C18301",
+      "blue": "#0184BC",
+      "purple": "#A626A4",
+      "cyan": "#0997B3",
+      "white": "#FAFAFA",
+      "brightBlack": "#4F525D",
+      "brightRed": "#DF6C75",
+      "brightGreen": "#98C379",
+      "brightYellow": "#E4C07A",
+      "brightBlue": "#61AFEF",
+      "brightPurple": "#C577DD",
+      "brightCyan": "#56B5C1",
+      "brightWhite": "#FFFFFF"
+    },
+    {
+      "name": "Solarized Dark",
+      "foreground": "#839496",
+      "background": "#002B36",
+      "cursorColor": "#FFFFFF",
+      "black": "#002B36",
+      "red": "#DC322F",
+      "green": "#859900",
+      "yellow": "#B58900",
+      "blue": "#268BD2",
+      "purple": "#D33682",
+      "cyan": "#2AA198",
+      "white": "#EEE8D5",
+      "brightBlack": "#073642",
+      "brightRed": "#CB4B16",
+      "brightGreen": "#586E75",
+      "brightYellow": "#657B83",
+      "brightBlue": "#839496",
+      "brightPurple": "#6C71C4",
+      "brightCyan": "#93A1A1",
+      "brightWhite": "#FDF6E3"
+    },
+    {
+      "name": "Solarized Light",
+      "foreground": "#657B83",
+      "background": "#FDF6E3",
+      "cursorColor": "#002B36",
+      "selectionBackground": "#2C4D57",
+      "black": "#002B36",
+      "red": "#DC322F",
+      "green": "#859900",
+      "yellow": "#B58900",
+      "blue": "#268BD2",
+      "purple": "#D33682",
+      "cyan": "#2AA198",
+      "white": "#EEE8D5",
+      "brightBlack": "#073642",
+      "brightRed": "#CB4B16",
+      "brightGreen": "#586E75",
+      "brightYellow": "#657B83",
+      "brightBlue": "#839496",
+      "brightPurple": "#6C71C4",
+      "brightCyan": "#93A1A1",
+      "brightWhite": "#FDF6E3"
+    },
+    {
+      "name": "Tango Dark",
+      "foreground": "#D3D7CF",
+      "background": "#000000",
+      "cursorColor": "#FFFFFF",
+      "black": "#000000",
+      "red": "#CC0000",
+      "green": "#4E9A06",
+      "yellow": "#C4A000",
+      "blue": "#3465A4",
+      "purple": "#75507B",
+      "cyan": "#06989A",
+      "white": "#D3D7CF",
+      "brightBlack": "#555753",
+      "brightRed": "#EF2929",
+      "brightGreen": "#8AE234",
+      "brightYellow": "#FCE94F",
+      "brightBlue": "#729FCF",
+      "brightPurple": "#AD7FA8",
+      "brightCyan": "#34E2E2",
+      "brightWhite": "#EEEEEC"
+    },
+    {
+      "name": "Tango Light",
+      "foreground": "#555753",
+      "background": "#FFFFFF",
+      "cursorColor": "#000000",
+      "selectionBackground": "#141414",
+      "black": "#000000",
+      "red": "#CC0000",
+      "green": "#4E9A06",
+      "yellow": "#C4A000",
+      "blue": "#3465A4",
+      "purple": "#75507B",
+      "cyan": "#06989A",
+      "white": "#D3D7CF",
+      "brightBlack": "#555753",
+      "brightRed": "#EF2929",
+      "brightGreen": "#8AE234",
+      "brightYellow": "#FCE94F",
+      "brightBlue": "#729FCF",
+      "brightPurple": "#AD7FA8",
+      "brightCyan": "#34E2E2",
+      "brightWhite": "#EEEEEC"
+    },
+    {
+      "name": "Dark+",
+      "foreground": "#cccccc",
+      "background": "#1e1e1e",
+      "cursorColor": "#808080",
+      "selectionBackground": "#ffffff",
+      "black": "#000000",
+      "red": "#cd3131",
+      "green": "#0dbc79",
+      "yellow": "#e5e510",
+      "blue": "#2472c8",
+      "purple": "#bc3fbc",
+      "cyan": "#11a8cd",
+      "white": "#e5e5e5",
+      "brightBlack": "#666666",
+      "brightRed": "#f14c4c",
+      "brightGreen": "#23d18b",
+      "brightYellow": "#f5f543",
+      "brightBlue": "#3b8eea",
+      "brightPurple": "#d670d6",
+      "brightCyan": "#29b8db",
+      "brightWhite": "#e5e5e5"
+    },
+    {
+      "name": "VSCode Dark Modern",
+      "foreground": "#CCCCCC",
+      "background": "#1F1F1F",
+      "cursorColor": "#FFFFFF",
+      "selectionBackground": "#264F78",
+      "black": "#000000",
+      "red": "#CD3131",
+      "green": "#0DBC79",
+      "yellow": "#E5E510",
+      "blue": "#2472C8",
+      "purple": "#BC3FBC",
+      "cyan": "#11A8CD",
+      "white": "#E5E5E5",
+      "brightBlack": "#666666",
+      "brightRed": "#F14C4C",
+      "brightGreen": "#23D18B",
+      "brightYellow": "#F5F543",
+      "brightBlue": "#3B8EEA",
+      "brightPurple": "#D670D6",
+      "brightCyan": "#29B8DB",
+      "brightWhite": "#E5E5E5"
+    },
+    {
+      "name": "VSCode Light Modern",
+      "foreground": "#3B3B3B",
+      "background": "#FFFFFF",
+      "cursorColor": "#000000",
+      "selectionBackground": "#ADD6FF",
+      "black": "#000000",
+      "red": "#CD3131",
+      "green": "#00BC00",
+      "yellow": "#949800",
+      "blue": "#0451A5",
+      "purple": "#BC05BC",
+      "cyan": "#0598BC",
+      "white": "#555555",
+      "brightBlack": "#666666",
+      "brightRed": "#CD3131",
+      "brightGreen": "#14CE14",
+      "brightYellow": "#B5BA00",
+      "brightBlue": "#0451A5",
+      "brightPurple": "#BC05BC",
+      "brightCyan": "#0598BC",
+      "brightWhite": "#A5A5A5"
+    },
+    {
+      "background": "#000000",
+      "black": "#000000",
+      "blue": "#0000AA",
+      "brightBlack": "#555555",
+      "brightBlue": "#5555FF",
+      "brightCyan": "#55FFFF",
+      "brightGreen": "#55FF55",
+      "brightPurple": "#FF55FF",
+      "brightRed": "#FF5555",
+      "brightWhite": "#FFFFFF",
+      "brightYellow": "#FFFF55",
+      "cursorColor": "#00AA00",
+      "cyan": "#00AAAA",
+      "foreground": "#AAAAAA",
+      "green": "#00AA00",
+      "name": "CGA",
+      "purple": "#AA00AA",
+      "red": "#AA0000",
+      "selectionBackground": "#FFFFFF",
+      "white": "#AAAAAA",
+      "yellow": "#AA5500"
+    },
+    {
+      "background": "#000000",
+      "black": "#000000",
+      "blue": "#0000AA",
+      "brightBlack": "#555555",
+      "brightBlue": "#5555FF",
+      "brightCyan": "#55FFFF",
+      "brightGreen": "#55FF55",
+      "brightPurple": "#FF55FF",
+      "brightRed": "#FF5555",
+      "brightWhite": "#FFFFFF",
+      "brightYellow": "#FFFF55",
+      "cursorColor": "#00AA00",
+      "cyan": "#00AAAA",
+      "foreground": "#AAAAAA",
+      "green": "#00AA00",
+      "name": "IBM 5153",
+      "purple": "#AA00AA",
+      "red": "#AA0000",
+      "selectionBackground": "#FFFFFF",
+      "white": "#AAAAAA",
+      "yellow": "#C47E00"
+    }
+  ],
+  "historicalShaderTestEndpoints": [
+    {
+      "name": "green",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        0,
+        255,
+        65
+      ],
+      "normalizedSrgb": [
+        0.0,
+        1.0,
+        0.2549019607843137
+      ],
+      "literalNormalizedSrgb": [
+        "0/255",
+        "255/255",
+        "65/255"
+      ],
+      "displayHex": "#00FF41",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.7190165387150735,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "amber",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        255,
+        176,
+        0
+      ],
+      "normalizedSrgb": [
+        1.0,
+        0.6901960784313725,
+        0.0
+      ],
+      "literalNormalizedSrgb": [
+        "255/255",
+        "176/255",
+        "0/255"
+      ],
+      "displayHex": "#FFB000",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.5231066805921805,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "red",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        255,
+        0,
+        0
+      ],
+      "normalizedSrgb": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "literalNormalizedSrgb": [
+        "255/255",
+        "0/255",
+        "0/255"
+      ],
+      "displayHex": "#FF0000",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.2126,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "blue",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        0,
+        0,
+        255
+      ],
+      "normalizedSrgb": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "literalNormalizedSrgb": [
+        "0/255",
+        "0/255",
+        "255/255"
+      ],
+      "displayHex": "#0000FF",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.0722,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "purple",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        180,
+        80,
+        255
+      ],
+      "normalizedSrgb": [
+        0.7058823529411765,
+        0.3137254901960784,
+        1.0
+      ],
+      "literalNormalizedSrgb": [
+        "180/255",
+        "80/255",
+        "255/255"
+      ],
+      "displayHex": "#B450FF",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.22660619901706175,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "darkGreen",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        5,
+        31,
+        8
+      ],
+      "normalizedSrgb": [
+        0.0196078431372549,
+        0.12156862745098039,
+        0.03137254901960784
+      ],
+      "literalNormalizedSrgb": [
+        "5/255",
+        "31/255",
+        "8/255"
+      ],
+      "displayHex": "#051F08",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.010297696164631807,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "nearWhite",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        230,
+        255,
+        242
+      ],
+      "normalizedSrgb": [
+        0.9019607843137255,
+        1.0,
+        0.9490196078431372
+      ],
+      "literalNormalizedSrgb": [
+        "230/255",
+        "255/255",
+        "242/255"
+      ],
+      "displayHex": "#E6FFF2",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 0.9475379912257951,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "gray",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": null,
+      "normalizedSrgb": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "literalNormalizedSrgb": [
+        "0.1",
+        "0.1",
+        "0.1"
+      ],
+      "displayHex": "#1A1A1A",
+      "displayHexIsApproximate": true,
+      "whiteLuminanceScale": 0.010022825574869039,
+      "blackUsesGrayscaleFallback": false
+    },
+    {
+      "name": "black",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        0,
+        0,
+        0
+      ],
+      "normalizedSrgb": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "literalNormalizedSrgb": [
+        "0/255",
+        "0/255",
+        "0/255"
+      ],
+      "displayHex": "#000000",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 1,
+      "blackUsesGrayscaleFallback": true
+    },
+    {
+      "name": "white",
+      "role": "historical test/analysis label; not a selectable named phosphor preset",
+      "rgb8": [
+        255,
+        255,
+        255
+      ],
+      "normalizedSrgb": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "literalNormalizedSrgb": [
+        "255/255",
+        "255/255",
+        "255/255"
+      ],
+      "displayHex": "#FFFFFF",
+      "displayHexIsApproximate": false,
+      "whiteLuminanceScale": 1.0,
+      "blackUsesGrayscaleFallback": false
+    }
+  ],
+  "acceptedMath": {
+    "srgbToLinear": "c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055)^2.4",
+    "linearToSrgb": "c <= 0.0031308 ? c * 12.92 : 1.055 * c^(1/2.4) - 0.055",
+    "luminanceWeights": [
+      0.2126,
+      0.7152,
+      0.0722
+    ],
+    "original": "linear(saturate(premultipliedRgb / alpha)), only for alpha > 0",
+    "endpoint": "linear(selectedRgb), except exact black -> (1,1,1)",
+    "fullTint": "Y * endpoint",
+    "partialTint": "lerp(originalLinear, saturate(Y * endpoint), strength)",
+    "output": "sRGB(saturate(blended)) * originalPostCrtAlpha; preserve alpha",
+    "zeroIntensity": "exact bypass with no conversion/clipping",
+    "alphaZero": "transparent black when tint enabled",
+    "order": [
+      "source sample",
+      "legacy float4 glow",
+      "legacy float4 scanline modulation",
+      "phosphor tint"
+    ]
+  },
+  "sourceFiles": [
+    {
+      "path": "src/renderer/atlas/custom_shader_ps.hlsl",
+      "gitBlob": "8d484ebb7c5fdf1018ab33bd4bad6c4a01dbb95c",
+      "sha256": "DE0A93552013CB703E97ACFDCA49E9025DC3EC38793469A9C9011536CC780D03"
+    },
+    {
+      "path": "src/renderer/atlas/BackendD3D.cpp",
+      "gitBlob": "ab239e30a5b3246c55866f383a338ae3137d9791",
+      "sha256": "BB9A24753E6C58182A106C06E6D1AC733B5A07CE1B39CADF97BF48B60A450048"
+    },
+    {
+      "path": "src/renderer/atlas/common.h",
+      "gitBlob": "222148edca5c504a763e72229c4f31b3ce1f986d",
+      "sha256": "EBF7FC0B9211D5C59FCDC51024D9AA9C70D1F0F2933800A2B3DA631F1E243023"
+    },
+    {
+      "path": "src/cascadia/inc/ControlProperties.h",
+      "gitBlob": "7d2852f776eed70e604b18416b8d11996071b24f",
+      "sha256": "1821E6CBFDDE54E8D81D516F59B583DC7E93F01CBE81523D807EC8819282B0B1"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/MTSMSettings.h",
+      "gitBlob": "6a6d3b9be2415dddf7d59c6765dd316b7b8be500",
+      "sha256": "CAE6BB9CFF7B4260DD09C22DAB95A3E18677BAE092BF4CC760179F0D901778EE"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/AppearanceConfig.cpp",
+      "gitBlob": "764e26d8fe3cd938bea2a82bb8ee09a3f614e581",
+      "sha256": "2B17FBBCE83F406977107E91058E1CC535CEAAA832A3BA822C5CCD853102932A"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/AppearanceConfig.h",
+      "gitBlob": "17194ccab911962a5b0fc7d44649cf3791def13c",
+      "sha256": "4E3E525D27134218F05C810E91021060F7505ECFF5F90C2760204DBD7583F0D8"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/Appearances.cpp",
+      "gitBlob": "a7f3623ee953fe11dc21e9a2165140dce49a60d3",
+      "sha256": "C3A4FFB2DC61E9E1086DB0A33D501A245BFF4F99312F6BCF636676CBE7ED36A3"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/Appearances.xaml",
+      "gitBlob": "b9fa6844c4e8dfa3b092c2a3b14fcc3663786952",
+      "sha256": "E5579B5E74A73FE9397F01A70D6300689C6798A62187AAD25DFF355305FAC4CE"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/NullableColorPicker.cpp",
+      "gitBlob": "0f33b90f6d1fd81d1a91f9980a372c5b871cc55c",
+      "sha256": "1F478F57797B4723C563C4253A9FAE108DA3D332B66201BC0E91BD33F1E780F0"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/NullableColorPicker.xaml",
+      "gitBlob": "bae72ad2566d35be4db2ae9314a7c52a5771e2c0",
+      "sha256": "D4F2177149774F9F703E75F367BEF814698B37FEAE696DB6462280A01FC47C74"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/Resources/en-US/Resources.resw",
+      "gitBlob": "48c28ee303f35cffb1a62852837720eef27f8ccd",
+      "sha256": "381A014FCAE7FAE0376C2C6527AA59658AFE3905EF32E2E930F7B9D101B8457C"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/defaults.json",
+      "gitBlob": "9d9474cd9c559a6140d1dd92f714c774d56f5511",
+      "sha256": "5ABE4FEFAF0D0D1CB160924BA55B26677E9C5C41EEC4B0AD3D2C57A0E3CCF504"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/TerminalSettingsSerializationHelpers.h",
+      "gitBlob": "2de493844800d60989564b31669c8e800c34343e",
+      "sha256": "C89997CB331FD2061C4D1E19033D6450BE4F03F055B45FD24B547BC513BC7E76"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/Profile.idl",
+      "gitBlob": "23d7b25a307221f3ceac25d402a8d644ef563e01",
+      "sha256": "CEF41A020E823049282380D7ACDC9B4B96C35361F0644BDAC5B2D9B4FEEF0B6C"
+    },
+    {
+      "path": "src/cascadia/inc/RetroBezel.h",
+      "gitBlob": "b02e0c1924fd549135b671b7f95724d668fdbc1b",
+      "sha256": "1168B81495FA43EE3CE285C70E87646795C774C5FC9A79C955A9F3DC639C5251"
+    },
+    {
+      "path": "src/cascadia/inc/RetroBezelGeometry.h",
+      "gitBlob": "fcdad89aab5998440cda0ff78d664e71b79ecc3c",
+      "sha256": "2F46E9F4B99B5F786EA91130D105971E39D401473A1308140968D1DB9CF378F6"
+    },
+    {
+      "path": "src/cascadia/inc/BezelBadgeMaterial.h",
+      "gitBlob": "ce796e51c6399bc48ebb2f5f822e35f88669175f",
+      "sha256": "D9769DEB6D058607298E41800F0D75FCD8786284FF1864724801133E767E624B"
+    },
+    {
+      "path": "tools/backslash/RetroShaderTests.cpp",
+      "gitBlob": "a49d090c6302247f70b6f20611c9b10bdf51ff05",
+      "sha256": "0F10E4C42D169C452242BD629A598EDA9448046CEF7835856045C732A5E225C7"
+    }
+  ]
+}

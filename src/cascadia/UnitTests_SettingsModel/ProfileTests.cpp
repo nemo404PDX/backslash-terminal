@@ -44,8 +44,8 @@ namespace SettingsModelUnitTests
         VERIFY_IS_FALSE(defaults->RetroBezelEnabled());
         VERIFY_ARE_EQUAL(RetroBezelSize::Medium, defaults->RetroBezelSize());
         VERIFY_ARE_EQUAL(RetroBezelColor::OffWhite, defaults->RetroBezelColor());
-        VERIFY_ARE_EQUAL(RetroBezelBadge::Bottom, defaults->RetroBezelBadge());
-        VERIFY_IS_TRUE(defaults->RetroBezelCenterFullscreen());
+        VERIFY_ARE_EQUAL(RetroBezelBadge::None, defaults->RetroBezelBadge());
+        VERIFY_IS_FALSE(defaults->RetroBezelCenterFullscreen());
         defaults->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelEnabled":true,
             "experimental.retroBezelSize":"wide", "experimental.retroBezelColor":"agedYellow",
             "experimental.retroBezelBadge":"top", "experimental.retroBezelCenterFullscreen":false})"));

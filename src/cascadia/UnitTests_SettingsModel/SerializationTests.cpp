@@ -121,8 +121,8 @@ namespace SettingsModelUnitTests
     void SerializationTests::BackslashRetroIntensityModel()
     {
         const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
-        VERIFY_ARE_EQUAL(0.3f, parent->RetroTerminalGlowIntensity());
-        VERIFY_ARE_EQUAL(0.5f, parent->RetroTerminalScanlineIntensity());
+        VERIFY_ARE_EQUAL(0.15f, parent->RetroTerminalGlowIntensity());
+        VERIFY_ARE_EQUAL(0.10f, parent->RetroTerminalScanlineIntensity());
         VERIFY_IS_FALSE(parent->HasRetroTerminalGlowIntensity());
         VERIFY_IS_FALSE(parent->ToJson().isMember("experimental.retroTerminalGlowIntensity"));
         parent->RetroTerminalGlowIntensity(0.8f);
@@ -484,8 +484,8 @@ namespace SettingsModelUnitTests
     void SerializationTests::BackslashScanlineDimensions()
     {
         const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
-        VERIFY_ARE_EQUAL(1.0f, parent->RetroTerminalScanlineThickness());
-        VERIFY_ARE_EQUAL(1.0f, parent->RetroTerminalScanlineGap());
+        VERIFY_ARE_EQUAL(4.0f, parent->RetroTerminalScanlineThickness());
+        VERIFY_ARE_EQUAL(4.0f, parent->RetroTerminalScanlineGap());
         VERIFY_IS_FALSE(parent->HasRetroTerminalScanlineGap());
         parent->RetroTerminalScanlineThickness(2.5f);
         parent->RetroTerminalScanlineGap(3.0f);

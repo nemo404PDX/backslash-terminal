@@ -1,0 +1,1275 @@
+{
+  "schemaVersion": 1,
+  "referenceKind": "frozen extracted baseline; never regenerate from current source",
+  "baselineCommit": "dc027cae58b9414c4c0bdcb5790093fb7165ba8e",
+  "baselineSelection": "Same older commit as the phosphor backup. This records existing bezel material values, not separate user visual acceptance of every finish.",
+  "paletteCount": 9,
+  "palettes": [
+    {
+      "index": 0,
+      "enum": "OffWhite",
+      "jsonToken": "offWhite",
+      "englishName": "Fresh off-white",
+      "darkMaterial": false,
+      "storedBase": {
+        "argbHex": "0xFFE8E8DD",
+        "rgbHex": "#E8E8DD",
+        "rgba8": [
+          232,
+          232,
+          221,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFFD3D3C9",
+          "rgbHex": "#D3D3C9",
+          "rgba8": [
+            211,
+            211,
+            201,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFFEBEBE1",
+          "rgbHex": "#EBEBE1",
+          "rgba8": [
+            235,
+            235,
+            225,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFFF6F6F3",
+          "rgbHex": "#F6F6F3",
+          "rgba8": [
+            246,
+            246,
+            243,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF787872",
+          "rgbHex": "#787872",
+          "rgba8": [
+            120,
+            120,
+            114,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF7F7F79",
+          "rgbHex": "#7F7F79",
+          "rgba8": [
+            127,
+            127,
+            121,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF555551",
+          "rgbHex": "#555551",
+          "rgba8": [
+            85,
+            85,
+            81,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFFCDCDC5",
+          "rgbHex": "#CDCDC5",
+          "rgba8": [
+            205,
+            205,
+            197,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF5C5C58",
+          "rgbHex": "#5C5C58",
+          "rgba8": [
+            92,
+            92,
+            88,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF868680",
+          "rgbHex": "#868680",
+          "rgba8": [
+            134,
+            134,
+            128,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFF2A2D2B",
+          "rgbHex": "#2A2D2B",
+          "rgba8": [
+            42,
+            45,
+            43,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 1,
+      "enum": "Cream",
+      "jsonToken": "cream",
+      "englishName": "Cream",
+      "darkMaterial": false,
+      "storedBase": {
+        "argbHex": "0xFFE5DABD",
+        "rgbHex": "#E5DABD",
+        "rgba8": [
+          229,
+          218,
+          189,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFFD0C6AB",
+          "rgbHex": "#D0C6AB",
+          "rgba8": [
+            208,
+            198,
+            171,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFFE8DFC6",
+          "rgbHex": "#E8DFC6",
+          "rgba8": [
+            232,
+            223,
+            198,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFFF5F2E7",
+          "rgbHex": "#F5F2E7",
+          "rgba8": [
+            245,
+            242,
+            231,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF777162",
+          "rgbHex": "#777162",
+          "rgba8": [
+            119,
+            113,
+            98,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF7D7767",
+          "rgbHex": "#7D7767",
+          "rgba8": [
+            125,
+            119,
+            103,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF545045",
+          "rgbHex": "#545045",
+          "rgba8": [
+            84,
+            80,
+            69,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFFCBC2AC",
+          "rgbHex": "#CBC2AC",
+          "rgba8": [
+            203,
+            194,
+            172,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF5B574B",
+          "rgbHex": "#5B574B",
+          "rgba8": [
+            91,
+            87,
+            75,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF847E6D",
+          "rgbHex": "#847E6D",
+          "rgba8": [
+            132,
+            126,
+            109,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFF2A2D2B",
+          "rgbHex": "#2A2D2B",
+          "rgba8": [
+            42,
+            45,
+            43,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 2,
+      "enum": "LightYellow",
+      "jsonToken": "lightYellow",
+      "englishName": "Lightly yellowed",
+      "darkMaterial": false,
+      "storedBase": {
+        "argbHex": "0xFFD9C796",
+        "rgbHex": "#D9C796",
+        "rgba8": [
+          217,
+          199,
+          150,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFFC5B588",
+          "rgbHex": "#C5B588",
+          "rgba8": [
+            197,
+            181,
+            136,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFFDECEA4",
+          "rgbHex": "#DECEA4",
+          "rgba8": [
+            222,
+            206,
+            164,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFFF1EBDA",
+          "rgbHex": "#F1EBDA",
+          "rgba8": [
+            241,
+            235,
+            218,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF70674E",
+          "rgbHex": "#70674E",
+          "rgba8": [
+            112,
+            103,
+            78,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF776D52",
+          "rgbHex": "#776D52",
+          "rgba8": [
+            119,
+            109,
+            82,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF504937",
+          "rgbHex": "#504937",
+          "rgba8": [
+            80,
+            73,
+            55,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFFC1B38D",
+          "rgbHex": "#C1B38D",
+          "rgba8": [
+            193,
+            179,
+            141,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF564F3C",
+          "rgbHex": "#564F3C",
+          "rgba8": [
+            86,
+            79,
+            60,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF7D7357",
+          "rgbHex": "#7D7357",
+          "rgba8": [
+            125,
+            115,
+            87,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFF2A2D2B",
+          "rgbHex": "#2A2D2B",
+          "rgba8": [
+            42,
+            45,
+            43,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 3,
+      "enum": "AgedYellow",
+      "jsonToken": "agedYellow",
+      "englishName": "Aged yellow",
+      "darkMaterial": false,
+      "storedBase": {
+        "argbHex": "0xFFC4AB68",
+        "rgbHex": "#C4AB68",
+        "rgba8": [
+          196,
+          171,
+          104,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFFB29B5E",
+          "rgbHex": "#B29B5E",
+          "rgba8": [
+            178,
+            155,
+            94,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFFCCB67D",
+          "rgbHex": "#CCB67D",
+          "rgba8": [
+            204,
+            182,
+            125,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFFEAE1CA",
+          "rgbHex": "#EAE1CA",
+          "rgba8": [
+            234,
+            225,
+            202,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF655836",
+          "rgbHex": "#655836",
+          "rgba8": [
+            101,
+            88,
+            54,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF6B5E39",
+          "rgbHex": "#6B5E39",
+          "rgba8": [
+            107,
+            94,
+            57,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF483F26",
+          "rgbHex": "#483F26",
+          "rgba8": [
+            72,
+            63,
+            38,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFFB19E69",
+          "rgbHex": "#B19E69",
+          "rgba8": [
+            177,
+            158,
+            105,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF4E4429",
+          "rgbHex": "#4E4429",
+          "rgba8": [
+            78,
+            68,
+            41,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF71633C",
+          "rgbHex": "#71633C",
+          "rgba8": [
+            113,
+            99,
+            60,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFF2A2D2B",
+          "rgbHex": "#2A2D2B",
+          "rgba8": [
+            42,
+            45,
+            43,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 4,
+      "enum": "Graphite",
+      "jsonToken": "graphite",
+      "englishName": "Graphite gray",
+      "darkMaterial": true,
+      "storedBase": {
+        "argbHex": "0xFF666B6C",
+        "rgbHex": "#666B6C",
+        "rgba8": [
+          102,
+          107,
+          108,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFF575C5C",
+          "rgbHex": "#575C5C",
+          "rgba8": [
+            87,
+            92,
+            92,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFF6F7475",
+          "rgbHex": "#6F7475",
+          "rgba8": [
+            111,
+            116,
+            117,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFF878C8A",
+          "rgbHex": "#878C8A",
+          "rgba8": [
+            135,
+            140,
+            138,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF383A3B",
+          "rgbHex": "#383A3B",
+          "rgba8": [
+            56,
+            58,
+            59,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF707675",
+          "rgbHex": "#707675",
+          "rgba8": [
+            112,
+            118,
+            117,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF202222",
+          "rgbHex": "#202222",
+          "rgba8": [
+            32,
+            34,
+            34,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFF535859",
+          "rgbHex": "#535859",
+          "rgba8": [
+            83,
+            88,
+            89,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF282A2B",
+          "rgbHex": "#282A2B",
+          "rgba8": [
+            40,
+            42,
+            43,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF6C7171",
+          "rgbHex": "#6C7171",
+          "rgba8": [
+            108,
+            113,
+            113,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFFEEEFE5",
+          "rgbHex": "#EEEFE5",
+          "rgba8": [
+            238,
+            239,
+            229,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 5,
+      "enum": "Charcoal",
+      "jsonToken": "charcoal",
+      "englishName": "Charcoal",
+      "darkMaterial": true,
+      "storedBase": {
+        "argbHex": "0xFF414648",
+        "rgbHex": "#414648",
+        "rgba8": [
+          65,
+          70,
+          72,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFF373C3D",
+          "rgbHex": "#373C3D",
+          "rgba8": [
+            55,
+            60,
+            61,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFF4E5354",
+          "rgbHex": "#4E5354",
+          "rgba8": [
+            78,
+            83,
+            84,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFF6C7170",
+          "rgbHex": "#6C7170",
+          "rgba8": [
+            108,
+            113,
+            112,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF232627",
+          "rgbHex": "#232627",
+          "rgba8": [
+            35,
+            38,
+            39,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF515757",
+          "rgbHex": "#515757",
+          "rgba8": [
+            81,
+            87,
+            87,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF141617",
+          "rgbHex": "#141617",
+          "rgba8": [
+            20,
+            22,
+            23,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFF363B3D",
+          "rgbHex": "#363B3D",
+          "rgba8": [
+            54,
+            59,
+            61,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF1A1C1C",
+          "rgbHex": "#1A1C1C",
+          "rgba8": [
+            26,
+            28,
+            28,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF4B5151",
+          "rgbHex": "#4B5151",
+          "rgba8": [
+            75,
+            81,
+            81,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFFEEEFE5",
+          "rgbHex": "#EEEFE5",
+          "rgba8": [
+            238,
+            239,
+            229,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 6,
+      "enum": "NearBlack",
+      "jsonToken": "nearBlack",
+      "englishName": "Near black",
+      "darkMaterial": true,
+      "storedBase": {
+        "argbHex": "0xFF222629",
+        "rgbHex": "#222629",
+        "rgba8": [
+          34,
+          38,
+          41,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFF1D2023",
+          "rgbHex": "#1D2023",
+          "rgba8": [
+            29,
+            32,
+            35,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFF323638",
+          "rgbHex": "#323638",
+          "rgba8": [
+            50,
+            54,
+            56,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFF555959",
+          "rgbHex": "#555959",
+          "rgba8": [
+            85,
+            89,
+            89,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF121416",
+          "rgbHex": "#121416",
+          "rgba8": [
+            18,
+            20,
+            22,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF373C3D",
+          "rgbHex": "#373C3D",
+          "rgba8": [
+            55,
+            60,
+            61,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF0A0C0D",
+          "rgbHex": "#0A0C0D",
+          "rgba8": [
+            10,
+            12,
+            13,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFF1E2225",
+          "rgbHex": "#1E2225",
+          "rgba8": [
+            30,
+            34,
+            37,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF0D0F10",
+          "rgbHex": "#0D0F10",
+          "rgba8": [
+            13,
+            15,
+            16,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF303436",
+          "rgbHex": "#303436",
+          "rgba8": [
+            48,
+            52,
+            54,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFFEEEFE5",
+          "rgbHex": "#EEEFE5",
+          "rgba8": [
+            238,
+            239,
+            229,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 7,
+      "enum": "SlateBlue",
+      "jsonToken": "slateBlue",
+      "englishName": "Muted slate blue",
+      "darkMaterial": true,
+      "storedBase": {
+        "argbHex": "0xFF566572",
+        "rgbHex": "#566572",
+        "rgba8": [
+          86,
+          101,
+          114,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFF495662",
+          "rgbHex": "#495662",
+          "rgba8": [
+            73,
+            86,
+            98,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFF616F7A",
+          "rgbHex": "#616F7A",
+          "rgba8": [
+            97,
+            111,
+            122,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFF7B878E",
+          "rgbHex": "#7B878E",
+          "rgba8": [
+            123,
+            135,
+            142,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF2F373E",
+          "rgbHex": "#2F373E",
+          "rgba8": [
+            47,
+            55,
+            62,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF63717A",
+          "rgbHex": "#63717A",
+          "rgba8": [
+            99,
+            113,
+            122,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF1B2024",
+          "rgbHex": "#1B2024",
+          "rgba8": [
+            27,
+            32,
+            36,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFF46535D",
+          "rgbHex": "#46535D",
+          "rgba8": [
+            70,
+            83,
+            93,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF22282D",
+          "rgbHex": "#22282D",
+          "rgba8": [
+            34,
+            40,
+            45,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF5E6C76",
+          "rgbHex": "#5E6C76",
+          "rgba8": [
+            94,
+            108,
+            118,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFFEEEFE5",
+          "rgbHex": "#EEEFE5",
+          "rgba8": [
+            238,
+            239,
+            229,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    },
+    {
+      "index": 8,
+      "enum": "MutedOlive",
+      "jsonToken": "mutedOlive",
+      "englishName": "Muted olive",
+      "darkMaterial": true,
+      "storedBase": {
+        "argbHex": "0xFF626A55",
+        "rgbHex": "#626A55",
+        "rgba8": [
+          98,
+          106,
+          85,
+          255
+        ]
+      },
+      "derivedComponents": {
+        "casingStop0": {
+          "argbHex": "0xFF545B49",
+          "rgbHex": "#545B49",
+          "rgba8": [
+            84,
+            91,
+            73,
+            255
+          ]
+        },
+        "casingStop1": {
+          "argbHex": "0xFF6B7360",
+          "rgbHex": "#6B7360",
+          "rgba8": [
+            107,
+            115,
+            96,
+            255
+          ]
+        },
+        "rimStop0": {
+          "argbHex": "0xFF848B79",
+          "rgbHex": "#848B79",
+          "rgba8": [
+            132,
+            139,
+            121,
+            255
+          ]
+        },
+        "rimStop1": {
+          "argbHex": "0xFF353A2E",
+          "rgbHex": "#353A2E",
+          "rgba8": [
+            53,
+            58,
+            46,
+            255
+          ]
+        },
+        "recessStop0": {
+          "argbHex": "0xFF6D7562",
+          "rgbHex": "#6D7562",
+          "rgba8": [
+            109,
+            117,
+            98,
+            255
+          ]
+        },
+        "recessStop1": {
+          "argbHex": "0xFF1F211B",
+          "rgbHex": "#1F211B",
+          "rgba8": [
+            31,
+            33,
+            27,
+            255
+          ]
+        },
+        "badgeFace": {
+          "argbHex": "0xFF505747",
+          "rgbHex": "#505747",
+          "rgba8": [
+            80,
+            87,
+            71,
+            255
+          ]
+        },
+        "badgeSeamStop0": {
+          "argbHex": "0xFF272A22",
+          "rgbHex": "#272A22",
+          "rgba8": [
+            39,
+            42,
+            34,
+            255
+          ]
+        },
+        "badgeSeamStop1": {
+          "argbHex": "0xFF68705D",
+          "rgbHex": "#68705D",
+          "rgba8": [
+            104,
+            112,
+            93,
+            255
+          ]
+        },
+        "badgeLettering": {
+          "argbHex": "0xFFEEEFE5",
+          "rgbHex": "#EEEFE5",
+          "rgba8": [
+            238,
+            239,
+            229,
+            255
+          ]
+        },
+        "surround": {
+          "argbHex": "0xFF000000",
+          "rgbHex": "#000000",
+          "rgba8": [
+            0,
+            0,
+            0,
+            255
+          ]
+        }
+      }
+    }
+  ],
+  "storedMaterialConstants": {
+    "darkTopTint": "0xFFC5CCC7",
+    "darkRimHighlightTint": "0xFFE2E6DD",
+    "darkRecessHighlightTint": "0xFFA9B1A9",
+    "darkBadgeFaceTint": "0xFF111517",
+    "darkBadgeLowerSeamTint": "0xFF9AA29A",
+    "lightBadgeFaceTint": "0xFF707070",
+    "lightBadgeLettering": "0xFF2A2D2B",
+    "darkBadgeLettering": "0xFFEEEFE5",
+    "surroundArgb": "0xFF000000"
+  },
+  "gradientDirections": {
+    "casing": [
+      0,
+      0.5,
+      1,
+      0.5
+    ],
+    "rim": [
+      0,
+      0,
+      1,
+      1
+    ],
+    "recess": [
+      0,
+      1,
+      1,
+      0
+    ],
+    "badgeBorder": [
+      0,
+      0,
+      1,
+      1
+    ]
+  },
+  "gradientOffsets": [
+    0,
+    1
+  ],
+  "calculation": "Per-channel BlendBezelRgb = floor((base*(100-percent)+tint*percent)/100); force alpha 255. Light rim uses float32 _mix then truncates to uint8_t. Derived numbers were evaluated by the older C++ helpers using MSVC, not inferred from screenshot pixels.",
+  "componentOpacity": 1,
+  "terminalOpacityCoupled": false,
+  "screenBackingPainted": false,
+  "geometryDip": {
+    "visibleCasingWidths": [
+      40,
+      56,
+      72
+    ],
+    "innerClearance": 6,
+    "recessThickness": 18,
+    "outerRimThickness": 2,
+    "outerRadius": 0,
+    "recessOuterRadius": 6,
+    "innerRadius": 16,
+    "badgeHeight": 22,
+    "badgeSeam": 1,
+    "badgeExtraChin": 28
+  },
+  "settingsDefaults": {
+    "experimental.retroBezelEnabled": false,
+    "experimental.retroBezelSize": "medium",
+    "experimental.retroBezelColor": "offWhite",
+    "experimental.retroBezelBadge": "bottom",
+    "experimental.retroBezelCenterFullscreen": true
+  },
+  "sourceFiles": [
+    {
+      "path": "src/cascadia/TerminalSettingsModel/MTSMSettings.h",
+      "gitBlob": "6a6d3b9be2415dddf7d59c6765dd316b7b8be500",
+      "sha256": "CAE6BB9CFF7B4260DD09C22DAB95A3E18677BAE092BF4CC760179F0D901778EE"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsEditor/Resources/en-US/Resources.resw",
+      "gitBlob": "48c28ee303f35cffb1a62852837720eef27f8ccd",
+      "sha256": "381A014FCAE7FAE0376C2C6527AA59658AFE3905EF32E2E930F7B9D101B8457C"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/TerminalSettingsSerializationHelpers.h",
+      "gitBlob": "2de493844800d60989564b31669c8e800c34343e",
+      "sha256": "C89997CB331FD2061C4D1E19033D6450BE4F03F055B45FD24B547BC513BC7E76"
+    },
+    {
+      "path": "src/cascadia/TerminalSettingsModel/Profile.idl",
+      "gitBlob": "23d7b25a307221f3ceac25d402a8d644ef563e01",
+      "sha256": "CEF41A020E823049282380D7ACDC9B4B96C35361F0644BDAC5B2D9B4FEEF0B6C"
+    },
+    {
+      "path": "src/cascadia/inc/RetroBezel.h",
+      "gitBlob": "b02e0c1924fd549135b671b7f95724d668fdbc1b",
+      "sha256": "1168B81495FA43EE3CE285C70E87646795C774C5FC9A79C955A9F3DC639C5251"
+    },
+    {
+      "path": "src/cascadia/inc/RetroBezelGeometry.h",
+      "gitBlob": "fcdad89aab5998440cda0ff78d664e71b79ecc3c",
+      "sha256": "2F46E9F4B99B5F786EA91130D105971E39D401473A1308140968D1DB9CF378F6"
+    },
+    {
+      "path": "src/cascadia/inc/BezelBadgeMaterial.h",
+      "gitBlob": "ce796e51c6399bc48ebb2f5f822e35f88669175f",
+      "sha256": "D9769DEB6D058607298E41800F0D75FCD8786284FF1864724801133E767E624B"
+    }
+  ]
+}

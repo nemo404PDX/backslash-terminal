@@ -324,8 +324,8 @@
           "description": "Sets the color of the cursor when unfocused. Overrides the cursor color from the color scheme. Uses hex color format: \"#rrggbb\"."
         },
         "cursorShape": {
-          "default": "bar",
-          "description": "Sets the shape of the cursor when unfocused. Possible values:\n -\"bar\" ( ┃, default )\n -\"doubleUnderscore\" ( ‗ )\n -\"emptyBox\" ( ▯ )\n -\"filledBox\" ( █ )\n -\"underscore\" ( ▁ )\n -\"vintage\" ( ▃ )",
+          "default": "filledBox",
+          "description": "Sets the shape of the cursor when unfocused. Possible values:\n -\"bar\" ( ┃ )\n -\"doubleUnderscore\" ( ‗ )\n -\"emptyBox\" ( ▯ )\n -\"filledBox\" ( █ )\n -\"underscore\" ( ▁ )\n -\"vintage\" ( ▃ )",
           "enum": [
             "bar",
             "doubleUnderscore",
@@ -422,19 +422,19 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "default": 0.3
+          "default": 0.15
         },
         "experimental.retroTerminalScanlineIntensity": {
           "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "default": 0.5
+          "default": 0.10
         },
         "experimental.retroTerminalScanlineThickness": {
           "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
           "type": "number",
-          "default": 1.0,
+          "default": 4.0,
           "minimum": 0.5,
           "maximum": 8
         },
@@ -453,7 +453,7 @@
         "experimental.retroTerminalScanlineGap": {
           "description": "Clear space between scanlines in device-independent pixels. Zero uniformly dims the screen when intensity is nonzero.",
           "type": "number",
-          "default": 1.0,
+          "default": 4.0,
           "minimum": 0,
           "maximum": 16
         },
@@ -503,7 +503,7 @@
           "type": "string"
         },
         "size": {
-          "default": 12,
+          "default": 16,
           "description": "Size of the font in points.",
           "minimum": 1,
           "type": "number"
@@ -2556,8 +2556,8 @@
           "type": "boolean"
         },
         "centerOnLaunch": {
-          "default": false,
-          "description": "When set to `true`, the terminal window will auto-center itself on the display it opens on. The terminal will use the \"initialPosition\" to determine which display to open on.",
+          "default": true,
+          "description": "When set to `true`, the terminal window will auto-center itself on the display it opens on. Explicit initialPosition or command-line coordinates, restored positions and tab tear-out placement take precedence.",
           "type": "boolean"
         },
         "copyOnSelect": {
@@ -2692,7 +2692,7 @@
           "type": "boolean"
         },
         "initialCols": {
-          "default": 120,
+          "default": 80,
           "description": "The number of columns displayed in the window upon first load. If \"launchMode\" is set to \"maximized\" (or \"maximizedFocus\"), this property is ignored.",
           "maximum": 999,
           "minimum": 1,
@@ -2703,7 +2703,7 @@
           "description": "The position of the top left corner of the window upon first load. On a system with multiple displays, these coordinates are relative to the top left of the primary display. If \"launchMode\" is set to \"maximized\" (or \"maximizedFocus\"), the window will be maximized on the monitor specified by those coordinates."
         },
         "initialRows": {
-          "default": 30,
+          "default": 28,
           "description": "The number of rows displayed in the window upon first load. If \"launchMode\" is set to \"maximized\" (or \"maximizedFocus\"), this property is ignored.",
           "maximum": 999,
           "minimum": 1,
@@ -2925,8 +2925,8 @@
         "experimental.retroBezelEnabled": { "type": ["boolean", "null"], "default": false, "description": "Add a plastic frame around the terminal. Terminal colors and text padding stay independent." },
         "experimental.retroBezelSize": { "enum": ["slim", "medium", "wide", null], "default": "medium", "description": "Visible casing width: Slim 40, Medium 56, Wide 72 DIP. The 18 DIP recess and 6 DIP black surround are additional; total per-side insets are 64, 80, 96 DIP before badge chin." },
         "experimental.retroBezelColor": { "enum": ["offWhite", "cream", "lightYellow", "agedYellow", "graphite", "charcoal", "nearBlack", "slateBlue", "mutedOlive", null], "default": "offWhite", "description": "Choose a casing finish. Terminal colors and transparency stay independent." },
-        "experimental.retroBezelBadge": { "enum": ["none", "bottom", "top", null], "default": "bottom", "description": "Place the temporary Backslash text badge above or below the aperture, or omit it." },
-        "experimental.retroBezelCenterFullscreen": { "type": ["boolean", "null"], "default": true, "description": "Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows." },
+        "experimental.retroBezelBadge": { "enum": ["none", "bottom", "top", null], "default": "none", "description": "Place the temporary Backslash text badge above or below the aperture, or omit it." },
+        "experimental.retroBezelCenterFullscreen": { "type": ["boolean", "null"], "default": false, "description": "Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows." },
         "acrylicOpacity": {
           "type": "number",
           "description": "[Deprecated] Replaced with the \"opacity\" setting.",
@@ -3105,8 +3105,8 @@
           "default": 25
         },
         "cursorShape": {
-          "default": "bar",
-          "description": "Sets the shape of the cursor. Possible values:\n -\"bar\" ( ┃, default )\n -\"doubleUnderscore\" ( ‗ )\n -\"emptyBox\" ( ▯ )\n -\"filledBox\" ( █ )\n -\"underscore\" ( ▁ )\n -\"vintage\" ( ▃ )",
+          "default": "filledBox",
+          "description": "Sets the shape of the cursor. Possible values:\n -\"bar\" ( ┃ )\n -\"doubleUnderscore\" ( ‗ )\n -\"emptyBox\" ( ▯ )\n -\"filledBox\" ( █ )\n -\"underscore\" ( ▁ )\n -\"vintage\" ( ▃ )",
           "enum": [
             "bar",
             "doubleUnderscore",
@@ -3144,19 +3144,19 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "default": 0.3
+          "default": 0.15
         },
         "experimental.retroTerminalScanlineIntensity": {
           "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "default": 0.5
+          "default": 0.10
         },
         "experimental.retroTerminalScanlineThickness": {
           "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
           "type": "number",
-          "default": 1.0,
+          "default": 4.0,
           "minimum": 0.5,
           "maximum": 8
         },
@@ -3175,7 +3175,7 @@
         "experimental.retroTerminalScanlineGap": {
           "description": "Clear space between scanlines in device-independent pixels. Zero uniformly dims the screen when intensity is nonzero.",
           "type": "number",
-          "default": 1.0,
+          "default": 4.0,
           "minimum": 0,
           "maximum": 16
         },
@@ -3221,7 +3221,7 @@
         "fontSize": {
           "type": "number",
           "description": "[Deprecated] Replaced with the \"size\" setting within the \"font\" object.",
-          "default": 12,
+          "default": 16,
           "minimum": 1,
           "deprecated": true
         },
@@ -3327,7 +3327,7 @@
           "type": "string"
         },
         "scrollbarState": {
-          "default": "visible",
+          "default": "hidden",
           "description": "Defines the visibility of the scrollbar.",
           "enum": [
             "visible",

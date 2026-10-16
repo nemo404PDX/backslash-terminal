@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "TerminalWindow.h"
 #include "../TerminalSettingsModel/StartupGroupPolicy.h"
+#include "../inc/LaunchPositionPolicy.h"
 #include <filesystem>
 
 #include "AppLogic.h"
@@ -776,10 +777,14 @@ namespace winrt::TerminalApp::implementation
             hadPersistedPosition = (bool)layout.InitialPosition();
         }
 
-        return !_contentBounds &&
-               !hadPersistedPosition &&
-               _settings.GlobalSettings().CenterOnLaunch() &&
-               (_appArgs && !_appArgs->ParsedArgs().GetPosition().has_value());
+        const auto configured = _settings.GlobalSettings().InitialPosition();
+        return ::Microsoft::Terminal::Backslash::LaunchPositionPolicy::ShouldCenter({
+            .enabled = _settings.GlobalSettings().CenterOnLaunch(),
+            .settingPosition = static_cast<bool>(configured.X) || static_cast<bool>(configured.Y),
+            .commandlinePosition = _appArgs && _appArgs->ParsedArgs().GetPosition().has_value(),
+            .persistedPosition = hadPersistedPosition,
+            .contentBounds = static_cast<bool>(_contentBounds)
+        });
     }
 
     // Method Description:

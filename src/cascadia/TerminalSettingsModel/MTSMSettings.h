@@ -22,7 +22,7 @@ Author(s):
     X(bool, StartupWithSavedGroup, "backslash.startupWithSavedGroup", false) \
     X(hstring, StartupGroup, "backslash.startupGroup", L"") \
     X(bool, ShowConnectionIdentity, "backslash.showConnectionIdentity", true) \
-    X(int32_t, InitialRows, "initialRows", 30)                                                                                                                                                        \
+    X(int32_t, InitialRows, "initialRows", 28)                                                                                                                                                        \
     X(int32_t, InitialCols, "initialCols", 80)                                                                                                                                                        \
     X(hstring, WordDelimiters, "wordDelimiters", DEFAULT_WORD_DELIMITERS)                                                                                                                             \
     X(bool, CopyOnSelect, "copyOnSelect", false)                                                                                                                                                      \
@@ -51,7 +51,7 @@ Author(s):
     X(bool, WarnAboutLargePaste, "warning.largePaste", true)                                                                                                                                          \
     X(winrt::Microsoft::Terminal::Control::WarnAboutMultiLinePaste, WarnAboutMultiLinePaste, "warning.multiLinePaste", winrt::Microsoft::Terminal::Control::WarnAboutMultiLinePaste::Automatic)       \
     X(Model::LaunchPosition, InitialPosition, "initialPosition", nullptr, nullptr)                                                                                                                    \
-    X(bool, CenterOnLaunch, "centerOnLaunch", false)                                                                                                                                                  \
+    X(bool, CenterOnLaunch, "centerOnLaunch", true)                                                                                                                                                  \
     X(Model::FirstWindowPreference, FirstWindowPreference, "firstWindowPreference", FirstWindowPreference::DefaultProfile)                                                                            \
     X(Model::LaunchMode, LaunchMode, "launchMode", LaunchMode::DefaultMode)                                                                                                                           \
     X(bool, SnapToGridOnResize, "snapToGridOnResize", true)                                                                                                                                           \
@@ -86,14 +86,14 @@ Author(s):
     X(bool, RetroBezelEnabled, "experimental.retroBezelEnabled", false) \
     X(Model::RetroBezelSize, RetroBezelSize, "experimental.retroBezelSize", Model::RetroBezelSize::Medium) \
     X(Model::RetroBezelColor, RetroBezelColor, "experimental.retroBezelColor", Model::RetroBezelColor::OffWhite) \
-    X(Model::RetroBezelBadge, RetroBezelBadge, "experimental.retroBezelBadge", Model::RetroBezelBadge::Bottom) \
-    X(bool, RetroBezelCenterFullscreen, "experimental.retroBezelCenterFullscreen", true) \
+    X(Model::RetroBezelBadge, RetroBezelBadge, "experimental.retroBezelBadge", Model::RetroBezelBadge::None) \
+    X(bool, RetroBezelCenterFullscreen, "experimental.retroBezelCenterFullscreen", false) \
     X(int32_t, HistorySize, "historySize", DEFAULT_HISTORY_SIZE)                                                                                               \
     X(bool, SnapOnInput, "snapOnInput", true)                                                                                                                  \
     X(bool, AltGrAliasing, "altGrAliasing", true)                                                                                                              \
     X(hstring, AnswerbackMessage, "answerbackMessage")                                                                                                         \
     X(hstring, Commandline, "commandline", L"%SystemRoot%\\System32\\cmd.exe")                                                                                 \
-    X(Microsoft::Terminal::Control::ScrollbarState, ScrollState, "scrollbarState", Microsoft::Terminal::Control::ScrollbarState::Visible)                      \
+    X(Microsoft::Terminal::Control::ScrollbarState, ScrollState, "scrollbarState", Microsoft::Terminal::Control::ScrollbarState::Hidden)                      \
     X(Microsoft::Terminal::Control::TextAntialiasingMode, AntialiasingMode, "antialiasingMode", Microsoft::Terminal::Control::TextAntialiasingMode::Grayscale) \
     X(hstring, StartingDirectory, "startingDirectory")                                                                                                         \
     X(IMediaResource, Icon, "icon", implementation::MediaResource::FromString(L"\uE756"))                                                                      \
@@ -129,7 +129,7 @@ Author(s):
 
 #define MTSM_FONT_SETTINGS(X)                                                          \
     X(hstring, FontFace, "face", DEFAULT_FONT_FACE)                                    \
-    X(float, FontSize, "size", DEFAULT_FONT_SIZE)                                      \
+    X(float, FontSize, "size", 16.0f)                                      \
     X(winrt::Windows::UI::Text::FontWeight, FontWeight, "weight", DEFAULT_FONT_WEIGHT) \
     X(IFontAxesMap, FontAxes, "axes")                                                  \
     X(IFontFeatureMap, FontFeatures, "features")                                       \
@@ -139,7 +139,7 @@ Author(s):
     X(winrt::hstring, CellHeight, "cellHeight")
 
 #define MTSM_APPEARANCE_SETTINGS(X)                                                                                                                                \
-    X(Core::CursorStyle, CursorShape, "cursorShape", Core::CursorStyle::Bar)                                                                                       \
+    X(Core::CursorStyle, CursorShape, "cursorShape", Core::CursorStyle::FilledBox)                                                                                       \
     X(uint32_t, CursorHeight, "cursorHeight", DEFAULT_CURSOR_HEIGHT)                                                                                               \
     X(float, BackgroundImageOpacity, "backgroundImageOpacity", 1.0f)                                                                                               \
     X(winrt::Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode, "backgroundImageStretchMode", winrt::Windows::UI::Xaml::Media::Stretch::UniformToFill) \
@@ -184,8 +184,8 @@ Author(s):
 
 // Kept separate from the telemetry-producing appearance macro.
 #define MTSM_RETRO_INTENSITY_SETTINGS(X) \
-    X(float, RetroTerminalGlowIntensity, "experimental.retroTerminalGlowIntensity", 0.3f) \
-    X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.5f) \
+    X(float, RetroTerminalGlowIntensity, "experimental.retroTerminalGlowIntensity", 0.15f) \
+    X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.10f) \
     X(float, RetroTerminalTintIntensity, "experimental.retroTerminalTintIntensity", 0.0f)
 
 #define MTSM_RETRO_COLOR_SETTINGS(X) \
@@ -193,5 +193,5 @@ Author(s):
 
 // Independent finite DIP ranges; kept outside appearance telemetry like CRT intensities.
 #define MTSM_RETRO_DIMENSION_SETTINGS(X) \
-    X(float, RetroTerminalScanlineThickness, "experimental.retroTerminalScanlineThickness", 1.0f, 0.5f, 8.0f) \
-    X(float, RetroTerminalScanlineGap, "experimental.retroTerminalScanlineGap", 1.0f, 0.0f, 16.0f)
+    X(float, RetroTerminalScanlineThickness, "experimental.retroTerminalScanlineThickness", 4.0f, 0.5f, 8.0f) \
+    X(float, RetroTerminalScanlineGap, "experimental.retroTerminalScanlineGap", 4.0f, 0.0f, 16.0f)

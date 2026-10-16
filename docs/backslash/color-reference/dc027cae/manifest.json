@@ -1,0 +1,22 @@
+{
+  "baselineCommit": "dc027cae58b9414c4c0bdcb5790093fb7165ba8e",
+  "purpose": "Literal historical backup, independent of current implementation",
+  "files": [
+    {
+      "path": "bezel-swatches.svg",
+      "sha256": "EE4E84B5880B40E85D2BBB6A2AB5686CA9CB25C8E14AF9AF52CC68F35FCF3504"
+    },
+    {
+      "path": "bezel.json",
+      "sha256": "B2380055CE1714CB05DBBDDCAD24482A6B4FC794ED7870C337FD0D3CCFCAC41E"
+    },
+    {
+      "path": "phosphor-swatches.svg",
+      "sha256": "FD3F0935A97E4064092055BCC5B6143E9F147E3E571DB89DE1807496D458BD2C"
+    },
+    {
+      "path": "phosphor.json",
+      "sha256": "D5BC2207E00FD99A22879DE581162E81733EDCE64B728D15FF8989ED8053AE76"
+    }
+  ]
+}

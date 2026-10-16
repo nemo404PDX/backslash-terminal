@@ -1,0 +1,15 @@
+{
+  "purpose": "Exact supplied SVG bytes before authorized conservative cleanup; never runtime inputs",
+  "files": [
+    {
+      "path": "backslash-badge-supplied-20261016-44d2acf3.svg",
+      "bytes": 19813,
+      "sha256": "44D2ACF3D873BEDEDF7455FA3B87D49C6D9F57937903044E12791D72D7FB38A3"
+    },
+    {
+      "path": "backslash-badge-outline-supplied-20261016-811911d7.svg",
+      "bytes": 33734,
+      "sha256": "811911D7744E1015534B0B4B0AA211F9914888276E37C44998A32817CBDB53A4"
+    }
+  ]
+}

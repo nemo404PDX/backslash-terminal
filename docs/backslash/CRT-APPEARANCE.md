@@ -1,5 +1,9 @@
 # Configurable CRT Appearance
 
+Current requested fallbacks are recorded in [Curated defaults](CURATED-DEFAULTS.md); earlier build evidence and the frozen color references keep their historical values.
+
+Frozen older-commit backup: [phosphor colors, formats and output math](PHOSPHOR-COLOR-REFERENCE-dc027cae.md). See also the [cross-build regression audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md).
+
 [Project entry point](README.md) · [Roadmap](ROADMAP.md)
 
 ## Requested product scope

@@ -31,3 +31,14 @@ Retained upstream legal/reference files include [LICENSE](../../LICENSE), [NOTIC
 The concept PNG is **not present**: the resolved Library helper failed its required metadata step on Windows (os.setxattr unavailable). It has not been visually inspected here. No substitute was created. See the brand record for the exact image reference.
 
 Current preferred SSH direction supersedes prior pill/centered expansion exploration. Accurate source/protocol findings do not claim the proposed local editor works at runtime. This documentation writer performed no build, install, shell/host changes, host probes, Git initialization, remote, commit or push. A .git directory was newly observed during final verification and left untouched; see provenance for the timed observation.
+
+## Frozen color references and curated defaults
+
+- [Phosphor baseline dc027cae](PHOSPHOR-COLOR-REFERENCE-dc027cae.md): literal RGB/formats, historical picker schemes, shader math and swatches.
+- [Bezel baseline dc027cae](BEZEL-COLOR-REFERENCE-dc027cae.md): nine base palettes, exact derived components, gradients, badge/gap colors and addition procedure.
+- `color-reference/dc027cae/`: frozen JSON values, hashes and SVGs, independent of later code.
+- [Initial cross-build audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md): historical accepted-versus-pin shader/default provenance and initial comparison limits.
+- [Clarified pair comparison](PHOSPHOR-COMPARISON-13ebff74-35414271.md): resolved running builds, effective saved appearance differences and exact picker RGBs.
+- [Badge SVG preparation](BACKSLASH-BADGE-ASSET.md): preserved geometry, currentColor/cutout distinction, native render tests and future integration constraints.
+- [Supplied SVG backups](../asset-backups/README.md): byte-exact originals and hash manifest outside runtime asset inputs.
+- [Curated defaults](CURATED-DEFAULTS.md): newly requested initial settings, centering precedence, override conflicts, tests and fresh portable.

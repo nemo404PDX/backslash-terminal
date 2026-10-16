@@ -1,5 +1,7 @@
 # CRT rendering plan and performance audit
 
+Historical color values are independently frozen in the [dc027cae phosphor reference](PHOSPHOR-COLOR-REFERENCE-dc027cae.md); the [960a9f9 audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md) compares accepted and later packaged shaders.
+
 [Project entry point](README.md) | [Implemented CRT controls](CRT-APPEARANCE.md) | [Bezel design](BEZEL-DESIGN.md)
 
 ## Status and decisions
