@@ -27,6 +27,8 @@ namespace Microsoft.Terminal.Settings.Model
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.RetroBezelSize> RetroBezelSize { get; };
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.RetroBezelColor> RetroBezelColor { get; };
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.RetroBezelBadge> RetroBezelBadge { get; };
+        static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.RetroBezelFiller> RetroBezelFiller { get; };
+        static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.RetroBezelBadgeStyle> RetroBezelBadgeStyle { get; };
 
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.CloseOnExitMode> CloseOnExitMode { get; };
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Control.ScrollbarState> ScrollbarState { get; };

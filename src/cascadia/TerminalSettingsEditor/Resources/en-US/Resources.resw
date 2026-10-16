@@ -2772,9 +2772,9 @@
   <data name="Profile_RetroBezelColor.Header" xml:space="preserve"><value>Casing finish</value></data>
   <data name="Profile_RetroBezelColor.HelpText" xml:space="preserve"><value>Choose a casing finish. Terminal colors and transparency stay independent.</value></data>
   <data name="Profile_RetroBezelBadge.Header" xml:space="preserve"><value>Backslash badge</value></data>
-  <data name="Profile_RetroBezelBadge.HelpText" xml:space="preserve"><value>Place the temporary Backslash text badge above or below the aperture, or omit it.</value></data>
+  <data name="Profile_RetroBezelBadge.HelpText" xml:space="preserve"><value>Place the supplied SVG badge in a top or bottom corner, centered, or turn branding off. Extra bezel space is controlled separately.</value></data>
   <data name="Profile_RetroBezelCenterFullscreen.Header" xml:space="preserve"><value>Center aperture in fullscreen</value></data>
-  <data name="Profile_RetroBezelCenterFullscreen.HelpText" xml:space="preserve"><value>Reserve 28 DIP opposite the badge chin in fullscreen. This reduces available terminal rows.</value></data>
+  <data name="Profile_RetroBezelCenterFullscreen.HelpText" xml:space="preserve"><value>Balance extra top or bottom bezel space in fullscreen. Branding visibility does not affect this space.</value></data>
   <data name="Profile_RetroBezelSizeSlim.Content" xml:space="preserve"><value>Slim (40 DIP casing)</value></data>
   <data name="Profile_RetroBezelSizeMedium.Content" xml:space="preserve"><value>Medium (56 DIP casing)</value></data>
   <data name="Profile_RetroBezelSizeWide.Content" xml:space="preserve"><value>Wide (72 DIP casing)</value></data>
@@ -2788,8 +2788,8 @@
   <data name="Profile_RetroBezelColorSlateBlue.Content" xml:space="preserve"><value>Muted slate blue</value></data>
   <data name="Profile_RetroBezelColorMutedOlive.Content" xml:space="preserve"><value>Muted olive</value></data>
   <data name="Profile_RetroBezelBadgeNone.Content" xml:space="preserve"><value>Omitted</value></data>
-  <data name="Profile_RetroBezelBadgeBottom.Content" xml:space="preserve"><value>Bottom</value></data>
-  <data name="Profile_RetroBezelBadgeTop.Content" xml:space="preserve"><value>Top</value></data>
+  <data name="Profile_RetroBezelBadgeBottom.Content" xml:space="preserve"><value>Bottom center</value></data>
+  <data name="Profile_RetroBezelBadgeTop.Content" xml:space="preserve"><value>Top center</value></data>
   <data name="AddProfile_ScanSsh.Content" xml:space="preserve">
     <value>Scan SSH hosts</value>
   </data>
@@ -2887,4 +2887,20 @@
   <data name="StartupGroups_ChooseListed" xml:space="preserve"><value>Choose a listed group; typing alone does not select it.</value></data>
   <data name="StartupGroups_Stale" xml:space="preserve"><value>Group unavailable. Search again; selection unchanged.</value></data>
   <data name="StartupGroups_SelectionChanged" xml:space="preserve"><value>Save to keep this selection; Reset to discard.</value></data>
+  <data name="Profile_RetroBezelBadgeBottomLeft.Content" xml:space="preserve"><value>Bottom left</value></data>
+  <data name="Profile_RetroBezelBadgeBottomRight.Content" xml:space="preserve"><value>Bottom right</value></data>
+  <data name="Profile_RetroBezelBadgeTopLeft.Content" xml:space="preserve"><value>Top left</value></data>
+  <data name="Profile_RetroBezelBadgeTopRight.Content" xml:space="preserve"><value>Top right</value></data>
+  <data name="Profile_RetroBezelFiller.Header" xml:space="preserve"><value>Extra bezel space</value></data>
+  <data name="Profile_RetroBezelFiller.HelpText" xml:space="preserve"><value>Add 28 DIP above or below the aperture, independently of the logo. Applies when the bezel is enabled.</value></data>
+  <data name="Profile_RetroBezelFillerNone.Content" xml:space="preserve"><value>None</value></data>
+  <data name="Profile_RetroBezelFillerBottom.Content" xml:space="preserve"><value>Bottom</value></data>
+  <data name="Profile_RetroBezelFillerTop.Content" xml:space="preserve"><value>Top</value></data>
+  <data name="Profile_RetroBezelBadgeStyle.Header" xml:space="preserve"><value>Badge artwork</value></data>
+  <data name="Profile_RetroBezelBadgeStyle.HelpText" xml:space="preserve"><value>Solid or cutout backing. CurrentColor uses explicitly white lettering in this version. The SVG backing is preserved; no separate rectangular plate is drawn.</value></data>
+  <data name="Profile_RetroBezelBadgeStyleSolid.Content" xml:space="preserve"><value>Solid backing</value></data>
+  <data name="Profile_RetroBezelBadgeStyleOutline.Content" xml:space="preserve"><value>Cutout backing</value></data>
+  <data name="Profile_RetroBezelBadgeStyleCurrentColor.Content" xml:space="preserve"><value>CurrentColor (white)</value></data>
+  <data name="Profile_RetroBezelBadgeBottomCenter.Content" xml:space="preserve"><value>Bottom center</value></data>
+  <data name="Profile_RetroBezelBadgeTopCenter.Content" xml:space="preserve"><value>Top center</value></data>
 </root>

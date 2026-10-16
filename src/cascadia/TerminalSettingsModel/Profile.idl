@@ -22,7 +22,10 @@ namespace Microsoft.Terminal.Settings.Model
         Graphite = 4, Charcoal = 5, NearBlack = 6, SlateBlue = 7, MutedOlive = 8
     };
 
-    enum RetroBezelBadge { None, Bottom, Top };
+    // Preserve Bottom=1 / Top=2; both are centered placement choices.
+    enum RetroBezelBadge { None, Bottom, Top, BottomLeft, BottomRight, TopLeft, TopRight };
+    enum RetroBezelFiller { None, Bottom, Top };
+    enum RetroBezelBadgeStyle { Solid, Outline, CurrentColor };
 
     enum CloseOnExitMode
     {
@@ -78,6 +81,8 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_PROFILE_SETTING(RetroBezelSize, RetroBezelSize);
         INHERITABLE_PROFILE_SETTING(RetroBezelColor, RetroBezelColor);
         INHERITABLE_PROFILE_SETTING(RetroBezelBadge, RetroBezelBadge);
+        INHERITABLE_PROFILE_SETTING(RetroBezelFiller, RetroBezelFiller);
+        INHERITABLE_PROFILE_SETTING(RetroBezelBadgeStyle, RetroBezelBadgeStyle);
         INHERITABLE_PROFILE_SETTING(Boolean, RetroBezelCenterFullscreen);
 
         INHERITABLE_PROFILE_SETTING(String, Commandline);

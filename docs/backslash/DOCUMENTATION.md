@@ -42,3 +42,11 @@ Current preferred SSH direction supersedes prior pill/centered expansion explora
 - [Badge SVG preparation](BACKSLASH-BADGE-ASSET.md): preserved geometry, currentColor/cutout distinction, native render tests and future integration constraints.
 - [Supplied SVG backups](../asset-backups/README.md): byte-exact originals and hash manifest outside runtime asset inputs.
 - [Curated defaults](CURATED-DEFAULTS.md): newly requested initial settings, centering precedence, override conflicts, tests and fresh portable.
+
+## SVG badge integration
+
+- [BEZEL-BADGE-IMPLEMENTATION.md](BEZEL-BADGE-IMPLEMENTATION.md): actual renderer/settings/layout, compatibility, independent filler, accepted live-toggle distinction, evidence and manual checks.
+
+## Badge composed-render follow-up
+
+- [BEZEL-BADGE-RENDER-FIX.md](BEZEL-BADGE-RENDER-FIX.md): reproduced square, finite raster correction, approved aperture-span anchors, composed pixel tests, actual app/preview captures and fresh portable.

@@ -24,6 +24,12 @@ $portable = (Resolve-Path -LiteralPath $PortableDirectory).Path
 foreach ($name in '.portable','WindowsTerminal.exe','OpenConsole.exe','TerminalApp.dll','Microsoft.Terminal.Settings.Model.dll','Microsoft.Terminal.Control.dll','Microsoft.UI.Xaml.dll','Microsoft.UI.Xaml','resources.pri','vcruntime140.dll','msvcp140.dll','LICENSE','NOTICE.md','NOTICE.html','Microsoft.UI.Xaml.LICENSE.txt') {
     Require (Test-Path -LiteralPath (Join-Path $portable $name)) "Portable contains $name"
 }
+foreach ($badge in 'backslash-badge.svg','backslash-badge-outline.svg','backslash-badge-currentcolor.svg') {
+    $asset = Join-Path $portable "Assets\branding\$badge"
+    Require (Test-Path -LiteralPath $asset -PathType Leaf) "Portable contains badge $badge"
+    Require ((Get-FileHash -LiteralPath $asset).Hash -eq (Get-FileHash -LiteralPath (Join-Path $repo "docs\images\$badge")).Hash) "Packaged badge matches supplied working asset $badge"
+}
+Require (@(Get-ChildItem -LiteralPath (Join-Path $portable 'Assets\branding') -File).Count -eq 3) 'Only the three working SVGs are runtime branding assets'
 Require (@(Get-ChildItem -LiteralPath $portable -Filter 'Appx*').Count -eq 0) 'No package manifest/registration material in portable root'
 $version = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $portable 'WindowsTerminal.exe'))
 Require ($version.FileDescription -eq 'Backslash Portable Development Host') 'Executable description identifies Backslash development build'

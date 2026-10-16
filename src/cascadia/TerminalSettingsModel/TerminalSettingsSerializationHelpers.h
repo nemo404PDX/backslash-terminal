@@ -97,10 +97,30 @@ JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor)
 
 JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadge)
 {
-    static constexpr std::array<pair_type, 3> mappings = {
+    static constexpr std::array<pair_type, 9> mappings = {
         pair_type{ "none", ValueType::None },
-        pair_type{ "bottom", ValueType::Bottom },
+        pair_type{ "bottomCenter", ValueType::Bottom },
+        pair_type{ "topCenter", ValueType::Top },
+        pair_type{ "bottomLeft", ValueType::BottomLeft },
+        pair_type{ "bottomRight", ValueType::BottomRight },
+        pair_type{ "topLeft", ValueType::TopLeft },
+        pair_type{ "topRight", ValueType::TopRight },
+        pair_type{ "bottom", ValueType::Bottom }, // Legacy aliases; write canonical names.
         pair_type{ "top", ValueType::Top }
+    };
+};
+
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelFiller)
+{
+    static constexpr std::array<pair_type, 3> mappings = {
+        pair_type{ "none", ValueType::None }, pair_type{ "bottom", ValueType::Bottom }, pair_type{ "top", ValueType::Top }
+    };
+};
+
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadgeStyle)
+{
+    static constexpr std::array<pair_type, 3> mappings = {
+        pair_type{ "solid", ValueType::Solid }, pair_type{ "outline", ValueType::Outline }, pair_type{ "currentColor", ValueType::CurrentColor }
     };
 };
 

@@ -86,6 +86,8 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelSize, RetroBezelSize);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelColor, RetroBezelColor);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadge, RetroBezelBadge);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelFiller, RetroBezelFiller);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadgeStyle, RetroBezelBadgeStyle);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);
@@ -125,6 +127,10 @@ namespace Microsoft.Terminal.Settings.Editor
         IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelSizeList { get; };
         IInspectable CurrentRetroBezelColor;
         IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelColorList { get; };
+        IInspectable CurrentRetroBezelFiller;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelFillerList { get; };
+        IInspectable CurrentRetroBezelBadgeStyle;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelBadgeStyleList { get; };
         IInspectable CurrentRetroBezelBadge;
         IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelBadgeList { get; };
         IInspectable CurrentCursorShape;

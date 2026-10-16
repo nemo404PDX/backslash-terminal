@@ -87,6 +87,8 @@ Author(s):
     X(Model::RetroBezelSize, RetroBezelSize, "experimental.retroBezelSize", Model::RetroBezelSize::Medium) \
     X(Model::RetroBezelColor, RetroBezelColor, "experimental.retroBezelColor", Model::RetroBezelColor::OffWhite) \
     X(Model::RetroBezelBadge, RetroBezelBadge, "experimental.retroBezelBadge", Model::RetroBezelBadge::None) \
+    X(Model::RetroBezelFiller, RetroBezelFiller, "experimental.retroBezelFiller", Model::RetroBezelFiller::None) \
+    X(Model::RetroBezelBadgeStyle, RetroBezelBadgeStyle, "experimental.retroBezelBadgeStyle", Model::RetroBezelBadgeStyle::Solid) \
     X(bool, RetroBezelCenterFullscreen, "experimental.retroBezelCenterFullscreen", false) \
     X(int32_t, HistorySize, "historySize", DEFAULT_HISTORY_SIZE)                                                                                               \
     X(bool, SnapOnInput, "snapOnInput", true)                                                                                                                  \

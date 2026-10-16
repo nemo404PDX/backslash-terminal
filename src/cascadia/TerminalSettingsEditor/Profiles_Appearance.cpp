@@ -116,7 +116,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         const auto appearance = _Profile.DefaultAppearance();
         _previewBezel.Update(appearance.RetroBezelEnabled(), static_cast<int>(appearance.RetroBezelSize()),
-                             static_cast<int>(appearance.RetroBezelColor()), static_cast<int>(appearance.RetroBezelBadge()), false);
+                             static_cast<int>(appearance.RetroBezelColor()), static_cast<int>(appearance.RetroBezelBadge()), false, false,
+                             static_cast<int>(appearance.RetroBezelFiller()), static_cast<int>(appearance.RetroBezelBadgeStyle()));
         _updatePreviewLayout();
     }
 

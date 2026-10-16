@@ -45,6 +45,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelSize> RetroBezelSize();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelColor> RetroBezelColor();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelBadge> RetroBezelBadge();
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelFiller> RetroBezelFiller();
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelBadgeStyle> RetroBezelBadgeStyle();
 
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, CloseOnExitMode> CloseOnExitMode();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Microsoft::Terminal::Control::ScrollbarState> ScrollbarState();

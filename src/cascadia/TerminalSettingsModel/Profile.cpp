@@ -206,6 +206,16 @@ void Profile::LayerJson(const Json::Value& json)
     JsonUtils::GetValueForKey(json, jsonKey, _##name);        \
     _logSettingIfSet(jsonKey, _##name.has_value());
 
+    // Legacy top/bottom coupled a centered badge to 28 DIP of extra casing.
+    // Preserve that space on this layer unless filler is explicitly specified.
+    // Canonical topCenter/bottomCenter choices never imply extra geometry.
+    if (!json.isMember("experimental.retroBezelFiller"))
+    {
+        const auto& badge = json["experimental.retroBezelBadge"];
+        if (badge.isString() && badge.asString() == "top") { _RetroBezelFiller = Model::RetroBezelFiller::Top; }
+        else if (badge.isString() && badge.asString() == "bottom") { _RetroBezelFiller = Model::RetroBezelFiller::Bottom; }
+    }
+
     MTSM_PROFILE_SETTINGS(PROFILE_SETTINGS_LAYER_JSON)
 #undef PROFILE_SETTINGS_LAYER_JSON
 

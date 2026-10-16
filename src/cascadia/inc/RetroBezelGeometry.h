@@ -63,14 +63,17 @@ namespace Microsoft::Terminal::Backslash
         return size == 0 ? 40.0f : size == 2 ? 72.0f : 56.0f;
     }
 
-    constexpr BezelInsets GetBezelInsets(bool enabled, int size, int badge, bool balance = false) noexcept
+    constexpr BezelInsets GetBezelInsets(bool enabled, int size, int badge, bool balance = false, int filler = -1) noexcept
     {
         if (!enabled) { return {}; }
         const auto edge = GetVisibleBezelCasingWidth(size) + BezelRecessThickness + BezelInnerClearance;
         BezelInsets result{ edge, edge, edge, edge };
         constexpr auto chin = 28.0f;
-        if (badge == 1) { result.bottom += chin; if (balance) { result.top += chin; } }
-        if (badge == 2) { result.top += chin; if (balance) { result.bottom += chin; } }
+        // Omitted filler retains this helper's historical call contract. Product
+        // paths always pass the independent profile filler explicitly.
+        const auto extra = filler < 0 ? (badge == 1 ? 1 : badge == 2 ? 2 : 0) : filler;
+        if (extra == 1) { result.bottom += chin; if (balance) { result.top += chin; } }
+        if (extra == 2) { result.top += chin; if (balance) { result.bottom += chin; } }
         return result;
     }
     struct BezelScreenBounds
@@ -103,9 +106,9 @@ namespace Microsoft::Terminal::Backslash
     }
 
     // Window mode is an input only: changing the profile setting cannot change it.
-    constexpr BezelInsets GetBezelInsetsForMode(bool enabled, int size, int badge, bool center, bool fullscreen) noexcept
+    constexpr BezelInsets GetBezelInsetsForMode(bool enabled, int size, int badge, bool center, bool fullscreen, int filler = -1) noexcept
     {
-        return GetBezelInsets(enabled, size, badge, center && fullscreen);
+        return GetBezelInsets(enabled, size, badge, center && fullscreen, filler);
     }
 
 }

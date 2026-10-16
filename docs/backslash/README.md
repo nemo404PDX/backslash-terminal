@@ -10,6 +10,8 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 
 - [Curated application defaults](CURATED-DEFAULTS.md): requested grid, font, CRT/bezel fallbacks, native centering and accepted usable-grid geometry.
 - [Clarified pre-pin/latest-pin phosphor comparison](PHOSPHOR-COMPARISON-13ebff74-35414271.md): resolved build identities, independent saved appearances and picker shortcut RGBs.
+- [Badge composed-render fix](BEZEL-BADGE-RENDER-FIX.md): corrected square, aperture-span anchors, actual app/preview evidence and latest portable.
+- [Implemented SVG bezel badge](BEZEL-BADGE-IMPLEMENTATION.md): six placements, independent filler, removed plate and fresh portable validation.
 - [Badge SVG assets](BACKSLASH-BADGE-ASSET.md): exact backups, conservative cleanup, currentColor/cutout validation and future integration constraints.
 - [Frozen phosphor reference](PHOSPHOR-COLOR-REFERENCE-dc027cae.md), [frozen bezel reference](BEZEL-COLOR-REFERENCE-dc027cae.md), and [cross-build color audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md): literal backups, swatches and source/package evidence.
 

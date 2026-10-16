@@ -4,7 +4,11 @@
 
 #include "RetroBezelGeometry.h"
 #include "BezelBadgeMaterial.h"
+#include "BezelBadgeLayout.h"
+#include "BezelBadgeSvg.h"
 #include <winrt/Windows.UI.Xaml.Controls.h>
+#include <winrt/Windows.UI.Xaml.Automation.h>
+#include <winrt/Windows.UI.Xaml.Automation.Peers.h>
 #include <winrt/Windows.UI.Xaml.Media.h>
 #include <winrt/Windows.UI.Xaml.Shapes.h>
 
@@ -16,14 +20,15 @@ namespace Microsoft::Terminal::Backslash
     {
         using Grid = winrt::Windows::UI::Xaml::Controls::Grid;
         using Border = winrt::Windows::UI::Xaml::Controls::Border;
-        using TextBlock = winrt::Windows::UI::Xaml::Controls::TextBlock;
+        using Image = winrt::Windows::UI::Xaml::Controls::Image;
         using Color = winrt::Windows::UI::Color;
         using Thickness = winrt::Windows::UI::Xaml::Thickness;
         Grid _root, _frame;
         winrt::Windows::UI::Xaml::Controls::Canvas _materialCanvas;
         winrt::Windows::UI::Xaml::Shapes::Path _shell, _aperture;
-        Border _surround, _rim, _badge;
-        TextBlock _badgeLabel;
+        Border _surround, _rim;
+        Image _badge;
+        int _badgePlacement = 0, _badgeStyle = 0, _loadedBadgeStyle = -1;
         BezelInsets _frameInsets{};
         bool _enabled = false;
         winrt::Windows::UI::Xaml::FrameworkElement _content{ nullptr };
@@ -127,6 +132,26 @@ namespace Microsoft::Terminal::Backslash
             _aperture.Data(recess);
         }
 
+        void _updateBadge()
+        {
+            using namespace winrt::Windows::UI::Xaml;
+            const auto layout = GetBezelBadgeLayout(_enabled, _badgePlacement,
+                                                    static_cast<float>(_frame.ActualWidth()),
+                                                    static_cast<float>(_frame.ActualHeight()), _frameInsets);
+            _badge.Visibility(layout.visible ? Visibility::Visible : Visibility::Collapsed);
+            _badge.Width(layout.width);
+            _badge.Height(layout.height);
+            Controls::Canvas::SetLeft(_badge, layout.left);
+            Controls::Canvas::SetTop(_badge, layout.top);
+            if (_enabled && _badgePlacement >= 1 && _badgePlacement <= 6 && _loadedBadgeStyle != _badgeStyle)
+            {
+                Media::Imaging::SvgImageSource source;
+                _badge.Source(source);
+                _loadedBadgeStyle = _badgeStyle;
+                LoadBezelBadgeSvg(source, _badgeStyle);
+            }
+        }
+
     public:
         BezelInsets Insets{};
         RetroBezel()
@@ -160,26 +185,11 @@ namespace Microsoft::Terminal::Backslash
             _aperture.Stretch(Media::Stretch::None);
             _materialCanvas.Children().Append(_aperture);
             _badge.IsHitTestVisible(false);
-            _badge.Height(BezelBadgeHeight);
-            _badge.HorizontalAlignment(HorizontalAlignment::Stretch);
-            _badge.BorderThickness({ BezelBadgeSeam, BezelBadgeSeam, BezelBadgeSeam, BezelBadgeSeam });
-            // Compensate inside padding to keep the original text placement/available space.
-            _badge.Padding({ BezelBadgeHorizontalContentInset - BezelBadgeSeam,
-                             BezelBadgeVerticalContentInset - BezelBadgeSeam,
-                             BezelBadgeHorizontalContentInset - BezelBadgeSeam,
-                             BezelBadgeVerticalContentInset - BezelBadgeSeam });
-            _badge.CornerRadius({ 2, 2, 2, 2 });
-            // Temporary original word badge, not the final selected logo/icon.
-            _badgeLabel.Text(L"BACKSLASH");
-            _badgeLabel.FontSize(11);
-            _badgeLabel.CharacterSpacing(160);
-            _badgeLabel.TextTrimming(TextTrimming::CharacterEllipsis);
-            _badgeLabel.FontWeight({ BezelBadgeFontWeight });
-            _badgeLabel.Foreground(Media::SolidColorBrush{ Color{ 255, 42, 45, 43 } });
-            _badge.Child(_badgeLabel);
-            _frame.Children().Append(_badge);
-            _frame.SizeChanged([this](const auto&, const auto&) { _updateShellGeometry(); });
-            Update(false, 1, 0, 1, false);
+            _badge.Stretch(Media::Stretch::Uniform);
+            Automation::AutomationProperties::SetAccessibilityView(_badge, Automation::Peers::AccessibilityView::Raw);
+            _materialCanvas.Children().Append(_badge);
+            _frame.SizeChanged([this](const auto&, const auto&) { _updateShellGeometry(); _updateBadge(); });
+            Update(false, 1, 0, 0, false);
         }
 
         static Color PaletteColor(int color)
@@ -194,12 +204,12 @@ namespace Microsoft::Terminal::Backslash
             _frame.Children().Append(content);
         }
 
-        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false)
+        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false, int filler = 0, int badgeStyle = 0)
         {
             using namespace winrt::Windows::UI::Xaml;
             // Balance inside the full-size material casing. An outer Grid margin
             // left an unpainted strip that showed wallpaper in transparent fullscreen hosts.
-            Insets = GetBezelInsetsForMode(enabled, size, badge, center, fullscreen);
+            Insets = GetBezelInsetsForMode(enabled, size, badge, center, fullscreen, filler);
             const auto frame = Insets;
             _frame.Margin({ 0, 0, 0, 0 });
             if (_content) { _content.Margin({ frame.left, frame.top, frame.right, frame.bottom }); }
@@ -214,12 +224,9 @@ namespace Microsoft::Terminal::Backslash
             _frameInsets = frame;
             _updateShellGeometry();
             _aperture.Visibility(visibility);
-            _badge.Visibility(enabled && (badge == 1 || badge == 2) ? Visibility::Visible : Visibility::Collapsed);
-
-            _badge.VerticalAlignment(badge == 2 ? VerticalAlignment::Top : VerticalAlignment::Bottom);
-            const auto badgeOffset = enabled && (badge == 1 || badge == 2) ?
-                                         GetBezelBadgeOuterOffset(badge == 2 ? frame.top : frame.bottom) : 0;
-            _badge.Margin({ frame.left, badgeOffset, frame.right, badgeOffset });
+            _badgePlacement = badge;
+            _badgeStyle = badgeStyle;
+            _updateBadge();
 
             // One continuous brush per hollow ring keeps corners seamless and
             // leaves the rectangular terminal content outside all material paint.
@@ -238,11 +245,7 @@ namespace Microsoft::Terminal::Backslash
             }
             const auto band = GetBezelRecessMaterial(color);
             _aperture.Fill(_gradient(_color(band.highlight), _color(band.shadow), BezelRecessGradient));
-            const auto plate = GetBezelBadgeMaterial(color);
-            _badgeLabel.Foreground(Media::SolidColorBrush{ _color(plate.lettering) });
-            _badge.Background(winrt::Windows::UI::Xaml::Media::SolidColorBrush{ _color(plate.face) });
-            // Fine upper/left shadow and softer lower/right seam suggest an inset gap.
-            _badge.BorderBrush(_gradient(_color(plate.seam), _color(plate.lowerSeam)));
+
         }
     };
 }

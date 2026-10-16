@@ -1131,7 +1131,23 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelSize, RetroBezelSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize, L"Profile_RetroBezelSize", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelColor, RetroBezelColor, winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor, L"Profile_RetroBezelColor", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelFiller, RetroBezelFiller, winrt::Microsoft::Terminal::Settings::Model::RetroBezelFiller, L"Profile_RetroBezelFiller", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelBadgeStyle, RetroBezelBadgeStyle, winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadgeStyle, L"Profile_RetroBezelBadgeStyle", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelBadge, RetroBezelBadge, winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadge, L"Profile_RetroBezelBadge", L"Content");
+        {
+            // Display spatial order without changing persisted enum identities.
+            using Badge = winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadge;
+            const std::array badgeEntries{
+                _RetroBezelBadgeMap.Lookup(Badge::None),
+                _RetroBezelBadgeMap.Lookup(Badge::TopLeft),
+                _RetroBezelBadgeMap.Lookup(Badge::Top),
+                _RetroBezelBadgeMap.Lookup(Badge::TopRight),
+                _RetroBezelBadgeMap.Lookup(Badge::BottomLeft),
+                _RetroBezelBadgeMap.Lookup(Badge::Bottom),
+                _RetroBezelBadgeMap.Lookup(Badge::BottomRight)
+            };
+            _RetroBezelBadgeList.ReplaceAll(badgeEntries);
+        }
         INITIALIZE_BINDABLE_ENUM_SETTING(CursorShape, CursorStyle, winrt::Microsoft::Terminal::Core::CursorStyle, L"Profile_CursorShape", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(AdjustIndistinguishableColors, AdjustIndistinguishableColors, winrt::Microsoft::Terminal::Core::AdjustTextMode, L"Profile_AdjustIndistinguishableColors", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING_REVERSE_ORDER(BackgroundImageStretchMode, BackgroundImageStretchMode, winrt::Windows::UI::Xaml::Media::Stretch, L"Profile_BackgroundImageStretchMode", L"Content");
@@ -1420,7 +1436,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
             _ViewModelChangedRevoker = appearance.PropertyChanged(winrt::auto_revoke, [=](auto&&, const PropertyChangedEventArgs& args) {
                 const auto settingName{ args.PropertyName() };
-                if (settingName == L"RetroBezelSize" || settingName == L"RetroBezelColor" || settingName == L"RetroBezelBadge")
+                if (settingName == L"RetroBezelFiller" || settingName == L"RetroBezelBadgeStyle" || settingName == L"RetroBezelSize" || settingName == L"RetroBezelColor" || settingName == L"RetroBezelBadge")
                 {
                     PropertyChanged.raise(*this, PropertyChangedEventArgs{ hstring{ L"Current" } + settingName });
                 }
@@ -1499,6 +1515,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelSize" });
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelColor" });
+            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelFiller" });
+            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelBadgeStyle" });
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelBadge" });
             // make sure to send all the property changed events once here
             // we do this in the case an old appearance was deleted and then a new one is created,

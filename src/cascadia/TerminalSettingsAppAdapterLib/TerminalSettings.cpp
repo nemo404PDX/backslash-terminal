@@ -299,6 +299,7 @@ namespace winrt::Microsoft::Terminal::Settings
         _RetroBezelEnabled = profile.RetroBezelEnabled();
         _RetroBezelSize = static_cast<int32_t>(profile.RetroBezelSize());
         _RetroBezelBadge = static_cast<int32_t>(profile.RetroBezelBadge());
+        _RetroBezelFiller = static_cast<int32_t>(profile.RetroBezelFiller());
         _HistorySize = profile.HistorySize();
         _SnapOnInput = profile.SnapOnInput();
         _AltGrAliasing = profile.AltGrAliasing();

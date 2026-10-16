@@ -26,6 +26,11 @@
       <DeploymentContent>true</DeploymentContent>
       <Link>ProfileGeneratorIcons\%(RecursiveDir)%(FileName)%(Extension)</Link>
     </Content>
+    <!-- Backslash badge artwork (shared by live panes and appearance preview) -->
+    <Content Include="$(OpenConsoleDir)docs\images\backslash-badge.svg;$(OpenConsoleDir)docs\images\backslash-badge-outline.svg;$(OpenConsoleDir)docs\images\backslash-badge-currentcolor.svg">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>Assets\branding\%(FileName)%(Extension)</Link>
+    </Content>
     <!-- Default Settings -->
     <Content Include="$(OpenConsoleDir)src\cascadia\TerminalSettingsModel\defaults.json">
       <DeploymentContent>true</DeploymentContent>

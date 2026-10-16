@@ -645,6 +645,26 @@
                           SelectedItem="{x:Bind CurrentRetroBezelBadge, Mode=TwoWay}"
                           Style="{StaticResource ComboBoxSettingStyle}" />
             </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelFiller" x:Uid="Profile_RetroBezelFiller"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelFiller}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelFiller, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelFillerOverrideSource, Mode=OneWay}">
+                <ComboBox AutomationProperties.AccessibilityView="Content"
+                          ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                          ItemsSource="{x:Bind RetroBezelFillerList, Mode=OneWay}"
+                          SelectedItem="{x:Bind CurrentRetroBezelFiller, Mode=TwoWay}"
+                          Style="{StaticResource ComboBoxSettingStyle}" />
+            </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroBezelBadgeStyle" x:Uid="Profile_RetroBezelBadgeStyle"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelBadgeStyle}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelBadgeStyle, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelBadgeStyleOverrideSource, Mode=OneWay}">
+                <ComboBox AutomationProperties.AccessibilityView="Content"
+                          ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                          ItemsSource="{x:Bind RetroBezelBadgeStyleList, Mode=OneWay}"
+                          SelectedItem="{x:Bind CurrentRetroBezelBadgeStyle, Mode=TwoWay}"
+                          Style="{StaticResource ComboBoxSettingStyle}" />
+            </local:SettingContainer>
             <local:SettingContainer x:Name="RetroBezelCenterFullscreen" x:Uid="Profile_RetroBezelCenterFullscreen"
                                     ClearSettingValue="{x:Bind Appearance.ClearRetroBezelCenterFullscreen}"
                                     HasSettingValue="{x:Bind Appearance.HasRetroBezelCenterFullscreen, Mode=OneWay}"

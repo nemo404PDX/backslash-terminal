@@ -47,7 +47,20 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     // Profile Settings
     DEFINE_ENUM_MAP(Model::RetroBezelSize, RetroBezelSize);
     DEFINE_ENUM_MAP(Model::RetroBezelColor, RetroBezelColor);
-    DEFINE_ENUM_MAP(Model::RetroBezelBadge, RetroBezelBadge);
+    DEFINE_ENUM_MAP(Model::RetroBezelFiller, RetroBezelFiller);
+    DEFINE_ENUM_MAP(Model::RetroBezelBadgeStyle, RetroBezelBadgeStyle);
+    IMap<hstring, Model::RetroBezelBadge> EnumMappings::RetroBezelBadge()
+    {
+        static auto map = [] {
+            auto result = single_threaded_map<hstring, Model::RetroBezelBadge>();
+            for (auto [name, value] : JsonUtils::ConversionTrait<Model::RetroBezelBadge>::mappings)
+            {
+                if (name != "top" && name != "bottom") { result.Insert(to_hstring(name), value); }
+            }
+            return result;
+        }();
+        return map;
+    }
 
     DEFINE_ENUM_MAP(Model::CloseOnExitMode, CloseOnExitMode);
     DEFINE_ENUM_MAP(Microsoft::Terminal::Control::ScrollbarState, ScrollbarState);

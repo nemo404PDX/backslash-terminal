@@ -48,6 +48,7 @@ namespace Microsoft.Terminal.Control
         Boolean RetroBezelEnabled { get; };
         Int32 RetroBezelSize { get; };
         Int32 RetroBezelBadge { get; };
+        Int32 RetroBezelFiller { get; };
         Windows.Foundation.Collections.IMap<String, Single> FontFeatures { get; };
         Windows.Foundation.Collections.IMap<String, Single> FontAxes { get; };
         Boolean EnableBuiltinGlyphs { get; };

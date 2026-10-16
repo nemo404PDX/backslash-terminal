@@ -72,6 +72,7 @@
     X(bool, RetroBezelEnabled, false) \
     X(int32_t, RetroBezelSize, 1) \
     X(int32_t, RetroBezelBadge, 0) \
+    X(int32_t, RetroBezelFiller, 0) \
     X(winrt::hstring, Padding, DEFAULT_PADDING)                                                                                                          \
     X(winrt::hstring, FontFace, L"Consolas")                                                                                                             \
     X(float, FontSize, 16.0f)                                                                                                                \

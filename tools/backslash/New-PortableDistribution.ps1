@@ -60,7 +60,7 @@ Version: $($manifest.Package.Identity.Version), x64 Release
 Run WindowsTerminal.exe by full path in this directory. The executable name is retained for helper compatibility.
 Settings and state: adjacent settings directory. Missing marker fallback: LocalAppData\Backslash\Terminal.
 External fragments and automatic stable-settings migration are disabled.
-Temporary upstream Dev icons are retained; final Backslash artwork is not present.
+Temporary upstream Dev application icons are retained. Supplied Backslash SVG badge artwork is included.
 This is a local development artifact. Do not register/install the upstream-identity MSIX from build output.
 No aliases, package registrations, certificates, default-terminal or Explorer integration are installed.
 CRT source: $($crt.FullName)\x64\Microsoft.VC145.CRT (application-local DLLs; no installer run).

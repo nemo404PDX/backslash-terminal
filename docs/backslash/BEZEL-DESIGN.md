@@ -456,3 +456,13 @@ A fresh extraction of the CuratedDefaults `f86a758f` ZIP was used for owned ordi
 `TermControl::GetProposedDimensions` computes grid pixels plus padding/scrollbar, then adds DPI-scaled bezel insets outside them; `TerminalWindow::GetLaunchDimensions` uses that result. Medium's 56 DIP casing + 18 DIP recess + 6 DIP clearance is 80 DIP per side. This evidence concerns initial ordinary-window launch. Existing live setting changes update bezel layout inside the current window; automatic outer-window resizing for a live toggle was not tested or added.
 
 Evidence: `artifacts/build/20261015-165707-949-Release-x64-f86a758f/bezel-grid-smoke/bezel-grid-results.json` and `bezel-grid-smoke-console.log`. The running user copies were not reused or stopped. [Curated defaults](CURATED-DEFAULTS.md) and the delivered ZIP remain unchanged; [badge SVG preparation](BACKSLASH-BADGE-ASSET.md) does not implement new casing/logo layout.
+
+## Supplied SVG badge integration and live-toggle decision (2026-10-16)
+
+The [SVG badge slice](BEZEL-BADGE-IMPLEMENTATION.md) implements six top/bottom placements plus off, Solid/Cutout/CurrentColor-white artwork, and independent top/bottom extra casing. The rectangular branding plate/background/seam is removed; the existing casing gradient continues behind the SVG and the SVG's own backing is preserved. Branding remains off by default. Legacy top/bottom settings retain centered placement and their extra 28 DIP of casing.
+
+The user subsequently confirmed the separate live-toggle behavior should remain: **fixed outer window, usable grid adjusts**. A fresh launch/reopen still reserves configured usable 80x28 cells. Owned measurements corroborate off-launch 80x28 -> live on 67x21 -> off 80x28 at fixed 1044x755, and on-launch 80x28 -> live off 92x34 -> on 80x28 at fixed 1204x915. Counts depend on the fixture/font/DPI. No automatic resizing or sizing redesign is added, including for maximized/snapped windows or split panes. The earlier launch-grid acceptance above remains valid.
+
+## Composed badge fix and side-rail exclusions (2026-10-16)
+
+The [rendering follow-up](BEZEL-BADGE-RENDER-FIX.md) corrects c69's gray-square failure with an explicit 527x100 SVG raster viewport, without changing artwork or stream handling. The newly approved horizontal rule anchors/scales badges inside the screen-opening span with a 12 DIP inset, excluding both side rails at every thickness. Centered positions and vertical band centering are retained. All 162 shared-control composition cases passed; the actual running terminal and Defaults > Appearance preview were captured and inspected. Live-toggle sizing remains as accepted; no window-resize code is added.

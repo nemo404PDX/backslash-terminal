@@ -57,3 +57,11 @@ A future implementation can explicitly package the selected working SVG as Conte
 Current `RetroBezel.h` uses a `TextBlock` inside a rectangular badge `Border`. Replacing that label alone would leave the existing plate. Dynamic color also needs explicit SVG color/paint supplied through an in-memory SVG stream or native DOM; setting XAML `Foreground` does not establish inheritance across an external image boundary. The probe verifies native DOM coloring, not that future XAML binding.
 
 The agreed design context is a continuous casing gradient with **no separate recessed rectangular plate**. The SVG's intentional backing is a distinct artwork component and remains preserved. Proposed logo placement is top-left/center/right, bottom-left/center/right, or off; optional extra bezel filler is independent of logo visibility. These are future UI/layout requirements, not implemented modes or an approval to change geometry/defaults. The existing delivered badge-none default and all casing values remain unchanged.
+
+## Implemented follow-up
+
+The later [badge integration slice](BEZEL-BADGE-IMPLEMENTATION.md) packages these exact working files and replaces the temporary rectangular plate with an SVG image, six placements and separate filler controls. CurrentColor is explicitly white in this version. The inspection/cleanup results and source/backup hashes above remain unchanged; the earlier integration discussion records the preparation stage rather than current implementation status.
+
+## Rendering correction
+
+The initial c69 integration decoded the files but composed a square. [The rendering fix](BEZEL-BADGE-RENDER-FIX.md) supplies an explicit finite source raster viewport matching this unchanged 527x100 viewBox and adds painted-pixel regression checks. Original, working and backup SVG hashes above remain unchanged. Placement now uses the screen-opening span, excluding side rails.
