@@ -1,5 +1,11 @@
 # Backslash Terminal
 
+<div style="text-align: center;">
+<br/><img src="docs\images\backslash-window-01.png" alt="" width="620" ><br/>
+<br/><em>A Backslash terminal window running Hermes Agent, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
+</div><br/>
+
+---
 Backslash is a Windows-focused fork of Microsoft Windows Terminal, adding profile tools and optional CRT styling to its tabs, panes and terminal foundation.
 
 **Windows is the current target. Linux and macOS support are TBD.** Current deliveries are portable development builds.
