@@ -35,39 +35,32 @@ Start with the [Windows build guide](tools/backslash/README.md), then the [porta
 </div><br/><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-02.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-02.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-03.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-03.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-04.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-04.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-05.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-05.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-06.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-06.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-07.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-07.png" alt="" width="620" >
+</div><br/>
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-08.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
-</div><br/><br/>
+<br/><img src="docs/images/backslash-window-08.png" alt="" width="620" >
+</div><br/>
 
 >**DEV NOTE**:  Save future screenshots in [`docs/images`](docs/images/README.md). That folder's guide covers suggested captures and removing credentials/private details. Images will be added here after they are supplied and reviewed.
 
