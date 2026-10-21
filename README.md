@@ -37,13 +37,7 @@ Start with the [Windows build guide](tools/backslash/README.md), then the [porta
 ---
 
 <br/>
-<img src="docs/images/backslash-window-02.png"  width="200" >
-<img src="docs/images/backslash-window-03.png"  width="200" >
-<img src="docs/images/backslash-window-04.png"  width="200" >
-<img src="docs/images/backslash-window-05.png"  width="200" >
-<img src="docs/images/backslash-window-06.png"  width="200" >
-<img src="docs/images/backslash-window-07.png"  width="200" >
-<img src="docs/images/backslash-window-08.png"  width="200" >
+<img src="docs/images/backslash-window-02.png"  width="200" ><img src="docs/images/backslash-window-03.png"  width="200" ><img src="docs/images/backslash-window-04.png"  width="200" ><img src="docs/images/backslash-window-05.png"  width="200" ><img src="docs/images/backslash-window-06.png"  width="200" ><img src="docs/images/backslash-window-07.png"  width="200" ><img src="docs/images/backslash-window-08.png"  width="200" >
 <br/><br/>
 
 ---
