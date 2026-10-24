@@ -1,3 +1,5 @@
+<img src="docs/images/icon-exports/1240_600.png" >
+
 # Backslash Terminal
 
 Backslash is a Windows-focused fork of Microsoft Windows Terminal, adding saved terminal layouts, pinned destinations, SSH profile tools and optional CRT styling to its tabs and panes. It builds on the existing C++/Windows codebase and upstream terminal capabilities, including split panes, profiles, color schemes and Sixel output.
