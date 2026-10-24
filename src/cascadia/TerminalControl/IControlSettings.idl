@@ -47,6 +47,11 @@ namespace Microsoft.Terminal.Control
         String Padding { get; };
         Boolean RetroBezelEnabled { get; };
         Int32 RetroBezelSize { get; };
+        Int32 RetroBezelTopSize { get; };
+        Int32 RetroBezelRightSize { get; };
+        Int32 RetroBezelBottomSize { get; };
+        Int32 RetroBezelLeftSize { get; };
+
         Int32 RetroBezelBadge { get; };
         Int32 RetroBezelFiller { get; };
         Windows.Foundation.Collections.IMap<String, Single> FontFeatures { get; };

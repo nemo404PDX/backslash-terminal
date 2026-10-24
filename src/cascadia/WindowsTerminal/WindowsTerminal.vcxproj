@@ -7,13 +7,14 @@
     <RootNamespace>WindowsTerminal</RootNamespace>
     <ProjectName>WindowsTerminal</ProjectName>
     <TargetName>WindowsTerminal</TargetName>
+    <TargetName Condition="'$(WindowsTerminalBranding)'=='' or '$(WindowsTerminalBranding)'=='Dev'">Backslash</TargetName>
     <ConfigurationType>Application</ConfigurationType>
     <OpenConsoleUniversalApp>false</OpenConsoleUniversalApp>
     <ApplicationType>Windows Store</ApplicationType>
     <WindowsStoreApp>true</WindowsStoreApp>
     <WindowsAppContainer>false</WindowsAppContainer>
     <TargetPlatformIdentifier>Windows</TargetPlatformIdentifier>
-    <VersionInfoFileDescription>Backslash Portable Development Host</VersionInfoFileDescription>
+    <VersionInfoFileDescription>Backslash</VersionInfoFileDescription>
     <PgoTarget>true</PgoTarget>
   </PropertyGroup>
 
@@ -202,4 +203,14 @@
   <Import Project="$(OpenConsoleDir)\build\rules\GenerateSxsManifestsFromWinmds.targets" />
   <Import Project="$(OpenConsoleDir)src\common.nugetversions.targets" />
 
+  <!-- Stamp once in the host resource build; About and CLI read this EXE resource. -->
+  <ItemDefinitionGroup>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemDefinitionGroup>
+  <Target Name="BackslashGenerateBuildIdentity" BeforeTargets="ResourceCompile">
+    <Error Condition="'$(WindowsTerminalBranding)' != '' and '$(WindowsTerminalBranding)' != 'Dev'" Text="Backslash local build identity currently supports Dev branding only." />
+    <Exec Command="pwsh.exe -NoProfile -File &quot;$(OpenConsoleDir)tools\backslash\New-BuildIdentity.ps1&quot; -OutputDirectory &quot;$(IntDir).&quot; -Architecture &quot;$(Platform)&quot; -Configuration &quot;$(Configuration)&quot;" />
+  </Target>
 </Project>

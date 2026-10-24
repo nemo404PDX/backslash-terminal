@@ -118,7 +118,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _previewBezel.Update(appearance.RetroBezelEnabled(), static_cast<int>(appearance.RetroBezelSize()),
                              static_cast<int>(appearance.RetroBezelColor()), static_cast<int>(appearance.RetroBezelBadge()), false, false,
                              static_cast<int>(appearance.RetroBezelFiller()), static_cast<int>(appearance.RetroBezelBadgeStyle()),
-                             std::wstring_view{ appearance.RetroBezelBadgeLettering() }, std::wstring_view{ appearance.RetroBezelBadgeBacking() });
+                             std::wstring_view{ appearance.RetroBezelBadgeLettering() }, std::wstring_view{ appearance.RetroBezelBadgeBacking() },
+                             static_cast<int>(appearance.RetroBezelTopSize()), static_cast<int>(appearance.RetroBezelRightSize()), static_cast<int>(appearance.RetroBezelBottomSize()), static_cast<int>(appearance.RetroBezelLeftSize()));
         _updatePreviewLayout();
     }
 

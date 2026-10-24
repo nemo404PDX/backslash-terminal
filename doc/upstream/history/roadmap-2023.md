@@ -54,7 +54,7 @@ _informative, not normative_
 For a more fluid take on what each of the team's personal goals are, head on over to [Core team North Stars]. This has a list of more long-term goals that each team member is working towards, but not things that are necessarily committed work.
 
 
-[^1]: A conclusive list of these features can be found at [../src/features.xml](../src/features.xml). Note that this is a raw XML doc used to light up specific parts of the codebase, and not something authored for human consumption.
+[^1]: A conclusive list of these features can be found at [../../../src/features.xml](../../../src/features.xml). Note that this is a raw XML doc used to light up specific parts of the codebase, and not something authored for human consumption.
 
 [2022 Roadmap]: ./roadmap-2022.md
 

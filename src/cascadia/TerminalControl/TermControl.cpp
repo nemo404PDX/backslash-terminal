@@ -2860,7 +2860,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         width += scale * static_cast<float>(thickness.Left + thickness.Right);
         height += scale * static_cast<float>(thickness.Top + thickness.Bottom);
 
-        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge(), false, settings.RetroBezelFiller());
+        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge(), false, settings.RetroBezelFiller(), settings.RetroBezelTopSize(), settings.RetroBezelRightSize(), settings.RetroBezelBottomSize(), settings.RetroBezelLeftSize());
         width += scale * bezel.Width();
         height += scale * bezel.Height();
         return { width, height };
@@ -2901,7 +2901,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         // VT window-size requests also need the outer pane's casing insets.
         const auto settings = _core.Settings();
-        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge(), false, settings.RetroBezelFiller());
+        const auto bezel = ::Microsoft::Terminal::Backslash::GetBezelInsets(settings.RetroBezelEnabled(), settings.RetroBezelSize(), settings.RetroBezelBadge(), false, settings.RetroBezelFiller(), settings.RetroBezelTopSize(), settings.RetroBezelRightSize(), settings.RetroBezelBottomSize(), settings.RetroBezelLeftSize());
         width += scale * bezel.Width();
         height += scale * bezel.Height();
         return { width, height };

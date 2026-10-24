@@ -8,6 +8,7 @@
 
 #include "DefaultTerminal.h"
 #include "FileUtils.h"
+#include "resource.h"
 
 #include <VersionHelpers.h>
 #include <WtExeUtils.h>
@@ -61,6 +62,8 @@ winrt::hstring CascadiaSettings::Hash() const noexcept
 Model::CascadiaSettings CascadiaSettings::Copy() const
 {
     const auto settings{ winrt::make_self<CascadiaSettings>() };
+    settings->_hash = _hash;
+    settings->_settingsWriteState = _settingsWriteState;
 
     // user settings
     {
@@ -438,10 +441,10 @@ winrt::com_ptr<Profile> CascadiaSettings::_createNewProfile(const std::wstring_v
 // - <none>
 // Return Value:
 // - <none>
-void CascadiaSettings::_validateSettings()
+void CascadiaSettings::_validateSettings(ValidationMode validationMode, const Model::MediaResourceResolver& mediaResourceResolver)
 {
     _validateAllSchemesExist();
-    _validateMediaResources();
+    if (validationMode == ValidationMode::Ordinary) { _validateMediaResources(mediaResourceResolver); }
     _validateKeybindings();
     _validateColorSchemesInCommands();
     _validateThemeExists();
@@ -637,11 +640,11 @@ void CascadiaSettings::_resolveSingleMediaResource(OriginTag origin, std::wstrin
 
 // Method Description:
 // - Ensures that all specified images resources (icons and background images) are valid.
-void CascadiaSettings::_validateMediaResources()
+void CascadiaSettings::_validateMediaResources(const Model::MediaResourceResolver& resolver)
 {
     _foundInvalidUserResources = false;
 
-    const MediaResourceResolver mediaResourceResolver{ this, &CascadiaSettings::_resolveSingleMediaResource };
+    const MediaResourceResolver mediaResourceResolver = resolver ? resolver : MediaResourceResolver{ this, &CascadiaSettings::_resolveSingleMediaResource };
 
     for (const auto& profile : _allProfiles)
     {
@@ -1051,6 +1054,103 @@ void CascadiaSettings::UpdateColorSchemeReferences(const winrt::hstring& oldName
     }
 }
 
+winrt::hstring CascadiaSettings::ExplicitSettingsJson() const
+{
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "    ";
+    return winrt::to_hstring(Json::writeString(writer, ToJson(true)));
+}
+
+// Validate against the already discovered destination context. The JSON-only
+// test constructor intentionally has no generators/fragments and would mark
+// every sourced profile as orphaned. Preview must not rerun discovery, mutate
+// this graph, write settings/state, resolve media or launch anything.
+Model::CascadiaSettings CascadiaSettings::ValidateSetupImport(const winrt::hstring& userJSON) const
+{
+    return ValidateSetupImport(userJSON, nullptr);
+}
+
+Model::CascadiaSettings CascadiaSettings::ValidateSetupImport(const winrt::hstring& userJSON, const Model::MediaResourceResolver& mediaResourceResolver) const
+{
+    SettingsLoader loader{ til::u16u8(userJSON), LoadStringResource(IDR_DEFAULTS) };
+    const auto userBase = _baseLayerProfile ? _baseLayerProfile->SourceBasePath : hstring{};
+    loader.userSettings.baseLayerProfile->SourceBasePath = userBase;
+    loader.userSettings.globals->SourceBasePath = _globals->SourceBasePath;
+    loader.MergeInboxIntoUserSettings();
+
+    // Clone only non-user context. Importing omitted explicit fields must regain
+    // the NEW Defaults, never pick up the old user's Defaults through a parent.
+    std::unordered_map<const Profile*, winrt::com_ptr<Profile>> detached;
+    const std::function<winrt::com_ptr<Profile>(const winrt::com_ptr<Profile>&)> cloneContext = [&](const auto& parent) -> winrt::com_ptr<Profile> {
+        if (parent->Origin() == OriginTag::User || parent->Origin() == OriginTag::ProfilesDefaults ||
+            (!parent->Source().empty() && !loader.IsProfileSourceEnabled(parent->Source()))) { return nullptr; }
+        if (const auto found = detached.find(parent.get()); found != detached.end()) { return found->second; }
+        auto clone = parent->CopySettings();
+        clone->SourceBasePath = parent->SourceBasePath;
+        detached.emplace(parent.get(), clone);
+        for (const auto& ancestor : parent->Parents())
+        {
+            if (const auto child = cloneContext(ancestor)) { clone->AddLeastImportantParent(child); }
+        }
+        clone->_FinalizeInheritance();
+        return clone;
+    };
+
+    for (const auto& candidate : loader.userSettings.profiles)
+    {
+        candidate->SourceBasePath = userBase;
+        const auto source = candidate->Source();
+        const auto current = FindProfile(candidate->Guid());
+        const bool sourceEnabled = source.empty() || loader.IsProfileSourceEnabled(source);
+        if (current && current.Source() == source && sourceEnabled)
+        {
+            const auto currentImpl = winrt::get_self<Profile>(current);
+            // Reverse insertion retains the original fragment/generated parent
+            // precedence; FinalizeLayering adds new Defaults above this context.
+            const auto& parents = currentImpl->Parents();
+            for (auto it = parents.rbegin(); it != parents.rend(); ++it)
+            {
+                const auto& parent = *it;
+                const bool profileParent = parent->Guid() == candidate->Guid() && parent->Source() == source;
+                const bool fragmentUpdate = parent->Origin() == OriginTag::Fragment && parent->Updates() == candidate->Guid();
+                if (parent->Origin() != OriginTag::InBox && (profileParent || fragmentUpdate))
+                {
+                    if (const auto clone = cloneContext(parent)) { candidate->AddMostImportantParent(clone); }
+                }
+            }
+        }
+    }
+    // Color schemes inherited from installed fragments/generators are context,
+    // not user overrides. Reuse detached definitions so valid references remain
+    // resolvable without flattening them into the imported settings document.
+    for (const auto& item : _globals->ColorSchemes())
+    {
+        const auto scheme = winrt::get_self<ColorScheme>(item.Value());
+        if (scheme->Origin() != OriginTag::User) { loader.inboxSettings.colorSchemes.insert_or_assign(item.Key(), scheme->Copy()); }
+    }
+    loader.FinalizeLayering();
+    for (const auto& candidate : loader.userSettings.profiles)
+    {
+        const auto source = candidate->Source();
+        if (!source.empty() && !candidate->Hidden())
+        {
+            const auto& parents = candidate->Parents();
+            const bool found = loader.IsProfileSourceEnabled(source) && std::any_of(parents.begin(), parents.end(), [&](const auto& parent) {
+                return (parent->Guid() == candidate->Guid() || parent->Updates() == candidate->Guid()) && parent->Source() == source;
+            });
+            if (!found)
+            {
+                throw winrt::hresult_invalid_argument{ L"Import preview cannot resolve profile '" + candidate->Name() + L"' from source '" + source +
+                    L"'. Its source is disabled or was not discovered in this destination. Enable/install the source and reload Settings before importing; no discovery or commands were run." };
+            }
+        }
+    }
+    loader.FixupUserSettings();
+    const auto result = winrt::make_self<CascadiaSettings>(std::move(loader), ValidationMode::SetupPreview, mediaResourceResolver);
+    result->_extensionPackages = _extensionPackages; // immutable discovery metadata
+    return *result;
+}
+
 winrt::hstring CascadiaSettings::ApplicationDisplayName()
 {
     try
@@ -1060,26 +1160,11 @@ winrt::hstring CascadiaSettings::ApplicationDisplayName()
     }
     CATCH_LOG();
 
-    return IsPortableMode() ? RS_(L"ApplicationDisplayNamePortable") : RS_(L"ApplicationDisplayNameUnpackaged");
+    return IsPortableMode() ? L"Backslash Dev (Portable)" : L"Backslash Dev (Unpackaged)";
 }
 
 winrt::hstring CascadiaSettings::ApplicationVersion()
 {
-    // Local portable builds do not receive release-pipeline DLL version resources.
-    if (!IsPackaged())
-    {
-        return L"0.0.1.0 (Backslash Dev; upstream 1.25)";
-    }
-
-    try
-    {
-        const auto package{ winrt::Windows::ApplicationModel::Package::Current() };
-        const auto version{ package.Id().Version() };
-        winrt::hstring formatted{ wil::str_printf<std::wstring>(L"%u.%u.%u.%u", version.Major, version.Minor, version.Build, version.Revision) };
-        return formatted;
-    }
-    CATCH_LOG();
-
     // Get the product version the old-fashioned way from the localized version compartment.
     //
     // We explicitly aren't using VS_FIXEDFILEINFO here, because our build pipeline puts
@@ -1092,8 +1177,8 @@ winrt::hstring CascadiaSettings::ApplicationVersion()
         {
             WORD language, codepage;
         };
-        // Use the current module instance handle for TerminalApp.dll, nullptr for WindowsTerminal.exe
-        auto filename{ wil::GetModuleFileNameW<std::wstring>(wil::GetModuleInstanceHandle()) };
+        // The host EXE owns the shared Backslash identity used by About and CLI.
+        auto filename{ wil::GetModuleFileNameW<std::wstring>(nullptr) };
         auto size{ GetFileVersionInfoSizeExW(0, filename.c_str(), nullptr) };
         THROW_LAST_ERROR_IF(size == 0);
         auto versionBuffer{ std::make_unique<std::byte[]>(size) };
@@ -1114,7 +1199,7 @@ winrt::hstring CascadiaSettings::ApplicationVersion()
                                                                        pVarLocalization->language ? pVarLocalization->language : 0x0409, // well-known en-US LCID
                                                                        pVarLocalization->codepage) };
         THROW_IF_WIN32_BOOL_FALSE(VerQueryValueW(versionBuffer.get(), localizedVersionName.c_str(), reinterpret_cast<void**>(&pProductVersion), &versionLen));
-        return { pProductVersion };
+        return winrt::hstring{ pProductVersion } + (IsPackaged() ? L"; packaged" : IsPortableMode() ? L"; portable" : L"; unpackaged");
     }
     CATCH_LOG();
 

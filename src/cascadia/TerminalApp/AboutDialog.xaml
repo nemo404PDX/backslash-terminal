@@ -17,13 +17,12 @@
                mc:Ignorable="d">
 
     <StackPanel Orientation="Vertical">
-        <TextBlock IsTextSelectionEnabled="True">
+        <TextBlock IsTextSelectionEnabled="True" TextWrapping="Wrap" MaxWidth="480">
             <TextBlock.ContextFlyout>
                 <mtu:TextMenuFlyout />
             </TextBlock.ContextFlyout>
             <Run AutomationProperties.HeadingLevel="1"
                  Text="{x:Bind ApplicationDisplayName}" /> <LineBreak />
-            <Run x:Uid="AboutDialog_VersionLabel" />
             <Run Text="{x:Bind ApplicationVersion}" />
         </TextBlock>
 
@@ -53,13 +52,13 @@
 
         <StackPanel Margin="-12,0,0,0"
                     Orientation="Vertical">
-            <HyperlinkButton x:Uid="AboutDialog_SourceCodeLink"
-                             NavigateUri="https://go.microsoft.com/fwlink/?linkid=2203152" />
-            <HyperlinkButton x:Uid="AboutDialog_DocumentationLink"
+            <HyperlinkButton Content="Upstream source code (Microsoft)"
+                             NavigateUri="https://github.com/microsoft/terminal" />
+            <HyperlinkButton Content="Upstream documentation (Microsoft)"
                              NavigateUri="https://go.microsoft.com/fwlink/?linkid=2125416" />
-            <HyperlinkButton x:Uid="AboutDialog_ReleaseNotesLink"
+            <HyperlinkButton Content="Upstream release notes (Microsoft)"
                              NavigateUri="https://go.microsoft.com/fwlink/?linkid=2125417" />
-            <HyperlinkButton x:Uid="AboutDialog_PrivacyPolicyLink"
+            <HyperlinkButton Content="Upstream privacy policy (Microsoft)"
                              NavigateUri="https://go.microsoft.com/fwlink/?linkid=2125418" />
             <HyperlinkButton x:Uid="AboutDialog_ThirdPartyNoticesLink"
                              Click="_ThirdPartyNoticesOnClick" />

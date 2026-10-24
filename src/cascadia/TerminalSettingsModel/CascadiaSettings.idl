@@ -32,6 +32,13 @@ namespace Microsoft.Terminal.Settings.Model
         void ResetApplicationState();
         void ResetToDefaultSettings();
         Boolean WriteSettingsToDisk();
+        // Explicit configured values only; preserves profile/default inheritance.
+        String ExplicitSettingsJson();
+        void RebaseAfterGroupAppend(CascadiaSettings before, CascadiaSettings after);
+        String LastSaveErrorMessage();
+        CascadiaSettings DefaultsForLoadFailure();
+        // Read-only validation using this destination's discovered source parents.
+        CascadiaSettings ValidateSetupImport(String userJSON);
         void LogSettingChanges(Boolean isJsonLoad);
 
         String Hash { get; };

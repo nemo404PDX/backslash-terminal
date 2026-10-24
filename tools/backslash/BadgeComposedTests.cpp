@@ -132,7 +132,8 @@ static Ink Inspect(Pixels const& background,Pixels const& painted,winrt::Windows
 
 int wmain(int argc,wchar_t** argv)
 {
-    if(argc!=2)return 2;
+    if(argc!=2 && argc!=3)return 2;
+    const bool layoutOnly = argc==3 && std::wstring_view{argv[2]}==L"--layout-only";
     std::ofstream report{std::filesystem::path{argv[1]}/L"composed-results.json"};report<<"{\"cases\":[";bool first=true;int passed=0,failures=0;
     try
     {
@@ -141,17 +142,23 @@ int wmain(int argc,wchar_t** argv)
         const auto hwnd=CreateWindowExW(0,L"STATIC",L"Owned Backslash badge render tests",WS_OVERLAPPEDWINDOW,0,0,1600,1200,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);if(!hwnd)throw_last_error();
         Hosting::DesktopWindowXamlSource island;auto native=island.as<IDesktopWindowXamlSourceNative>();check_hresult(native->AttachToWindow(hwnd));HWND child{};check_hresult(native->get_WindowHandle(&child));ShowWindow(hwnd,SW_SHOWNOACTIVATE);
         const std::array<char const*,7> positions{"off","bottomCenter","topCenter","bottomLeft","bottomRight","topLeft","topRight"};
-        for(int size=0;size<3;++size)
+        for(int size=0;size<4;++size)
         for(int context=0;context<3;++context)
         {
             const auto contextName=context==0?"live-control":context==1?"preview-wide":"preview-narrow";
             B::RetroBezel bezel;Controls::Grid terminal;terminal.Background(Media::SolidColorBrush{winrt::Windows::UI::Color{255,0,0,0}});bezel.Content(terminal);
+            // Fourth case: narrow top, broad sides, modest bottom; use the production path.
+            const auto update = [&](bool enabled, int preset, int color, int badge, bool center, bool fullscreen, int filler, int style) {
+                bezel.Update(enabled, preset == 3 ? 1 : preset, color, badge, center, fullscreen, filler, style,
+                             L"#FFFFFF", L"#000000", preset == 3 ? 0 : -1, preset == 3 ? 2 : -1,
+                             preset == 3 ? 1 : -1, preset == 3 ? 2 : -1);
+            };
             Controls::Grid host;Controls::ScrollViewer scroller{nullptr};double hostWidth=1000,hostHeight=700;
             if(context==0){host.Children().Append(bezel.Root());}
             else
             {
                 hostWidth=context==1?700:320;hostHeight=450;
-                const auto layout=B::GetAppearancePreviewLayout(static_cast<float>(hostWidth),B::GetBezelInsets(true,size,0,false,0),0,0,1);
+                const auto layout=B::GetAppearancePreviewLayout(static_cast<float>(hostWidth),B::GetBezelInsets(true,size,0,false,0,size==3?0:-1,size==3?2:-1,size==3?1:-1,size==3?2:-1),0,0,1);
                 Controls::Border border;border.Width(layout.width);border.Height(layout.height);border.BorderThickness({1,1,1,1});border.BorderBrush(Media::SolidColorBrush{winrt::Windows::UI::Color{255,100,100,100}});border.Child(bezel.Root());
                 scroller=Controls::ScrollViewer{};scroller.HorizontalScrollBarVisibility(Controls::ScrollBarVisibility::Auto);scroller.HorizontalScrollMode(Controls::ScrollMode::Enabled);scroller.VerticalScrollBarVisibility(Controls::ScrollBarVisibility::Disabled);scroller.Content(border);host.Children().Append(scroller);
             }
@@ -162,10 +169,10 @@ int wmain(int argc,wchar_t** argv)
             unsigned imageOpened=0;
             image.ImageOpened([&](auto const&,auto const&){++imageOpened;});
             std::array<Pixels,6> solidReferences;
-            for(int style=0;style<3;++style)for(int placement=1;placement<=6;++placement)
+            for(int style=0;style<(layoutOnly?0:3);++style)for(int placement=1;placement<=6;++placement)
             {
                 const auto previousSource=image.Source();const auto openedBefore=imageOpened;
-                bezel.Update(true,size,0,placement,false,false,0,style);
+                update(true,size,0,placement,false,false,0,style);
                 if(image.Source()!=previousSource)
                 {
                     const auto deadline=GetTickCount64()+15000;
@@ -175,8 +182,8 @@ int wmain(int argc,wchar_t** argv)
                 Pump(100);host.UpdateLayout();
                 const auto bounds=image.TransformToVisual(host).TransformBounds({0,0,static_cast<float>(image.ActualWidth()),static_cast<float>(image.ActualHeight())});
                 if(scroller){const auto target=std::clamp(static_cast<double>(bounds.X)+scroller.HorizontalOffset()+bounds.Width/2-hostWidth/2,0.0,scroller.ScrollableWidth());scroller.ChangeView(target,nullptr,nullptr,true);Pump(80);host.UpdateLayout();}
-                bezel.Update(true,size,0,0,false,false,0,style);Pump(30);host.UpdateLayout();const auto background=Capture(host);
-                bezel.Update(true,size,0,placement,false,false,0,style);Pump(80);host.UpdateLayout();const auto painted=Capture(host);
+                update(true,size,0,0,false,false,0,style);Pump(30);host.UpdateLayout();const auto background=Capture(host);
+                update(true,size,0,placement,false,false,0,style);Pump(80);host.UpdateLayout();const auto painted=Capture(host);
                 const auto rect=image.TransformToVisual(host).TransformBounds({0,0,static_cast<float>(image.ActualWidth()),static_cast<float>(image.ActualHeight())});
                 Require(rect.X>=-0.1 && rect.Y>=-0.1 && rect.X+rect.Width<=hostWidth+0.1 && rect.Y+rect.Height<=hostHeight+0.1,"Preview scroll exposes the whole badge without clipping");
                 const auto local=image.TransformToVisual(bezel.Root()).TransformBounds({0,0,static_cast<float>(image.ActualWidth()),static_cast<float>(image.ActualHeight())});
@@ -192,6 +199,25 @@ int wmain(int argc,wchar_t** argv)
                 auto source=image.Source().as<Media::Imaging::SvgImageSource>();Require(source.RasterizePixelWidth()==527 && source.RasterizePixelHeight()==100,"Finite SVG raster viewport is retained");
                 if(!first)report<<",";first=false;report<<"{\"context\":\""<<contextName<<"\",\"size\":"<<size<<",\"style\":"<<style<<",\"placement\":\""<<positions[static_cast<size_t>(placement)]<<"\",\"whitePixels\":"<<ink.white<<",\"blackPixels\":"<<ink.black<<",\"whiteColumns\":"<<ink.whiteColumns<<",\"letterSamples\":"<<ink.letterSamples<<",\"transparentLetters\":"<<ink.transparentLetters<<",\"paintedWidth\":"<<ink.right-ink.left+1<<",\"paintedHeight\":"<<ink.bottom-ink.top+1<<",\"png\":\""<<file<<"\"}";
                 ++passed;std::cout<<"PASS "<<contextName<<" style="<<style<<" "<<positions[static_cast<size_t>(placement)]<<" silhouette="<<ink.right-ink.left+1<<"x"<<ink.bottom-ink.top+1<<" white="<<ink.white<<"\n";
+            }
+            if(layoutOnly)
+            {
+                update(true,size,0,1,false,false,0,0);Pump(40);host.UpdateLayout();
+                const auto outerWidth=bezel.Root().ActualWidth(),outerHeight=bezel.Root().ActualHeight();
+                const auto margins=terminal.Margin();
+                Require(margins.Left==bezel.Insets.left && margins.Top==bezel.Insets.top && margins.Right==bezel.Insets.right && margins.Bottom==bezel.Insets.bottom,"Whole terminal and overlays share the edge insets");
+                Require(std::abs(terminal.ActualWidth()+margins.Left+margins.Right-outerWidth)<0.01,"Terminal width fits asymmetric aperture");
+                Require(std::abs(terminal.ActualHeight()+margins.Top+margins.Bottom-outerHeight)<0.01,"Terminal height fits asymmetric aperture");
+                update(false,size,0,1,false,false,0,0);Pump(40);host.UpdateLayout();
+                Require(bezel.Root().ActualWidth()==outerWidth && bezel.Root().ActualHeight()==outerHeight,"Toggling off keeps outer layout size");
+                Require(terminal.Margin().Left==0 && terminal.Margin().Top==0 && terminal.Margin().Right==0 && terminal.Margin().Bottom==0,"Bezel off restores the whole aperture");
+                update(true,size,0,1,false,false,0,0);Pump(40);host.UpdateLayout();
+                Require(bezel.Root().ActualWidth()==outerWidth && bezel.Root().ActualHeight()==outerHeight,"Toggling on keeps outer layout size");
+                Require(terminal.Margin().Left==margins.Left && terminal.Margin().Top==margins.Top && terminal.Margin().Right==margins.Right && terminal.Margin().Bottom==margins.Bottom,"Toggle restores independent edge margins");
+                bezel.Update(true,1,0,0,false,false,0,0,L"#FFFFFF",L"#000000",0,2,1,0);Pump(40);host.UpdateLayout();
+                Require(terminal.Margin().Left==64 && terminal.Margin().Right==96,"Left and right change independently");
+                Require(bezel.Root().ActualWidth()==outerWidth && bezel.Root().ActualHeight()==outerHeight,"Changing edge widths keeps outer layout size");
+                ++passed;std::cout<<"PASS edge layout/toggle "<<contextName<<" size="<<size<<"\n";
             }
             island.Content(nullptr);Pump(50);
         }

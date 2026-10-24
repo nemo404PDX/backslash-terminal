@@ -313,35 +313,39 @@ const std::vector<winrt::Microsoft::Terminal::Settings::Model::SettingsLoadWarni
 // - <none>
 // Return Value:
 // - the JsonObject representing this instance
-Json::Value GlobalAppSettings::ToJson()
+Json::Value GlobalAppSettings::ToJson(bool preserveExplicit)
 {
-    // These experimental options should be removed from the settings file if they're at their default value.
-    // This prevents them from sticking around forever, even if the user was just experimenting with them.
-    // One could consider this a workaround for the settings UI right now not having a "reset to default" button for these.
-    if (_GraphicsAPI == Control::GraphicsAPI::Automatic)
+    // Setup transfer preserves explicit off/default choices; ordinary saves retain existing cleanup.
+    if (!preserveExplicit)
     {
-        _GraphicsAPI.reset();
-    }
-    if (_TextMeasurement == Control::TextMeasurement::Graphemes)
-    {
-        _TextMeasurement.reset();
-    }
-    if (_AmbiguousWidth == Control::AmbiguousWidth::Narrow)
-    {
-        _AmbiguousWidth.reset();
-    }
-    if (_DefaultInputScope == Control::DefaultInputScope::Default)
-    {
-        _DefaultInputScope.reset();
-    }
+        // These experimental options should be removed from the settings file if they're at their default value.
+        // This prevents them from sticking around forever, even if the user was just experimenting with them.
+        // One could consider this a workaround for the settings UI right now not having a "reset to default" button for these.
+        if (_GraphicsAPI == Control::GraphicsAPI::Automatic)
+        {
+            _GraphicsAPI.reset();
+        }
+        if (_TextMeasurement == Control::TextMeasurement::Graphemes)
+        {
+            _TextMeasurement.reset();
+        }
+        if (_AmbiguousWidth == Control::AmbiguousWidth::Narrow)
+        {
+            _AmbiguousWidth.reset();
+        }
+        if (_DefaultInputScope == Control::DefaultInputScope::Default)
+        {
+            _DefaultInputScope.reset();
+        }
 
-    if (_DisablePartialInvalidation == false)
-    {
-        _DisablePartialInvalidation.reset();
-    }
-    if (_SoftwareRendering == false)
-    {
-        _SoftwareRendering.reset();
+        if (_DisablePartialInvalidation == false)
+        {
+            _DisablePartialInvalidation.reset();
+        }
+        if (_SoftwareRendering == false)
+        {
+            _SoftwareRendering.reset();
+        }
     }
 
     Json::Value json{ Json::ValueType::objectValue };

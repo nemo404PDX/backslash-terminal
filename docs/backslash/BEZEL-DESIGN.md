@@ -472,3 +472,20 @@ The [rendering follow-up](BEZEL-BADGE-RENDER-FIX.md) corrects c69's gray-square 
 [CurrentColor controls](CURRENTCOLOR-BADGE-CONTROLS.md) add only Lettering and Backing color/None choices, with white/black readable defaults and existing inheritance/reset/Save/preview behavior. They apply only to CurrentColor and paint derived runtime data; the supplied SVGs and Affinity sources remain unchanged. No opacity sliders or geometry changes are added.
 
 [Two appended finishes](BEZEL-FINISH-EXTENSIONS.md) add `mutedRed` = 9, #7C5955 and `warmMustard` = 10, #95814F through the existing dark material branch. All prior enum/RGB values, blend percentages and frozen references remain unchanged. This slice is uncommitted for user review; build/package only, with no test suite or rendering matrix run.
+
+
+## Independent edge widths (2026-10-23)
+
+Appearance now exposes Top, Right, Bottom and Left casing dropdowns. Each offers Use overall size, Slim (40 DIP), Medium (56 DIP), and Wide (72 DIP). The existing Casing width remains the overall fallback. Profiles without the four new keys retain their exact previous geometry, including the independent top/bottom filler, fullscreen balancing and bezel-off default.
+
+The profile keys are `experimental.retroBezelTopSize`, `experimental.retroBezelRightSize`, `experimental.retroBezelBottomSize`, and `experimental.retroBezelLeftSize`; values are `default`, `slim`, `medium`, or `wide`. Reset removes the local override through normal profile inheritance. Explicit `default` follows that profile's overall size even when a parent has an edge override.
+
+For broad sides, modest bottom and narrow top, use top `slim`, right/left `wide`, bottom `medium`. Widths control flat casing only: recess depth and black clearance are unchanged. Existing continuous hollow geometry handles joins; the entire terminal and overlays remain within the rectangular aperture. Badge vertical placement uses its own top/bottom flat band, with horizontal anchors inside the opening span. Settings changes adjust content margins within the existing outer window; this change adds no outer-window resize request.
+
+Pins now uses the existing Microsoft Pin glyph (E718) in SymbolThemeFontFamily, with its label and accessible name preserved. Groups remains unchanged pending selection.
+
+Validation: Release x64 build `artifacts/build/20261023-154103-680-Release-x64-6b057f10` passed (0 errors, 134 warnings), and its fresh portable extraction passed isolation checks. The native composition fixture passed 216 pixel cases with zero image failures; comparison PNGs were inspected. A separate fast native layout run passed all 12 toggle/bounds cases. The focused TAEF bezel filter passed 15/17 tests, including the new 768-combination edge test and focused/unfocused adapter checks. Two palette assertions predate this slice: they expect 9 entries, whereas the unchanged HEAD already contains 11. The separate badge filter passed 4/4. These unrelated palette tests were left unchanged.
+
+Evidence is in `C:/Users/nemo/Documents/Codex/2026-10-23/task`: `bezel-tests.log`, `badge-tests.log`, `portable-isolation.log`, `badge-composed-5ae2bf5f/` (PNG comparisons and composed-results.json), and `edge-layout-probe/`. Fresh portable: `artifacts/portable/Backslash-Dev-20261023-154103-680-Release-x64-6b057f10/WindowsTerminal.exe`; launch by full path with the entire directory and `.portable` marker retained. No running terminal sessions or existing settings were touched.
+
+Limits: interactive actual-app dropdown/reset/save/reopen, actual terminal clipping/status overlays, and desktop window rectangle checks remain unrun because the required native Computer Use runtime is unavailable. Native tests establish production shared-bezel layout/pixels, not those full-app behaviors. The Library reference could not be inspected locally: materialization returned a cloud-only `/workspace/...` path with no download transfer, and that path does not exist on this Windows host. No image-dependent styling or new bevel-depth work was performed. No commit or push.

@@ -20,6 +20,8 @@
 #include "ApplicationState.h"
 #include "DefaultTerminal.h"
 #include "FileUtils.h"
+#include "PinnedStore.h"
+#include "GroupSavePolicy.h"
 
 #include "ProfileEntry.h"
 #include "FolderEntry.h"
@@ -1143,97 +1145,119 @@ winrt::com_ptr<ExtensionPackage> SettingsLoader::_registerFragment(const winrt::
 // Return Value:
 // - a unique_ptr containing a new CascadiaSettings object.
 Model::CascadiaSettings CascadiaSettings::LoadAll()
-try
 {
-    FILETIME lastWriteTime{};
-    auto settingsString = til::io::read_file_as_utf8_string_if_exists(_settingsPath(), false, &lastWriteTime);
-    auto firstTimeSetup = settingsString.empty();
+    namespace S = ::Microsoft::Terminal::Backslash::SetupTransfer;
+    return S::SettingsWriteState::RetryAutomaticLoad([&]() -> std::optional<Model::CascadiaSettings> {
+        const auto baseline = S::SettingsWriteState::Capture(_settingsPath(), [&](const auto& captured) {
+            // Reset first-run runtime bookkeeping before an import can acquire the
+            // same lock, never later from a stale automatic-load attempt.
+            if (captured.bytes.empty() || captured.bytes == "\xef\xbb\xbf") { ApplicationState::SharedInstance().Reset(); }
+        });
+        auto settingsString = baseline.bytes;
+        if (settingsString.starts_with("\xef\xbb\xbf")) { settingsString.erase(0, 3); }
+        const auto lastWriteTime = baseline.lastWriteTime;
+        try
+        {
+            auto firstTimeSetup = settingsString.empty();
 
-    // Backslash never automatically imports another application's settings, in any branding mode.
-    const bool releaseSettingExists = false;
+            // Backslash never automatically imports another application's settings, in any branding mode.
+            const bool releaseSettingExists = false;
 
-    // GH#11119: If we find that the settings file doesn't exist, or is empty,
-    // then let's quick delete the state file as well. If the user does have a
-    // state file, and not a settings, then they probably tried to reset their
-    // settings. It might have data in it that was only relevant for a previous
-    // iteration of the settings file. If we don't, we'll load the old state and
-    // ignore all dynamic profiles (for example)!
-    if (firstTimeSetup)
-    {
-        ApplicationState::SharedInstance().Reset();
-    }
+            // Only uses default settings when firstTimeSetup is true and releaseSettingExists is false
+            // Otherwise use existing settingsString
+            const auto settingsStringView = (firstTimeSetup && !releaseSettingExists) ? LoadStringResource(IDR_USER_DEFAULTS) : settingsString;
+            auto mustWriteToDisk = firstTimeSetup;
 
-    // Only uses default settings when firstTimeSetup is true and releaseSettingExists is false
-    // Otherwise use existing settingsString
-    const auto settingsStringView = (firstTimeSetup && !releaseSettingExists) ? LoadStringResource(IDR_USER_DEFAULTS) : settingsString;
-    auto mustWriteToDisk = firstTimeSetup;
+            SettingsLoader loader{ settingsStringView, LoadStringResource(IDR_DEFAULTS) };
 
-    SettingsLoader loader{ settingsStringView, LoadStringResource(IDR_DEFAULTS) };
+            winrt::hstring baseUserSettingsPath{ GetBaseSettingsPath().native() };
+            loader.userSettings.baseLayerProfile->SourceBasePath = baseUserSettingsPath;
+            loader.userSettings.globals->SourceBasePath = baseUserSettingsPath;
+            for (auto&& userProfile : loader.userSettings.profiles)
+            {
+                userProfile->SourceBasePath = baseUserSettingsPath;
+            }
 
-    winrt::hstring baseUserSettingsPath{ GetBaseSettingsPath().native() };
-    loader.userSettings.baseLayerProfile->SourceBasePath = baseUserSettingsPath;
-    loader.userSettings.globals->SourceBasePath = baseUserSettingsPath;
-    for (auto&& userProfile : loader.userSettings.profiles)
-    {
-        userProfile->SourceBasePath = baseUserSettingsPath;
-    }
+            // Generate dynamic profiles and add them as parents of user profiles.
+            // That way the user profiles will get appropriate defaults from the generators (like icons and such).
+            loader.GenerateProfiles();
 
-    // Generate dynamic profiles and add them as parents of user profiles.
-    // That way the user profiles will get appropriate defaults from the generators (like icons and such).
-    loader.GenerateProfiles();
+            // ApplyRuntimeInitialSettings depends on generated profiles.
+            // --> ApplyRuntimeInitialSettings must be called after GenerateProfiles.
+            // Doesn't run when there is a Release settings.json that exists
+            if (firstTimeSetup && !releaseSettingExists)
+            {
+                loader.ApplyRuntimeInitialSettings();
+            }
 
-    // ApplyRuntimeInitialSettings depends on generated profiles.
-    // --> ApplyRuntimeInitialSettings must be called after GenerateProfiles.
-    // Doesn't run when there is a Release settings.json that exists
-    if (firstTimeSetup && !releaseSettingExists)
-    {
-        loader.ApplyRuntimeInitialSettings();
-    }
+            loader.MergeInboxIntoUserSettings();
+            // Fragments might reference user profiles created by a generator.
+            // --> FindFragmentsAndMergeIntoUserSettings must be called after MergeInboxIntoUserSettings.
+            loader.FindFragmentsAndMergeIntoUserSettings(false /*generateExtensionPackages*/);
+            loader.FinalizeLayering();
 
-    loader.MergeInboxIntoUserSettings();
-    // Fragments might reference user profiles created by a generator.
-    // --> FindFragmentsAndMergeIntoUserSettings must be called after MergeInboxIntoUserSettings.
-    loader.FindFragmentsAndMergeIntoUserSettings(false /*generateExtensionPackages*/);
-    loader.FinalizeLayering();
+            // DisableDeletedProfiles returns true whenever we encountered any new generated/dynamic profiles.
+            // Similarly FixupUserSettings returns true, when it encountered settings that were patched up.
+            mustWriteToDisk |= loader.DisableDeletedProfiles();
+            mustWriteToDisk |= loader.FixupUserSettings();
+            mustWriteToDisk |= loader.AddDynamicProfileFolders();
 
-    // DisableDeletedProfiles returns true whenever we encountered any new generated/dynamic profiles.
-    // Similarly FixupUserSettings returns true, when it encountered settings that were patched up.
-    mustWriteToDisk |= loader.DisableDeletedProfiles();
-    mustWriteToDisk |= loader.FixupUserSettings();
-    mustWriteToDisk |= loader.AddDynamicProfileFolders();
+            // If this throws, the app will catch it and use the default settings.
+            const auto settings = winrt::make_self<CascadiaSettings>(std::move(loader));
+            settings->_settingsWriteState = ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState{ baseline };
+            settings->_hash = _calculateHash(settingsString, lastWriteTime);
 
-    // If this throws, the app will catch it and use the default settings.
-    const auto settings = winrt::make_self<CascadiaSettings>(std::move(loader));
+            // If we created the file, or found new dynamic profiles, write the user
+            // settings string back to the file.
+            if (mustWriteToDisk)
+            {
+                if (!settings->WriteSettingsToDisk() && settings->_settingsWriteConflict)
+                {
+                    // Import/another window won while generation/fixups were running.
+                    // Never publish this stale in-memory model: parse the newer file.
+                    return std::nullopt;
+                }
+            }
 
-    // If we created the file, or found new dynamic profiles, write the user
-    // settings string back to the file.
-    if (mustWriteToDisk)
-    {
-        settings->WriteSettingsToDisk();
-    }
-    else
-    {
-        // lastWriteTime is only valid if mustWriteToDisk is false.
-        // Additionally WriteSettingsToDisk() updates the _hash for us already.
-        settings->_hash = _calculateHash(settingsString, lastWriteTime);
-    }
+            if (!settings->_settingsWriteState.MatchesCurrent(_settingsPath())) { return std::nullopt; }
+            settings->_researchOnLoad();
 
-    settings->_researchOnLoad();
-
-    return *settings;
+            const Model::CascadiaSettings current = *settings;
+            return current;
+        }
+        catch (const SettingsException& ex)
+        {
+            const auto settings{ winrt::make_self<CascadiaSettings>() };
+            settings->_loadError = ex.Error();
+            settings->_settingsWriteState = ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState{ baseline };
+            settings->_hash = _calculateHash(settingsString, lastWriteTime);
+            if (!settings->_settingsWriteState.MatchesCurrent(_settingsPath())) { return std::nullopt; }
+            const Model::CascadiaSettings current = *settings;
+            return current;
+        }
+        catch (const SettingsTypedDeserializationException& e)
+        {
+            const auto settings{ winrt::make_self<CascadiaSettings>() };
+            settings->_deserializationErrorMessage = til::u8u16(e.what());
+            settings->_settingsWriteState = ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState{ baseline };
+            settings->_hash = _calculateHash(settingsString, lastWriteTime);
+            if (!settings->_settingsWriteState.MatchesCurrent(_settingsPath())) { return std::nullopt; }
+            const Model::CascadiaSettings current = *settings;
+            return current;
+        }
+        catch (const winrt::hresult_error& e)
+        {
+            // Only JSON syntax failure gets a reset-capable safe fallback.
+            // Access errors, recovery fences and unrelated failures still propagate.
+            if (e.code() != WEB_E_INVALID_JSON_STRING) { throw; }
+            const auto settings = winrt::make_self<CascadiaSettings>(baseline, e.message());
+            if (!settings->_settingsWriteState.MatchesCurrent(_settingsPath())) { return std::nullopt; }
+            const Model::CascadiaSettings current = *settings;
+            return current;
+        }
+    });
 }
-catch (const SettingsException& ex)
-{
-    const auto settings{ winrt::make_self<CascadiaSettings>() };
-    settings->_loadError = ex.Error();
-    return *settings;
-}
-catch (const SettingsTypedDeserializationException& e)
-{
-    const auto settings{ winrt::make_self<CascadiaSettings>() };
-    settings->_deserializationErrorMessage = til::u8u16(e.what());
-    return *settings;
-}
+
 
 void CascadiaSettings::_researchOnLoad()
 {
@@ -1334,7 +1358,38 @@ CascadiaSettings::CascadiaSettings(const std::string_view& userJSON, const std::
 {
 }
 
-CascadiaSettings::CascadiaSettings(SettingsLoader&& loader) :
+CascadiaSettings::CascadiaSettings(const std::string_view& userJSON, const std::string_view& inboxJSON,
+    ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsFileSnapshot baseline) :
+    CascadiaSettings{ userJSON, inboxJSON }
+{
+    _hash = _calculateHash(baseline.bytes, baseline.lastWriteTime);
+    _settingsWriteState = ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState{ std::move(baseline) };
+}
+
+CascadiaSettings::CascadiaSettings(::Microsoft::Terminal::Backslash::SetupTransfer::SettingsFileSnapshot baseline,
+    const winrt::hstring& loadFailure)
+{
+    _deserializationErrorMessage = loadFailure;
+    _hash = _calculateHash(baseline.bytes, baseline.lastWriteTime);
+    _settingsWriteState = ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState{ std::move(baseline) };
+}
+
+Model::CascadiaSettings CascadiaSettings::DefaultsForLoadFailure() const
+{
+    if ((!_loadError && _deserializationErrorMessage.empty()) || _hash.empty())
+    {
+        throw winrt::hresult_invalid_argument(L"Only a captured settings-load failure can provide reset-capable defaults.");
+    }
+    auto defaults = LoadDefaults();
+    const auto safe = winrt::get_self<CascadiaSettings>(defaults);
+    safe->_settingsWriteState = _settingsWriteState;
+    safe->_hash = _hash;
+    // No profiles, commands, startup actions or preferences from the error input.
+    return defaults;
+}
+
+CascadiaSettings::CascadiaSettings(SettingsLoader&& loader, ValidationMode validationMode,
+    const Model::MediaResourceResolver& mediaResourceResolver) :
     // The CascadiaSettings class declaration initializes these fields by default,
     // but we're going to set these fields in our constructor later on anyways.
     _globals{},
@@ -1406,7 +1461,7 @@ CascadiaSettings::CascadiaSettings(SettingsLoader&& loader) :
 
     _resolveDefaultProfile();
     _resolveNewTabMenuProfiles();
-    _validateSettings();
+    _validateSettings(validationMode, mediaResourceResolver);
 
     ExpandCommands();
 }
@@ -1502,8 +1557,9 @@ void CascadiaSettings::ResetApplicationState() const
 
 void CascadiaSettings::ResetToDefaultSettings()
 {
-    ApplicationState::SharedInstance().Reset();
+    // A stale/reset draft must not erase newer settings or mutate runtime state.
     _writeSettingsToDisk(LoadStringResource(IDR_USER_DEFAULTS));
+    ApplicationState::SharedInstance().Reset();
 }
 
 // Method Description:
@@ -1516,11 +1572,21 @@ void CascadiaSettings::ResetToDefaultSettings()
 // - <none>
 bool CascadiaSettings::WriteSettingsToDisk()
 {
-    return WriteSettingsToDisk([this](std::string_view content) { _writeSettingsToDisk(content); }, *winrt::get_self<ApplicationState>(ApplicationState::SharedInstance()));
+    return WriteSettingsToDisk(_settingsPath(), *winrt::get_self<ApplicationState>(ApplicationState::SharedInstance()));
+}
+
+bool CascadiaSettings::WriteSettingsToDisk(const std::filesystem::path& path, ApplicationState& state, const std::function<void()>& beforeCommit)
+{
+    return WriteSettingsToDisk([&](std::string_view content) {
+        if (beforeCommit) { beforeCommit(); }
+        _writeSettingsToDisk(path, content);
+    }, state);
 }
 
 bool CascadiaSettings::WriteSettingsToDisk(const std::function<void(std::string_view)>& writer, ApplicationState& state)
 {
+    _lastSaveError = {};
+    _settingsWriteConflict = false;
     // write current settings to current settings file
     Json::StreamWriterBuilder wbuilder;
     wbuilder.settings_["enableYAMLCompatibility"] = true; // suppress spaces around colons
@@ -1545,21 +1611,27 @@ bool CascadiaSettings::WriteSettingsToDisk(const std::function<void(std::string_
         {
             state.GeneratedProfiles(seen);
         }
+        return true;
     }
-    catch (...)
+    catch (const winrt::hresult_error& e)
     {
-        LOG_CAUGHT_EXCEPTION();
-        _warnings.Append(SettingsLoadWarnings::FailedToWriteToSettings);
-        return false;
+        _lastSaveError = e.message();
+        _settingsWriteConflict = e.code() == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
     }
-    return true;
+    catch (const std::exception& e) { _lastSaveError = winrt::to_hstring(e.what()); }
+    catch (...) { _lastSaveError = L"Settings could not be saved. Your draft was kept."; }
+    _warnings.Append(SettingsLoadWarnings::FailedToWriteToSettings);
+    return false;
 }
 
 void CascadiaSettings::_writeSettingsToDisk(std::string_view contents)
 {
-    FILETIME lastWriteTime{};
-    til::io::write_utf8_string_to_file_atomic(_settingsPath(), contents, &lastWriteTime);
+    _writeSettingsToDisk(_settingsPath(), contents);
+}
 
+void CascadiaSettings::_writeSettingsToDisk(const std::filesystem::path& path, std::string_view contents)
+{
+    const auto lastWriteTime = _settingsWriteState.Commit(path, contents);
     _hash = _calculateHash(contents, lastWriteTime);
 
     // Persists the default terminal choice
@@ -1585,18 +1657,32 @@ void CascadiaSettings::_writeSettingsToDisk(std::string_view contents)
 // - <none>
 // Return Value:
 // the JsonObject representing this instance
+void CascadiaSettings::RebaseAfterGroupAppend(const Model::CascadiaSettings& before, const Model::CascadiaSettings& after)
+{
+    namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
+    if (!before || !after || !before.EqualsForGroupSave(after, true) ||
+        !P::AppendOnly(::Microsoft::Terminal::Backslash::SavedTabGroups::Read(before.GlobalSettings().SavedTabGroupsJson()),
+                       ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(after.GlobalSettings().SavedTabGroupsJson())))
+    {
+        throw winrt::hresult_invalid_argument(L"Only a verified saved-Group append may rebase a Settings draft.");
+    }
+    const auto oldSource = winrt::get_self<CascadiaSettings>(before), freshSource = winrt::get_self<CascadiaSettings>(after);
+    _settingsWriteState.AdoptIfUnchanged(oldSource->_settingsWriteState, freshSource->_settingsWriteState);
+    _hash = freshSource->_hash;
+}
+
 bool CascadiaSettings::EqualsForGroupSave(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& other, bool ignoreGroups) const
 {
     if (!other) { return false; }
-    auto before = ToJson();auto after = winrt::get_self<CascadiaSettings>(other)->ToJson();
+    auto before = ToJson(true);auto after = winrt::get_self<CascadiaSettings>(other)->ToJson(true);
     if (ignoreGroups) { before.removeMember("backslash.savedTabGroups");after.removeMember("backslash.savedTabGroups"); }
     return before == after;
 }
 
-Json::Value CascadiaSettings::ToJson() const
+Json::Value CascadiaSettings::ToJson(bool preserveExplicit) const
 {
     // top-level json object
-    auto json{ _globals->ToJson() };
+    auto json{ _globals->ToJson(preserveExplicit) };
     json["$help"] = "https://aka.ms/terminal-documentation";
     json["$schema"] =
 #if defined(WT_BRANDING_RELEASE)

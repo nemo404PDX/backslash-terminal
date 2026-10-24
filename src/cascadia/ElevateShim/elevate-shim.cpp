@@ -4,6 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <filesystem>
+#include "../WinRTUtils/inc/TerminalExecutable.h"
 
 #include <wil/stl.h>
 #include <wil/win32_helpers.h>
@@ -38,8 +39,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR cmdline, int)
     //    cmd:    shell:AppsFolder\WindowsTerminalDev_8wekyb3d8bbwe!App
     //    params: new-tab -p {guid}
     //
-    // #2 find and execute WindowsTerminal.exe
-    //    cmd:    {same path as this binary}\WindowsTerminal.exe
+    // #2 find and execute the host executable
+    //    cmd:    {same path as this binary}\the host executable
     //    params: new-tab -p {guid}
 
     std::wstring cmd;
@@ -64,12 +65,12 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR cmdline, int)
     if (cmd.empty())
     {
         // scenario #2
-        // Get the path to WindowsTerminal.exe, which should live next to us.
+        // Get the path to the host executable, which should live next to us.
         std::filesystem::path module{
             wil::GetModuleFileNameW<std::wstring>(nullptr)
         };
-        // Swap elevate-shim.exe for WindowsTerminal.exe
-        module.replace_filename(L"WindowsTerminal.exe");
+        // Swap elevate-shim.exe for the host executable
+        module.replace_filename(TerminalExe);
         cmd = module;
     }
 
@@ -81,7 +82,7 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR cmdline, int)
     seInfo.cbSize = sizeof(seInfo);
     seInfo.fMask = SEE_MASK_DEFAULT;
     seInfo.lpVerb = L"runas"; // This asks the shell to elevate the process
-    seInfo.lpFile = cmd.c_str(); // This is `shell:AppsFolder\...` or `...\WindowsTerminal.exe`
+    seInfo.lpFile = cmd.c_str(); // This is `shell:AppsFolder\...` or `...\the host executable`
     seInfo.lpParameters = cmdline; // This is `new-tab -p {guid}`
     seInfo.nShow = SW_SHOWNORMAL;
     LOG_IF_WIN32_BOOL_FALSE(ShellExecuteExW(&seInfo));

@@ -89,6 +89,23 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, LightColorSchemeName);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelEnabled);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelSize, RetroBezelSize);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelEdgeSize, RetroBezelTopSize);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelEdgeSize, RetroBezelRightSize);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelEdgeSize, RetroBezelBottomSize);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelEdgeSize, RetroBezelLeftSize);
+
+        IInspectable CurrentRetroBezelSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelSizeList { get; };
+        void BezelEdgesGrid_SizeChanged(Object sender, Windows.UI.Xaml.SizeChangedEventArgs args);
+        IInspectable CurrentRetroBezelTopSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelTopSizeList { get; };
+        IInspectable CurrentRetroBezelRightSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelRightSizeList { get; };
+        IInspectable CurrentRetroBezelBottomSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelBottomSizeList { get; };
+        IInspectable CurrentRetroBezelLeftSize;
+        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelLeftSizeList { get; };
+
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelColor, RetroBezelColor);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelBadge, RetroBezelBadge);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Microsoft.Terminal.Settings.Model.RetroBezelFiller, RetroBezelFiller);
@@ -130,8 +147,6 @@ namespace Microsoft.Terminal.Settings.Editor
         Boolean ShowAllFonts;
 
         static Windows.UI.Xaml.Media.Brush BezelShadeBrush(Int32 value);
-        IInspectable CurrentRetroBezelSize;
-        IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelSizeList { get; };
         IInspectable CurrentRetroBezelColor;
         IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> RetroBezelColorList { get; };
         IInspectable CurrentRetroBezelFiller;

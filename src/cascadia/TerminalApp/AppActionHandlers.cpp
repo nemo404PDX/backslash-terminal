@@ -1276,7 +1276,13 @@ namespace winrt::TerminalApp::implementation
                         keyChord = KeyChordSerialization::FromString(winrt::to_hstring(realArgs.KeyChord()));
                     }
                     _settings.GlobalSettings().ActionMap().AddSendInputAction(realArgs.Name(), commandLine, keyChord);
-                    _settings.WriteSettingsToDisk();
+                    if (!_settings.WriteSettingsToDisk())
+                    {
+                        const auto message = _settings.LastSaveErrorMessage();
+                        ActionSaveFailed(message.empty() ? RS_(L"FailedToWriteToSettings") : message);
+                        args.Handled(true);
+                        return;
+                    }
                     ActionSaved(commandLine, realArgs.Name(), realArgs.KeyChord());
                 }
                 catch (const winrt::hresult_error& ex)

@@ -54,12 +54,12 @@ namespace WindowsTerminal.UIA.Tests.Elements
             // the Terminal appx, then use
             // New-UnpackagedTerminalDistribution.ps1 to build an unpackaged
             // layout that can successfully launch. Then, point the tests at
-            // that WindowsTerminal.exe like so:
+            // that Backslash.exe like so:
             //
-            //   te.exe WindowsTerminal.UIA.Tests.dll /p:WTPath=C:\the\path\to\the\unpackaged\layout\WindowsTerminal.exe
+            //   te.exe WindowsTerminal.UIA.Tests.dll /p:WTPath=C:\the\path\to\the\unpackaged\layout\Backslash.exe
             //
             // On the build machines, the scripts lay it out at the terminal-0.0.1.0\ subfolder of the test deployment directory
-            string path = Path.GetFullPath(Path.Combine(context.TestDeploymentDir, @"terminal-0.0.1.0\WindowsTerminal.exe"));
+            string path = Path.GetFullPath(Path.Combine(context.TestDeploymentDir, @"terminal-0.0.1.0\Backslash.exe"));
             if (context.Properties.Contains("WTPath"))
             {
                 path = (string)context.Properties["WTPath"];

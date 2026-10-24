@@ -52,6 +52,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         winrt::hstring SavedGroupAppendError(const winrt::hstring& before, const winrt::hstring& after);
         void _ResetSettings(const Model::CascadiaSettings& settings);
         safe_void_coroutine _ShowSavedGroupMergeConflict();
+        safe_void_coroutine _TransferSetup(bool importing);
+        safe_void_coroutine _RecoverSetupImport();
+        Windows::Foundation::IAsyncOperation<Windows::UI::Xaml::Controls::ContentDialogResult> _ShowSetupMessage(const hstring& title, const hstring& message, bool apply = false, const hstring& primary = {});
+        bool _setupTransferBusy = false;
+        bool _settingsDraftIsStale = false;
+        bool _settingsSaveAwaitingReload = false;
+        Model::CascadiaSettings _latestSettingsForReset{ nullptr };
+        void _KeepStaleSettingsDraft(const Model::CascadiaSettings& latest);
         Model::CascadiaSettings _savedGroupMergeBase{ nullptr };
         bool _preserveDraftOnGroupReload = false;
 
@@ -63,7 +71,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void SettingsNav_ItemInvoked(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Microsoft::UI::Xaml::Controls::NavigationViewItemInvokedEventArgs& args);
         void SettingsNav_PaneOpened(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
         void SettingsNav_PaneClosed(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
-        void SaveButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
+        safe_void_coroutine SaveButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void ResetButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& sender, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args);
 
@@ -84,6 +92,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Windows::Foundation::Collections::IObservableVector<IInspectable> _breadcrumbs;
         Windows::Foundation::Collections::IObservableVector<IInspectable> _menuItemSource;
         size_t _originalNumItems = 0u;
+        bool _profilesExpansionInitialized = false;
 
         Model::CascadiaSettings _settingsSource;
         Model::CascadiaSettings _settingsClone;
@@ -117,6 +126,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         winrt::Microsoft::Terminal::Settings::Editor::ProfileViewModel _profileDefaultsVM{ nullptr };
         Windows::Foundation::Collections::IVector<winrt::Microsoft::Terminal::Settings::Editor::ProfileViewModel> _profileVMs{ nullptr };
+        Windows::Foundation::Collections::IObservableVector<Windows::Foundation::IInspectable> _profileMenuItemSource{ nullptr };
         winrt::Microsoft::Terminal::Settings::Editor::ColorSchemesPageViewModel _colorSchemesPageVM{ nullptr };
         winrt::Microsoft::Terminal::Settings::Editor::ActionsViewModel _actionsVM{ nullptr };
         winrt::Microsoft::Terminal::Settings::Editor::NewTabMenuViewModel _newTabMenuPageVM{ nullptr };

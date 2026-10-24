@@ -1,3 +1,13 @@
+> **Backslash-owned documentation.** [All documentation](../README.md) | [Inherited Windows Terminal references/history](../../doc/README.md)
+>
+> **Current implementation:** [root overview](../../README.md), [saved groups](SAVED-TAB-GROUPS.md), [Pins checkpoint](PINNED-STATUS.md), [Pins implementation](PINNED-TABS-IMPLEMENTATION.md), [live folder metadata](LIVE-CWD-AND-SESSION-METADATA.md), [portable delivery](PORTABLE-IMPLEMENTATION.md), [SSH/WSL](SSH-PROFILES.md), [CRT controls](CRT-APPEARANCE.md) and [bezel implementation/evidence](BEZEL-DESIGN.md). Records include validation limits and earlier checkpoints.
+>
+> **Future designs/research:** [optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md), [appearance recipes / named starting looks](APPEARANCE-RECIPES-DESIGN.md), [file transfer](FILE-TRANSFER-DESIGN.md), [resumable sessions](RESUMABLE-SESSIONS-DESIGN.md), [app commands](APP-COMMANDS-DESIGN.md), [status bars](TERMINAL-STATUS-BARS-DESIGN.md), [keyboard sounds](KEYBOARD-SOUNDS-DESIGN.md), [fonts](FONTS.md), [SSH editor](SSH-LOCAL-EDITOR-RESEARCH.md) and [settings layout](SETTINGS-LAYOUT-PROPOSAL.md). [Roadmap](ROADMAP.md) and [feature scope](FEATURES.md) retain planning text; use implementation records for completed scope.
+>
+> **Historical evidence/completed planning stages:** [initial build](BUILD-BASELINE.md), [baseline research](BASELINE.md), [Pins plan](PINNED-TABS-PLAN.md), [frozen phosphor](PHOSPHOR-COLOR-REFERENCE-dc027cae.md), [frozen bezel](BEZEL-COLOR-REFERENCE-dc027cae.md) and [cross-build audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md). The [CRT rendering plan](CRT-RENDERING-PLAN.md) also contains implemented follow-ups. Keep artifact identities and evidence intact.
+>
+> Older preparation notes and index descriptions below are retained as history. Pending badge/finish headings and the dated inventory can lag implementation. Per-record evidence and the root overview take precedence for delivered scope.
+
 # Backslash Terminal project
 
 Display brand: **Backslash**. Repository/folder: **backslash-terminal**.

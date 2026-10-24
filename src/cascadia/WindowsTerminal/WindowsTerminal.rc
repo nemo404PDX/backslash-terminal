@@ -1,6 +1,7 @@
 // Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
+#include <BackslashBuildIdentity.h>
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -112,8 +113,8 @@ END
 
 // Local portable development metadata; no Microsoft release/signing pipeline is used.
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,0,1,0
- PRODUCTVERSION 0,0,1,0
+ FILEVERSION BACKSLASH_VERSION_NUMERIC
+ PRODUCTVERSION BACKSLASH_VERSION_NUMERIC
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0x8L
  FILEOS 0x40004L
@@ -124,13 +125,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "Backslash Portable Development Host\0"
-            VALUE "FileVersion", "0.0.1.0\0"
-            VALUE "InternalName", "WindowsTerminal\0"
-            VALUE "OriginalFilename", "WindowsTerminal.exe\0"
-            VALUE "ProductName", "Backslash Dev\0"
-            VALUE "ProductVersion", "0.0.1.0 (Backslash Dev; upstream 1.25)\0"
-            VALUE "PrivateBuild", "Portable development build; temporary upstream Dev icons\0"
+            VALUE "FileDescription", "Backslash\0"
+            VALUE "FileVersion", BACKSLASH_VERSION_STRING "\0"
+            VALUE "InternalName", "Backslash\0"
+            VALUE "OriginalFilename", "Backslash.exe\0"
+            VALUE "ProductName", "Backslash\0"
+            VALUE "ProductVersion", BACKSLASH_BUILD_IDENTITY "\0"
+            VALUE "PrivateBuild", "Local development build; Backslash Dev artwork\0"
             VALUE "LegalCopyright", "Microsoft Corporation and contributors; MIT license\0"
         END
     END

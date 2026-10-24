@@ -57,16 +57,18 @@ Copy-Item (Join-Path $repo 'packages\Microsoft.UI.Xaml.2.8.4\license.txt') -Dest
 @"
 Backslash Dev portable development build
 Version: $($manifest.Package.Identity.Version), x64 Release
-Run WindowsTerminal.exe by full path in this directory. The executable name is retained for helper compatibility.
+Run Backslash.exe by full path in this directory. Helpers and package executable paths use that built target name.
 Settings and state: adjacent settings directory. Missing marker fallback: LocalAppData\Backslash\Terminal.
 External fragments and automatic stable-settings migration are disabled.
-Temporary upstream Dev application icons are retained. Supplied Backslash SVG badge artwork is included.
+The Dev application uses supplied Backslash icon artwork. Helper icons outside images-Dev remain unchanged. Supplied Backslash SVG badge artwork is included.
 This is a local development artifact. Do not register/install the upstream-identity MSIX from build output.
 No aliases, package registrations, certificates, default-terminal or Explorer integration are installed.
 CRT source: $($crt.FullName)\x64\Microsoft.VC145.CRT (application-local DLLs; no installer run).
 Upstream/component notices are retained. Windows inbox system libraries remain OS prerequisites.
 "@ | Set-Content (Join-Path $dest 'BACKSLASH-PORTABLE.txt')
-$required = 'WindowsTerminal.exe','OpenConsole.exe','TerminalApp.dll','Microsoft.Terminal.Settings.Model.dll','Microsoft.Terminal.Control.dll','Microsoft.UI.Xaml.dll','resources.pri','vcruntime140.dll','msvcp140.dll','.portable','LICENSE','NOTICE.md','NOTICE.html'
+if ($manifest.Package.Applications.Application.Executable -ne 'Backslash.exe') { throw 'Dev package manifest must launch the built Backslash.exe target.' }
+if (Test-Path -LiteralPath (Join-Path $dest 'WindowsTerminal.exe')) { throw 'Stale upstream-named host executable must not enter a Backslash portable.' }
+$required = 'Backslash.exe','OpenConsole.exe','TerminalApp.dll','Microsoft.Terminal.Settings.Model.dll','Microsoft.Terminal.Control.dll','Microsoft.UI.Xaml.dll','resources.pri','vcruntime140.dll','msvcp140.dll','.portable','LICENSE','NOTICE.md','NOTICE.html'
 foreach ($file in $required) { if (-not (Test-Path -LiteralPath (Join-Path $dest $file))) { throw "Distribution missing $file" } }
 Get-ChildItem -LiteralPath $dest -Recurse -File | ForEach-Object { [pscustomobject]@{ Path = [IO.Path]::GetRelativePath($dest,$_.FullName); Length = $_.Length; SHA256 = (Get-FileHash -LiteralPath $_.FullName).Hash } } | ConvertTo-Json | Set-Content (Join-Path $run 'portable-files.json')
 Write-Output $dest

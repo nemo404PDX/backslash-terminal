@@ -82,6 +82,12 @@
     <ClInclude Include="SavedTabGroups.h" />
     <ClInclude Include="PinnedDestinations.h" />
     <ClInclude Include="PinnedStore.h" />
+    <ClInclude Include="SetupTransferResources.h" />
+
+    <ClInclude Include="SetupTransfer.h" />
+    <ClInclude Include="SetupTransferStorage.h" />
+    <ClInclude Include="SettingsWriteState.h" />
+
     <ClInclude Include="PinnedLaunch.h" />
     <ClInclude Include="PinnedCapture.h" />
     <ClInclude Include="PinnedIdentity.h" />

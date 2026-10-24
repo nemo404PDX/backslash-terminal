@@ -368,7 +368,8 @@ namespace winrt::TerminalApp::implementation
                       static_cast<int>(_profile.RetroBezelColor()), static_cast<int>(_profile.RetroBezelBadge()),
                       _profile.RetroBezelCenterFullscreen(), _fullscreen, static_cast<int>(_profile.RetroBezelFiller()),
                       static_cast<int>(_profile.RetroBezelBadgeStyle()),
-                      std::wstring_view{ _profile.RetroBezelBadgeLettering() }, std::wstring_view{ _profile.RetroBezelBadgeBacking() });
+                      std::wstring_view{ _profile.RetroBezelBadgeLettering() }, std::wstring_view{ _profile.RetroBezelBadgeBacking() },
+                      static_cast<int>(_profile.RetroBezelTopSize()), static_cast<int>(_profile.RetroBezelRightSize()), static_cast<int>(_profile.RetroBezelBottomSize()), static_cast<int>(_profile.RetroBezelLeftSize()));
     }
 
     void TerminalPaneContent::SetFullscreen(bool fullscreen)

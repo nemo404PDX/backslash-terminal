@@ -2767,8 +2767,7 @@
   <data name="Profile_RetroBezelHeader.Text" xml:space="preserve"><value>Retro bezel</value></data>
   <data name="Profile_RetroBezelEnabled.Header" xml:space="preserve"><value>Retro bezel</value></data>
   <data name="Profile_RetroBezelEnabled.HelpText" xml:space="preserve"><value>Add a plastic frame around the terminal. Terminal colors and text padding stay independent.</value></data>
-  <data name="Profile_RetroBezelSize.Header" xml:space="preserve"><value>Casing width</value></data>
-  <data name="Profile_RetroBezelSize.HelpText" xml:space="preserve"><value>Visible casing width. A separate 18 DIP recessed band and 6 DIP black surround sit inside it.</value></data>
+  <data name="Profile_RetroBezelSize.Header" xml:space="preserve"><value>Overall size</value></data>
   <data name="Profile_RetroBezelColor.Header" xml:space="preserve"><value>Casing finish</value></data>
   <data name="Profile_RetroBezelColor.HelpText" xml:space="preserve"><value>Choose a casing finish. Terminal colors and transparency stay independent.</value></data>
   <data name="Profile_RetroBezelBadge.Header" xml:space="preserve"><value>Backslash badge</value></data>
@@ -2911,4 +2910,75 @@
   <data name="Profile_RetroBezelBadgeBackingPicker.NullColorButtonLabel" xml:space="preserve"><value>None (transparent)</value></data>
   <data name="Profile_RetroBezelColorMutedRed.Content" xml:space="preserve"><value>Muted retro red</value></data>
   <data name="Profile_RetroBezelColorWarmMustard.Content" xml:space="preserve"><value>Warm mustard</value></data>
+  <data name="Profile_RetroBezelTopSize.Header" xml:space="preserve"><value>Top</value></data>
+  <data name="Profile_RetroBezelRightSize.Header" xml:space="preserve"><value>Right</value></data>
+  <data name="Profile_RetroBezelBottomSize.Header" xml:space="preserve"><value>Bottom</value></data>
+  <data name="Profile_RetroBezelLeftSize.Header" xml:space="preserve"><value>Left</value></data>
+  <data name="Profile_RetroBezelEdgeSizeDefault.Content" xml:space="preserve"><value>Use overall size</value></data>
+  <data name="Profile_RetroBezelEdgeSizeSlim.Content" xml:space="preserve"><value>Slim (40 DIP casing)</value></data>
+  <data name="Profile_RetroBezelEdgeSizeMedium.Content" xml:space="preserve"><value>Medium (56 DIP casing)</value></data>
+  <data name="Profile_RetroBezelEdgeSizeWide.Content" xml:space="preserve"><value>Wide (72 DIP casing)</value></data>
+  <data name="SetupTransfer_Export.Content" xml:space="preserve"><value>Export setup</value></data>
+  <data name="SetupTransfer_Import.Content" xml:space="preserve"><value>Import setup</value></data>
+  <data name="SetupTransfer_Recover.Content" xml:space="preserve"><value>Recover interrupted import</value></data>
+  <data name="SetupTransfer_ExportTitle" xml:space="preserve"><value>Export Backslash setup</value></data>
+  <data name="SetupTransfer_ImportTitle" xml:space="preserve"><value>Review Backslash setup import</value></data>
+  <data name="SetupTransfer_ErrorTitle" xml:space="preserve"><value>Setup transfer could not finish</value></data>
+  <data name="SetupTransfer_Apply" xml:space="preserve"><value>Apply import</value></data>
+  <data name="SetupTransfer_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SetupTransfer_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="SetupTransfer_Filter" xml:space="preserve"><value>Backslash setup document</value></data>
+  <data name="SetupTransfer_Exported" xml:space="preserve"><value>Setup exported to {0}. Defaults and explicit profile overrides are separate; unsaved Settings edits are included. Pins are saved as a catalog only. Fonts, images, shaders, running sessions, history and Pin ownership are not embedded.</value></data>
+  <data name="SetupTransfer_Unsaved" xml:space="preserve"><value>Save or reset your Settings edits before importing a setup. Your current draft was kept and nothing was imported.</value></data>
+  <data name="SetupTransfer_Summary" xml:space="preserve"><value>Profiles: {0} added, {1} updated
+Groups: {2} added, {3} updated
+Pins: {4} added, {5} updated
+
+Imported Defaults replace your explicit Defaults. Matching profiles are replaced by ID: omitted fields resume inheritance. Unrelated profiles, Groups and Pins are kept. Imported preferences replace only the supplied preference fields. Supplied actions and keybindings replace those whole sections; omitted preferences and sections are kept. A backup is created before anything changes. No imported command or session is started.</value></data>
+  <data name="SetupTransfer_Conflicts" xml:space="preserve"><value>
+
+Resolve these conflicts and choose the corrected file again:</value></data>
+  <data name="SetupTransfer_Warnings" xml:space="preserve"><value>
+
+Review these references and notices (nothing will be installed):</value></data>
+  <data name="SetupTransfer_NoChange" xml:space="preserve"><value>This setup already matches the saved configuration. Nothing was written.</value></data>
+  <data name="SetupTransfer_Imported" xml:space="preserve"><value>Setup imported. Backup: {0}
+
+Existing sessions and Pin ownership were preserved. Open the Pins menu to see the imported catalog. Startup choices apply on your next normal launch. Referenced files, fonts and shells are not installed.</value></data>
+  <data name="SetupTransfer_ModelWarning" xml:space="preserve"><value>Settings validation reported {0} warning(s). Resolve them in the import file before applying; no settings or Pins were written.</value></data>
+  <data name="SetupTransfer_ModelError" xml:space="preserve"><value>The imported setup could not be loaded by the settings model.</value></data>
+  <data name="SetupTransfer_TooLarge" xml:space="preserve"><value>The setup document is too large (maximum 8 MiB).</value></data>
+  <data name="SetupTransfer_InvalidSettings" xml:space="preserve"><value>The current settings file is not a valid JSON object. Repair it before importing.</value></data>
+  <data name="SetupTransfer_RecoverTitle" xml:space="preserve"><value>Recover an interrupted setup import</value></data>
+  <data name="SetupTransfer_RecoverAction" xml:space="preserve"><value>Recover import</value></data>
+  <data name="SetupTransfer_RecoverDescription" xml:space="preserve"><value>Restore the original settings and Pins from the pending import journal, only if the files still match that interrupted transaction. This does not import a new document or transfer ownership of running Pins. Continue?</value></data>
+  <data name="SetupTransfer_Recovered" xml:space="preserve"><value>Recovery finished. The original saved settings and Pins have been restored and settings reloaded.</value></data>
+  <data name="SetupTransfer_NoRecovery" xml:space="preserve"><value>No interrupted setup import was found. Nothing changed.</value></data>
+  <data name="SetupTransfer_DraftChanged" xml:space="preserve"><value>Settings changed while the import review was open. Nothing was imported. Save or reset Settings, then review the file again.</value></data>
+  <data name="SetupTransfer_Dropped" xml:space="preserve"><value>Unsupported setting would be discarded or changed by the settings model: {0}</value></data>
+  <data name="SetupTransfer_ExportDestination" xml:space="preserve"><value>Choose an export location outside the active settings directory so setup backups cannot overwrite live configuration files.</value></data>
+  <data name="SetupTransfer_ProfilesInFile" xml:space="preserve"><value>
+
+Profiles in this file (same ID updates the existing profile):</value></data>
+  <data name="SetupTransfer_GroupsInFile" xml:space="preserve"><value>
+
+Groups in this file (same ID updates the existing group):</value></data>
+  <data name="SetupTransfer_PinsInFile" xml:space="preserve"><value>
+
+Pins in this file (same ID updates the existing Pin):</value></data>
+  <data name="SetupTransfer_PreferencesInFile" xml:space="preserve"><value>
+
+Preferences supplied (each matching value or section is replaced; omitted preferences are kept):</value></data>
+  <data name="SetupTransfer_UnnamedPin" xml:space="preserve"><value>Unnamed Pin</value></data>
+  <data name="Settings_SaveFailedTitle" xml:space="preserve"><value>Settings could not be saved</value></data>
+  <data name="Settings_StaleDraftNotice.Title" xml:space="preserve"><value>Saved settings changed</value></data>
+  <data name="Settings_StaleDraftNotice.Message" xml:space="preserve"><value>Your draft is kept. Export or copy it before choosing Reset to load the latest saved settings. Save and import are blocked until Reset.</value></data>
+  <data name="Settings_StaleDraftMessage" xml:space="preserve"><value>Saved settings changed while you were editing. Your draft is kept. Export or copy it, then choose Reset to load the latest saved settings before saving or importing.</value></data>
+  <data name="Profile_BezelThicknessHeader.Text" xml:space="preserve"><value>Bezel thickness</value></data>
+  <data name="Profile_BezelThicknessHelp.Text" xml:space="preserve"><value>Edges use the overall size unless overridden. Reset an edge to inherit its value again.</value></data>
+  <data name="Profile_RetroBezelSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Overall bezel thickness</value></data>
+  <data name="Profile_RetroBezelTopSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Top bezel thickness</value></data>
+  <data name="Profile_RetroBezelRightSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right bezel thickness</value></data>
+  <data name="Profile_RetroBezelBottomSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Bottom bezel thickness</value></data>
+  <data name="Profile_RetroBezelLeftSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left bezel thickness</value></data>
 </root>

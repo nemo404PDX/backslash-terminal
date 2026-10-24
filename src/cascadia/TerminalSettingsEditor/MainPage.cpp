@@ -3,6 +3,12 @@
 
 #include "pch.h"
 #include "../TerminalSettingsModel/GroupSavePolicy.h"
+#include "../TerminalSettingsModel/SetupTransfer.h"
+#include "../TerminalSettingsModel/SetupTransferStorage.h"
+#include "../TerminalSettingsModel/SetupTransferResources.h"
+#include <til/io.h>
+#include <cmath>
+#include <algorithm>
 #include "MainPage.h"
 #include "MainPage.g.cpp"
 #include "Launch.h"
@@ -74,6 +80,34 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         icon.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
         icon.FontSize(16);
         return icon;
+    }
+
+    // Navigation is hierarchical: include collapsed children for programmatic
+    // selection, search and refreshing the current profile without expanding it.
+    static void AppendNavigationItems(const IIterable<IInspectable>& source, std::vector<IInspectable>& items)
+    {
+        for (const auto& item : source)
+        {
+            items.push_back(item);
+            if (const auto nav = item.try_as<MUX::Controls::NavigationViewItem>())
+            {
+                if (const auto children = nav.MenuItemsSource().try_as<IIterable<IInspectable>>())
+                {
+                    AppendNavigationItems(children, items);
+                }
+                else
+                {
+                    AppendNavigationItems(nav.MenuItems(), items);
+                }
+            }
+        }
+    }
+
+    static std::vector<IInspectable> NavigationItems(const IIterable<IInspectable>& source)
+    {
+        std::vector<IInspectable> items;
+        AppendNavigationItems(source, items);
+        return items;
     }
 
     static Editor::ProfileViewModel _viewModelForProfile(const Model::Profile& profile, const Model::CascadiaSettings& appSettings, const Windows::UI::Core::CoreDispatcher& dispatcher)
@@ -162,7 +196,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         _InitializeProfilesList();
 
         // Apply icons and tooltips (GH#19688, long names may be truncated) to static nav items
-        for (const auto& item : SettingsNav().MenuItems())
+        for (const auto& item : NavigationItems(_menuItemSource))
         {
             const auto navItem = item.try_as<MUX::Controls::NavigationViewItem>();
             if (!navItem)
@@ -182,6 +216,24 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 WUX::Controls::ToolTipService::SetToolTip(navItem, box_value(*navItemContentString));
             }
         }
+        // Native NavigationView needs an Icon to reserve the compact-rail slot
+        // and hide Content correctly. Keep the localized label as Content.
+        const auto initializeUtilityNavItem = [](const MUX::Controls::NavigationViewItem& item, const wchar_t* glyph) {
+            FontIcon icon;
+            icon.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
+            icon.FontSize(16);
+            icon.Glyph(glyph);
+            item.Icon(icon);
+            if (const auto label = item.Content().try_as<hstring>())
+            {
+                WUX::Controls::ToolTipService::SetToolTip(item, box_value(*label));
+                Automation::AutomationProperties::SetName(item, *label);
+            }
+        };
+        initializeUtilityNavItem(ProfilesGroupNavItem(), L"\xE8F1"); // Library: profile collection
+        initializeUtilityNavItem(ExportSetupNavItem(), L"\xEDE1"); // Export
+        initializeUtilityNavItem(ImportSetupNavItem(), L"\xE8B5"); // Import
+        initializeUtilityNavItem(RecoverSetupNavItem(), L"\xE777"); // Update Restore
         OpenJsonNavItem().Icon(_fontIconForNavTag(openJsonTag));
         WUX::Controls::ToolTipService::SetToolTip(OpenJsonNavItem(), box_value(RS_(L"Nav_OpenJSON/Content")));
 
@@ -212,38 +264,86 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         catch (const winrt::hresult_error& e) { return e.message(); }
     }
 
+    void MainPage::_KeepStaleSettingsDraft(const Model::CascadiaSettings& latest)
+    {
+        _latestSettingsForReset = latest;
+        _settingsDraftIsStale = true;
+        _settingsSaveAwaitingReload = false;
+        SettingsStaleDraftNotice().IsOpen(true);
+    }
+
     void MainPage::UpdateSettings(const Model::CascadiaSettings& settings)
     {
         namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
-        const auto identical = _settingsSource.EqualsForGroupSave(settings,false);
-        if (_preserveDraftOnGroupReload && identical) { _settingsSource = settings;return; }
-        if (!identical && _settingsSource.EqualsForGroupSave(settings,true))
+        const auto incomingMatchesDraft = _settingsClone.ExplicitSettingsJson() == settings.ExplicitSettingsJson();
+        if (!_settingsDraftIsStale && _settingsSaveAwaitingReload && !_settingsClone.Hash().empty() && _settingsClone.Hash() == settings.Hash())
+        {
+            // The user may have edited again after Save but before its watcher
+            // replay. This hash proves the incoming model is our saved snapshot;
+            // preserve those newer edits and the clone's already-current baseline.
+            if (incomingMatchesDraft) { _ResetSettings(settings); }
+            else
+            {
+                _settingsSource = settings;
+                _settingsSaveAwaitingReload = false;
+            }
+            return;
+        }
+        // Our successful Save may normalize default-valued fields. Its watcher
+        // replay is safe to accept when the persisted models are equivalent.
+        if (incomingMatchesDraft || (_settingsSaveAwaitingReload && _settingsClone.EqualsForGroupSave(settings, false)))
+        {
+            _ResetSettings(settings);
+            return;
+        }
+        if (_settingsDraftIsStale)
+        {
+            _KeepStaleSettingsDraft(settings);
+            return;
+        }
+        const auto identical = _settingsSource.EqualsForGroupSave(settings, false);
+        if (identical && _settingsSource.Hash() == settings.Hash()) { return; }
+        if (!identical && _settingsSource.EqualsForGroupSave(settings, true))
         {
             const auto base = _savedGroupMergeBase ? _savedGroupMergeBase : _settingsSource;
             try
             {
                 const auto oldGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(base.GlobalSettings().SavedTabGroupsJson());
                 const auto newGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(settings.GlobalSettings().SavedTabGroupsJson());
-                if (P::AppendOnly(oldGroups,newGroups))
+                if (P::AppendOnly(oldGroups, newGroups))
                 {
                     try
                     {
-                        const auto merged = P::MergeAddedGroups(base.GlobalSettings().SavedTabGroupsJson(),settings.GlobalSettings().SavedTabGroupsJson(),_settingsClone.GlobalSettings().SavedTabGroupsJson());
+                        const auto merged = P::MergeAddedGroups(base.GlobalSettings().SavedTabGroupsJson(), settings.GlobalSettings().SavedTabGroupsJson(), _settingsClone.GlobalSettings().SavedTabGroupsJson());
                         _settingsClone.GlobalSettings().SavedTabGroupsJson(merged);
                         _savedGroupMergeBase = nullptr;
                     }
                     catch (...) { if (!_savedGroupMergeBase) { _savedGroupMergeBase = _settingsSource; } }
-                    // Keep the same clone, page, controls, profile drafts and navigation.
-                    _settingsSource = settings;_preserveDraftOnGroupReload = true;return;
+                    // This API proves only Groups were appended and the clone's
+                    // original persisted baseline still matches the before model.
+                    // It never adopts an arbitrary external edit as our baseline.
+                    _settingsClone.RebaseAfterGroupAppend(_settingsSource, settings);
+                    _settingsSource = settings;
+                    _preserveDraftOnGroupReload = true;
+                    return;
                 }
             }
-            catch (...) { /* Other/unsupported settings updates retain the normal reload path. */ }
+            catch (...) { /* Preserve dirty drafts below if merge/rebase proof fails. */ }
+        }
+        if (_settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+        {
+            _KeepStaleSettingsDraft(settings);
+            return;
         }
         _ResetSettings(settings);
     }
 
     void MainPage::_ResetSettings(const Model::CascadiaSettings& settings)
     {
+        _settingsDraftIsStale = false;
+        _settingsSaveAwaitingReload = false;
+        _latestSettingsForReset = nullptr;
+        SettingsStaleDraftNotice().IsOpen(false);
         _savedGroupMergeBase = nullptr;_preserveDraftOnGroupReload = false;
         _settingsSource = settings;
         _settingsClone = settings.Copy();
@@ -288,7 +388,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             bool foundNavigationParams = false;
             auto destination = crumb->Tag();
             auto subPage = crumb->SubPage();
-            for (const auto& item : _menuItemSource)
+            for (const auto& item : NavigationItems(_menuItemSource))
             {
                 const auto menuItem = item.try_as<MUX::Controls::NavigationViewItem>();
                 if (!menuItem)
@@ -376,9 +476,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             if (const auto oldItem = _FindProfileNavItem(profileGuid))
             {
                 uint32_t oldIndex;
-                if (_menuItemSource.IndexOf(oldItem, oldIndex))
+                if (_profileMenuItemSource.IndexOf(oldItem, oldIndex))
                 {
-                    _menuItemSource.RemoveAt(oldIndex);
+                    _profileMenuItemSource.RemoveAt(oldIndex);
                 }
                 const auto oldVM = oldItem.Tag().as<Editor::ProfileViewModel>();
                 uint32_t vmIndex;
@@ -387,17 +487,18 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                     _profileVMs.RemoveAt(vmIndex);
                 }
             }
-            _CreateAndNavigateToNewProfile(_menuItemSource.Size() - 1, restored);
+            _CreateAndNavigateToNewProfile(_profileMenuItemSource.Size(), restored);
         }
     }
 
     void MainPage::_AddProfileHandler(winrt::guid profileGuid)
     {
-        uint32_t insertIndex;
-        auto selectedItem{ SettingsNav().SelectedItem() };
-        if (_menuItemSource)
+        uint32_t insertIndex = _profileMenuItemSource.Size();
+        uint32_t selectedIndex;
+        if (_profileMenuItemSource.IndexOf(SettingsNav().SelectedItem(), selectedIndex))
         {
-            _menuItemSource.IndexOf(selectedItem, insertIndex);
+            // Keep Defaults first; Add a new profile is a root sibling.
+            insertIndex = std::max<uint32_t>(1, selectedIndex);
         }
         if (profileGuid != winrt::guid{})
         {
@@ -429,6 +530,21 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // - <none>
     void MainPage::SettingsNav_Loaded(const IInspectable&, const RoutedEventArgs&)
     {
+        if (!_profilesExpansionInitialized)
+        {
+            _profilesExpansionInitialized = true;
+            const auto state = ApplicationState::SharedInstance();
+            ProfilesGroupNavItem().IsExpanded(!state.SettingsProfilesCollapsed());
+            ProfilesGroupNavItem().RegisterPropertyChangedCallback(MUX::Controls::NavigationViewItem::IsExpandedProperty(), [weak = get_weak()](const DependencyObject& sender, const DependencyProperty&) {
+                if (const auto self = weak.get(); self && self->SettingsNav().IsPaneOpen())
+                {
+                    // Ignore compact-pane teardown; persist the user's group choice.
+                    const auto state = ApplicationState::SharedInstance();
+                    state.SettingsProfilesCollapsed(!sender.as<MUX::Controls::NavigationViewItem>().IsExpanded());
+                    state.Flush();
+                }
+            });
+        }
         if (SettingsNav().SelectedItem() == nullptr)
         {
             const auto initialItem = SettingsNav().MenuItems().GetAt(0);
@@ -481,6 +597,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         if (const auto clickedItemContainer = args.InvokedItemContainer())
         {
+            // The native parent toggles expansion; it does not navigate or alter drafts.
+            if (clickedItemContainer == ProfilesGroupNavItem())
+            {
+                return;
+            }
             if (clickedItemContainer.IsSelected())
             {
                 // Clicked on the selected item.
@@ -495,6 +616,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
             if (const auto navString = clickedItemContainer.Tag().try_as<hstring>())
             {
+                if (*navString == L"ExportSetup_Nav") { _TransferSetup(false); return; }
+                if (*navString == L"ImportSetup_Nav") { _TransferSetup(true); return; }
+                if (*navString == L"RecoverSetup_Nav") { _RecoverSetupImport(); return; }
                 if (*navString == openJsonTag)
                 {
                     const auto window = CoreWindow::GetForCurrentThread();
@@ -907,7 +1031,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // NOTE: profiles are special in that they have their own nav item, so those are handled in the profile branch above
         if (!selectedNavTag.empty())
         {
-            for (auto&& menuItem : _menuItemSource)
+            for (auto&& menuItem : NavigationItems(_menuItemSource))
             {
                 if (const auto& navViewItem{ menuItem.try_as<MUX::Controls::NavigationViewItem>() })
                 {
@@ -927,6 +1051,325 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         }
     }
 
+    namespace
+    {
+        std::string SetupJson(const Json::Value& value)
+        {
+            Json::StreamWriterBuilder writer;
+            writer["indentation"] = "    ";
+            return Json::writeString(writer, value);
+        }
+
+        Json::Value SetupSettingsJson(std::string_view content)
+        {
+            Json::CharReaderBuilder builder;
+            builder["rejectDupKeys"] = true;
+            builder["failIfExtra"] = true;
+            std::unique_ptr<Json::CharReader> reader{ builder.newCharReader() };
+            Json::Value result;
+            std::string errors;
+            if (!reader->parse(content.data(), content.data() + content.size(), &result, &errors) || !result.isObject())
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_InvalidSettings")));
+            }
+            return result;
+        }
+
+        // Import accepts the current Backslash model, rather than silently discarding
+        // unknown nested action/theme/scheme members on the next ordinary Settings save.
+        void SetupMissingMembers(const Json::Value& expected, const Json::Value& parsed, const std::string& path, std::vector<std::string>& missing)
+        {
+            if (expected.isObject())
+            {
+                for (const auto& name : expected.getMemberNames())
+                {
+                    if (name == "$schema" || name == "$help" || expected[name].isNull()) { continue; }
+                    const auto child = path.empty() ? name : path + "." + name;
+                    if (!parsed.isObject() || !parsed.isMember(name)) { missing.push_back(child); }
+                    else { SetupMissingMembers(expected[name], parsed[name], child, missing); }
+                }
+            }
+            else if (expected.isArray())
+            {
+                for (Json::ArrayIndex i = 0; i < expected.size(); ++i)
+                {
+                    const Json::Value* match = nullptr;
+                    if (parsed.isArray())
+                    {
+                        // Profiles, named schemes/themes and commands can be reordered by the model.
+                        for (const auto* identity : { "guid", "id", "name" })
+                        {
+                            if (!expected[i].isObject() || !expected[i][identity].isString()) { continue; }
+                            for (const auto& candidate : parsed)
+                            {
+                                if (candidate.isObject() && candidate[identity] == expected[i][identity]) { match = &candidate; break; }
+                            }
+                            break;
+                        }
+                        if (!match && i < parsed.size()) { match = &parsed[i]; }
+                    }
+                    const auto child = path + "[" + std::to_string(i) + "]";
+                    if (!match) { missing.push_back(child); }
+                    else { SetupMissingMembers(expected[i], *match, child, missing); }
+                }
+            }
+            else if (expected.isNumeric() && parsed.isNumeric())
+            {
+                // Float settings are stored as Single; tolerate only representation noise.
+                const auto before = expected.asDouble();
+                const auto after = parsed.asDouble();
+                if (std::abs(before - after) > 0.000001 * std::max(1.0, std::abs(before))) { missing.push_back(path); }
+            }
+            else if (expected != parsed)
+            {
+                const auto guidField = path == "guid" || (path.size() > 5 && path.substr(path.size() - 5) == ".guid");
+                if (!guidField || !expected.isString() || !parsed.isString() ||
+                    ::Microsoft::Terminal::Backslash::SavedTabGroups::Guid(expected.asString()) != ::Microsoft::Terminal::Backslash::SavedTabGroups::Guid(parsed.asString()))
+                {
+                    missing.push_back(path);
+                }
+            }
+        }
+
+        bool SetupOutputIsInSettings(const std::filesystem::path& output, const std::filesystem::path& settingsRoot)
+        {
+            const auto root = std::filesystem::weakly_canonical(settingsRoot);
+            auto current = std::filesystem::weakly_canonical(output).parent_path();
+            while (!current.empty())
+            {
+                if (CompareStringOrdinal(current.c_str(), -1, root.c_str(), -1, TRUE) == CSTR_EQUAL) { return true; }
+                const auto parent = current.parent_path();
+                if (parent == current) { break; }
+                current = parent;
+            }
+            return false;
+        }
+    }
+
+    Windows::Foundation::IAsyncOperation<ContentDialogResult> MainPage::_ShowSetupMessage(const hstring& title, const hstring& message, bool apply, const hstring& primary)
+    {
+        const auto lifetime = get_strong();
+        ContentDialog dialog;
+        dialog.XamlRoot(XamlRoot());
+        dialog.Title(box_value(title));
+        TextBlock text;
+        text.Text(message);
+        text.TextWrapping(TextWrapping::Wrap);
+        text.IsTextSelectionEnabled(true);
+        ScrollViewer scroll;
+        scroll.MaxHeight(460);
+        scroll.MaxWidth(640);
+        scroll.Content(text);
+        dialog.Content(scroll);
+        dialog.CloseButtonText(RS_(apply ? L"SetupTransfer_Cancel" : L"SetupTransfer_Close"));
+        if (apply)
+        {
+            dialog.PrimaryButtonText(primary.empty() ? RS_(L"SetupTransfer_Apply") : primary);
+            dialog.DefaultButton(ContentDialogButton::Close);
+        }
+        co_return co_await dialog.ShowAsync();
+    }
+
+    safe_void_coroutine MainPage::_TransferSetup(bool importing)
+    {
+        namespace Transfer = ::Microsoft::Terminal::Backslash::SetupTransfer;
+        const auto lifetime = get_strong();
+        if (_setupTransferBusy) { co_return; }
+        _setupTransferBusy = true;
+        ExportSetupNavItem().IsEnabled(false);
+        ImportSetupNavItem().IsEnabled(false);
+        RecoverSetupNavItem().IsEnabled(false);
+        SaveButton().IsEnabled(false);
+        ResetButton().IsEnabled(false);
+        const auto restore = wil::scope_exit([&] {
+            _setupTransferBusy = false;
+            ExportSetupNavItem().IsEnabled(true);
+            ImportSetupNavItem().IsEnabled(true);
+            RecoverSetupNavItem().IsEnabled(true);
+            SaveButton().IsEnabled(true);
+            ResetButton().IsEnabled(true);
+        });
+        hstring error;
+        try
+        {
+            const std::filesystem::path settingsRoot{ CascadiaSettings::SettingsDirectory().c_str() };
+            Transfer::Storage storage{ settingsRoot };
+            if (importing && _settingsDraftIsStale)
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"Settings_StaleDraftMessage")));
+            }
+            if (importing && _settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
+            }
+            const auto path = co_await FilePicker(reinterpret_cast<HWND>(GetHostingWindow()), !importing, [importing](auto&& dialog) {
+                const auto filterLabel = RS_(L"SetupTransfer_Filter");
+                const COMDLG_FILTERSPEC filter[]{ { filterLabel.c_str(), L"*.backslash-setup.json;*.json" } };
+                THROW_IF_FAILED(dialog->SetFileTypes(1, filter));
+                THROW_IF_FAILED(dialog->SetDefaultExtension(L"backslash-setup.json"));
+                THROW_IF_FAILED(dialog->SetTitle(RS_(importing ? L"SetupTransfer_ImportTitle" : L"SetupTransfer_ExportTitle").c_str()));
+                if (!importing) { THROW_IF_FAILED(dialog->SetFileName(L"Backslash.backslash-setup.json")); }
+            });
+            if (path.empty()) { co_return; }
+            const std::filesystem::path filePath{ path.c_str() };
+            if (!importing)
+            {
+                if (SetupOutputIsInSettings(filePath, settingsRoot))
+                {
+                    throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_ExportDestination")));
+                }
+                const auto snapshot = storage.Capture();
+                const auto document = Transfer::Export(SetupSettingsJson(til::u16u8(_settingsClone.ExplicitSettingsJson())), snapshot.pins);
+                til::io::write_utf8_string_to_file_atomic(filePath, document);
+                co_await _ShowSetupMessage(RS_(L"SetupTransfer_ExportTitle"), to_hstring(fmt::format(fmt::runtime(til::u16u8(RS_(L"SetupTransfer_Exported"))), til::u16u8(path))));
+                co_return;
+            }
+
+            if (std::filesystem::file_size(filePath) > 8 * 1024 * 1024)
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_TooLarge")));
+            }
+            const auto document = Transfer::Parse(til::io::read_file_as_utf8_string_if_exists(filePath));
+            const auto sourceAtReview = _settingsSource.ExplicitSettingsJson();
+            if (_settingsClone.ExplicitSettingsJson() != sourceAtReview)
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
+            }
+            const auto snapshot = storage.Capture();
+            auto plan = Transfer::Prepare(document, SetupSettingsJson(snapshot.settings), snapshot.pins);
+            try { Transfer::Storage::ValidatePinnedChanges(snapshot, plan.pins); }
+            catch (const std::exception& ex) { plan.conflicts.emplace_back(ex.what()); }
+
+            if (plan.conflicts.empty())
+            {
+                try
+                {
+                    // Preserve the destination's existing generated/inbox parent context.
+                    // This preview performs no discovery, writes or imported launches.
+                    const auto validated = _settingsSource.ValidateSetupImport(to_hstring(SetupJson(plan.settings)));
+                    if (validated.GetLoadingError() || !validated.GetSerializationErrorMessage().empty())
+                    {
+                        plan.conflicts.emplace_back(til::u16u8(RS_(L"SetupTransfer_ModelError")) + " " + til::u16u8(validated.GetSerializationErrorMessage()));
+                    }
+                    if (validated.Warnings().Size())
+                    {
+                        auto message = fmt::format(fmt::runtime(til::u16u8(RS_(L"SetupTransfer_ModelWarning"))), validated.Warnings().Size());
+                        message += " (";
+                        for (const auto warning : validated.Warnings()) { message += std::to_string(static_cast<int>(warning)) + " "; }
+                        plan.conflicts.push_back(message + ")");
+                    }
+                    std::vector<std::string> missing;
+                    SetupMissingMembers(document.settings, SetupSettingsJson(til::u16u8(validated.ExplicitSettingsJson())), "", missing);
+                    for (const auto& field : missing)
+                    {
+                        plan.conflicts.emplace_back(fmt::format(fmt::runtime(til::u16u8(RS_(L"SetupTransfer_Dropped"))), field));
+                    }
+                }
+                catch (const std::exception& ex) { plan.conflicts.emplace_back(ex.what()); }
+                catch (const hresult_error& ex) { plan.conflicts.emplace_back(til::u16u8(ex.message())); }
+            }
+            const auto resourceWarnings = Transfer::Analyze(document.settings, settingsRoot);
+            plan.warnings.insert(plan.warnings.end(), resourceWarnings.begin(), resourceWarnings.end());
+            auto summary = fmt::format(fmt::runtime(til::u16u8(RS_(L"SetupTransfer_Summary"))), plan.profilesAdded, plan.profilesUpdated, plan.groupsAdded, plan.groupsUpdated, plan.pinsAdded, plan.pinsUpdated);
+            // Review the identities that this file targets, not only aggregate counts.
+            // Stable IDs explain why a changed repeat import updates the same entities.
+            if (plan.changed)
+            {
+                summary += til::u16u8(RS_(L"SetupTransfer_ProfilesInFile"));
+                for (const auto& profile : document.settings["profiles"]["list"])
+                {
+                    summary += "\n- " + profile["name"].asString() + "  " + profile["guid"].asString();
+                }
+                if (document.settings.isMember("backslash.savedTabGroups"))
+                {
+                    summary += til::u16u8(RS_(L"SetupTransfer_GroupsInFile"));
+                    for (const auto& group : document.settings["backslash.savedTabGroups"]["groups"])
+                    {
+                        summary += "\n- " + group["name"].asString() + "  " + group["id"].asString();
+                    }
+                }
+                if (!document.pins.pins.empty())
+                {
+                    summary += til::u16u8(RS_(L"SetupTransfer_PinsInFile"));
+                    for (const auto& pin : document.pins.pins)
+                    {
+                        const auto label = pin.label.empty() ? til::u16u8(RS_(L"SetupTransfer_UnnamedPin")) : pin.label;
+                        summary += "\n- " + label + "  " + pin.id;
+                    }
+                }
+                std::vector<std::string> preferences;
+                for (const auto& key : document.settings.getMemberNames())
+                {
+                    if (key != "profiles" && key != "backslash.savedTabGroups" && key != "schemes" && key != "themes" && key != "$schema" && key != "$help")
+                    {
+                        preferences.push_back(key);
+                    }
+                }
+                if (!preferences.empty())
+                {
+                    summary += til::u16u8(RS_(L"SetupTransfer_PreferencesInFile"));
+                    for (const auto& key : preferences) { summary += "\n- " + key; }
+                }
+            }
+            if (!plan.conflicts.empty())
+            {
+                summary += til::u16u8(RS_(L"SetupTransfer_Conflicts"));
+                for (const auto& conflict : plan.conflicts) { summary += "\n- " + conflict; }
+            }
+            if (!plan.warnings.empty())
+            {
+                summary += til::u16u8(RS_(L"SetupTransfer_Warnings"));
+                for (const auto& warning : plan.warnings) { summary += "\n- " + warning; }
+            }
+            if (!plan.CanApply())
+            {
+                co_await _ShowSetupMessage(RS_(L"SetupTransfer_ImportTitle"), to_hstring(summary));
+                co_return;
+            }
+            if (!plan.changed)
+            {
+                co_await _ShowSetupMessage(RS_(L"SetupTransfer_ImportTitle"), RS_(L"SetupTransfer_NoChange"));
+                co_return;
+            }
+            if (co_await _ShowSetupMessage(RS_(L"SetupTransfer_ImportTitle"), to_hstring(summary), true) != ContentDialogResult::Primary) { co_return; }
+            if (_settingsSource.ExplicitSettingsJson() != sourceAtReview || _settingsClone.ExplicitSettingsJson() != sourceAtReview)
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_DraftChanged")));
+            }
+            const auto result = storage.Apply(snapshot, SetupJson(plan.settings), plan.pins);
+            _ResetSettings(CascadiaSettings::LoadAll());
+            co_await _ShowSetupMessage(RS_(L"SetupTransfer_ImportTitle"), to_hstring(fmt::format(fmt::runtime(til::u16u8(RS_(L"SetupTransfer_Imported"))), til::u16u8(result.backupDirectory.native()))));
+        }
+        catch (const hresult_error& ex) { error = ex.message(); }
+        catch (const std::exception& ex) { error = to_hstring(ex.what()); }
+        if (!error.empty()) { co_await _ShowSetupMessage(RS_(L"SetupTransfer_ErrorTitle"), error); }
+    }
+
+    safe_void_coroutine MainPage::_RecoverSetupImport()
+    {
+        namespace Transfer = ::Microsoft::Terminal::Backslash::SetupTransfer;
+        const auto lifetime = get_strong();
+        if (_setupTransferBusy) { co_return; }
+        _setupTransferBusy = true;
+        const auto restore = wil::scope_exit([&] { _setupTransferBusy = false; });
+        hstring error;
+        try
+        {
+            if (_settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+            {
+                throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
+            }
+            if (co_await _ShowSetupMessage(RS_(L"SetupTransfer_RecoverTitle"), RS_(L"SetupTransfer_RecoverDescription"), true, RS_(L"SetupTransfer_RecoverAction")) != ContentDialogResult::Primary) { co_return; }
+            Transfer::Storage storage{ std::filesystem::path{ CascadiaSettings::SettingsDirectory().c_str() } };
+            const auto recovered = storage.Recover();
+            if (recovered) { _ResetSettings(CascadiaSettings::LoadAll()); }
+            co_await _ShowSetupMessage(RS_(L"SetupTransfer_RecoverTitle"), RS_(recovered ? L"SetupTransfer_Recovered" : L"SetupTransfer_NoRecovery"));
+        }
+        catch (const hresult_error& ex) { error = ex.message(); }
+        catch (const std::exception& ex) { error = to_hstring(ex.what()); }
+        if (!error.empty()) { co_await _ShowSetupMessage(RS_(L"SetupTransfer_ErrorTitle"), error); }
+    }
+
     safe_void_coroutine MainPage::_ShowSavedGroupMergeConflict()
     {
         const auto strong = get_strong();
@@ -936,8 +1379,15 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         dialog.Content(text);dialog.CloseButtonText(L"OK");co_await dialog.ShowAsync();
     }
 
-    void MainPage::SaveButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
+    safe_void_coroutine MainPage::SaveButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
     {
+        const auto lifetime = get_strong();
+        if (_settingsDraftIsStale)
+        {
+            co_await _ShowSetupMessage(RS_(L"Settings_SaveFailedTitle"), RS_(L"Settings_StaleDraftMessage"));
+            co_return;
+        }
+        _settingsSaveAwaitingReload = false;
         if (_savedGroupMergeBase)
         {
             try
@@ -945,18 +1395,28 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 const auto merged = ::Microsoft::Terminal::Backslash::GroupSavePolicy::MergeAddedGroups(_savedGroupMergeBase.GlobalSettings().SavedTabGroupsJson(),_settingsSource.GlobalSettings().SavedTabGroupsJson(),_settingsClone.GlobalSettings().SavedTabGroupsJson());
                 _settingsClone.GlobalSettings().SavedTabGroupsJson(merged);_savedGroupMergeBase = nullptr;
             }
-            catch (...) { _ShowSavedGroupMergeConflict();return; }
+            catch (...) { _ShowSavedGroupMergeConflict();co_return; }
         }
         _settingsClone.LogSettingChanges(false);
         if (!_settingsClone.WriteSettingsToDisk())
         {
-            ShowLoadWarningsDialog.raise(*this, _settingsClone.Warnings());
+            if (const auto message = _settingsClone.LastSaveErrorMessage(); !message.empty())
+            {
+                // Keep the editable clone intact so the user can copy/reapply their draft.
+                co_await _ShowSetupMessage(RS_(L"Settings_SaveFailedTitle"), message);
+            }
+            else
+            {
+                ShowLoadWarningsDialog.raise(*this, _settingsClone.Warnings());
+            }
         }
+        else { _settingsSaveAwaitingReload = true; }
     }
 
     void MainPage::ResetButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
     {
-        _ResetSettings(_settingsSource);
+        const auto latest = _latestSettingsForReset ? _latestSettingsForReset : _settingsSource;
+        _ResetSettings(latest);
     }
 
     void MainPage::BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& /*sender*/, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args)
@@ -981,6 +1441,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             _MoveXamlParsedNavItemsIntoItemSource();
         }
 
+        if (!_profileMenuItemSource)
+        {
+            _profileMenuItemSource = winrt::single_threaded_observable_vector<IInspectable>();
+            ProfilesGroupNavItem().MenuItemsSource(_profileMenuItemSource);
+        }
+        const std::array<IInspectable, 1> fixedItems{ BaseLayerMenuItem() };
+        _profileMenuItemSource.ReplaceAll(fixedItems);
+
         // Manually create a NavigationViewItem and view model for each profile
         // and keep a reference to them in a map so that we
         // can easily modify the correct one when the associated
@@ -993,7 +1461,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 auto profileVM = _viewModelForProfile(profile, _settingsClone, Dispatcher());
                 profileVM.SetupAppearances(_colorSchemesPageVM.AllColorSchemes());
                 auto navItem = _CreateProfileNavViewItem(profileVM);
-                _menuItemSource.Append(navItem);
+                _profileMenuItemSource.Append(navItem);
             }
         }
 
@@ -1052,10 +1520,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         profileViewModel.SetupAppearances(_colorSchemesPageVM.AllColorSchemes());
         const auto navItem{ _CreateProfileNavViewItem(profileViewModel) };
 
-        if (_menuItemSource)
+        if (_profileMenuItemSource)
         {
-            _menuItemSource.InsertAt(index, navItem);
+            _profileMenuItemSource.InsertAt(index, navItem);
         }
+
+        ProfilesGroupNavItem().IsExpanded(true);
 
         // Select and navigate to the new profile
         _Navigate(profileViewModel, BreadcrumbSubPage::None);
@@ -1134,31 +1604,28 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
         }
 
-        // remove selected item
+        // Remove the requested child, even if invoked from a profile subpage.
+        const auto selectedItem = _FindProfileNavItem(guid);
         uint32_t index;
-        auto selectedItem{ SettingsNav().SelectedItem() };
-        if (_menuItemSource)
+        if (selectedItem && _profileMenuItemSource.IndexOf(selectedItem, index))
         {
-            _menuItemSource.IndexOf(selectedItem, index);
-            _menuItemSource.RemoveAt(index);
-
-            // Remove it from the list of VMs
-            auto profileVM = selectedItem.as<MUX::Controls::NavigationViewItem>().Tag().as<Editor::ProfileViewModel>();
+            _profileMenuItemSource.RemoveAt(index);
+            const auto profileVM = selectedItem.Tag().as<Editor::ProfileViewModel>();
             uint32_t vmIndex;
-            if (_menuItemSource.IndexOf(profileVM, vmIndex))
+            if (_profileVMs.IndexOf(profileVM, vmIndex))
             {
                 _profileVMs.RemoveAt(vmIndex);
             }
 
-            // navigate to the profile next to this one
-            const auto newSelectedItem{ _menuItemSource.GetAt(index < _menuItemSource.Size() - 1 ? index : index - 1) };
-            const auto newTag = newSelectedItem.as<MUX::Controls::NavigationViewItem>().Tag();
+            // Prefer an adjacent profile, then Defaults when the last is removed.
+            const auto nextIndex = index < _profileMenuItemSource.Size() ? index : index - 1;
+            const auto next = _profileMenuItemSource.GetAt(nextIndex).as<MUX::Controls::NavigationViewItem>();
+            const auto newTag = next.Tag();
             if (const auto profileViewModel = newTag.try_as<ProfileViewModel>())
             {
                 profileViewModel->FocusDeleteButton(true);
             }
             _Navigate(newTag, BreadcrumbSubPage::None);
-            // Since we are navigating to a new profile after deletion, scroll up to the top
             SettingsMainPage_ScrollViewer().ChangeView(nullptr, 0.0, nullptr);
         }
     }
@@ -1179,7 +1646,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     MUX::Controls::NavigationViewItem MainPage::_FindProfileNavItem(winrt::guid profileGuid) const
     {
-        for (auto&& menuItem : _menuItemSource)
+        for (auto&& menuItem : NavigationItems(_menuItemSource))
         {
             if (const auto& navViewItem{ menuItem.try_as<MUX::Controls::NavigationViewItem>() })
             {

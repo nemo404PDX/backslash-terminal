@@ -5,6 +5,12 @@
     "copyFormatting": false,
     "profiles":
     {
+        // Only the fresh/reset user template selects Backslash. Inbox fallback
+        // remains unchanged so existing users with omitted colors keep theirs.
+        "defaults":
+        {
+            "colorScheme": "Backslash"
+        },
         "list":
         [
             {

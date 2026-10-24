@@ -85,6 +85,10 @@ Author(s):
 #define MTSM_PROFILE_SETTINGS(X)                                                                                                                               \
     X(bool, RetroBezelEnabled, "experimental.retroBezelEnabled", false) \
     X(Model::RetroBezelSize, RetroBezelSize, "experimental.retroBezelSize", Model::RetroBezelSize::Medium) \
+    X(Model::RetroBezelEdgeSize, RetroBezelTopSize, "experimental.retroBezelTopSize", Model::RetroBezelEdgeSize::Default) \
+    X(Model::RetroBezelEdgeSize, RetroBezelRightSize, "experimental.retroBezelRightSize", Model::RetroBezelEdgeSize::Default) \
+    X(Model::RetroBezelEdgeSize, RetroBezelBottomSize, "experimental.retroBezelBottomSize", Model::RetroBezelEdgeSize::Default) \
+    X(Model::RetroBezelEdgeSize, RetroBezelLeftSize, "experimental.retroBezelLeftSize", Model::RetroBezelEdgeSize::Default) \
     X(Model::RetroBezelColor, RetroBezelColor, "experimental.retroBezelColor", Model::RetroBezelColor::OffWhite) \
     X(Model::RetroBezelBadge, RetroBezelBadge, "experimental.retroBezelBadge", Model::RetroBezelBadge::None) \
     X(Model::RetroBezelFiller, RetroBezelFiller, "experimental.retroBezelFiller", Model::RetroBezelFiller::None) \

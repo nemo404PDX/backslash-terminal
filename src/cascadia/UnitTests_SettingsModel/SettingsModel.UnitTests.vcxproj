@@ -36,6 +36,10 @@
   <!-- ========================= Cpp Files ======================== -->
   <ItemGroup>
     <ClCompile Include="ProfileTests.cpp" />
+    <ClCompile Include="SetupTransferTests.cpp" />
+    <ClCompile Include="SetupTransferValidationTests.cpp" />
+    <ClCompile Include="SetupTransferStorageTests.cpp" />
+
     <ClCompile Include="CuratedDefaultsTests.cpp" />
     <ClCompile Include="BadgeTests.cpp" />
     <ClCompile Include="ProfileSourceTests.cpp" />

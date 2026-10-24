@@ -1,5 +1,6 @@
 #include <string>
 #include <filesystem>
+#include "../WinRTUtils/inc/TerminalExecutable.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -15,8 +16,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR pCmdLine, int)
     // Cache our name (wt, wtd)
     std::wstring ourFilename{ module.filename() };
 
-    // Swap wt[d].exe for WindowsTerminal.exe
-    module.replace_filename(L"WindowsTerminal.exe");
+    // Swap wt[d].exe for the host executable
+    module.replace_filename(TerminalExe);
 
     // Append the rest of the commandline to the saved name
     std::wstring cmdline;

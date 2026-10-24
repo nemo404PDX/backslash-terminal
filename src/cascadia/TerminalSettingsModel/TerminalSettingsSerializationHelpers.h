@@ -71,6 +71,16 @@ JSON_ENUM_MAPPER(::winrt::Windows::UI::Xaml::Media::Stretch)
     };
 };
 
+JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize)
+{
+    static constexpr std::array<pair_type, 4> mappings = {
+        pair_type{ "default", ValueType::Default },
+        pair_type{ "slim", ValueType::Slim },
+        pair_type{ "medium", ValueType::Medium },
+        pair_type{ "wide", ValueType::Wide }
+    };
+};
+
 JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize)
 {
     static constexpr std::array<pair_type, 3> mappings = {

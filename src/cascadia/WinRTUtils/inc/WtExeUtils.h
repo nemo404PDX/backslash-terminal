@@ -3,9 +3,10 @@
 
 #pragma once
 
+#include "TerminalExecutable.h"
+
 constexpr std::wstring_view WtExe{ L"wt.exe" };
 constexpr std::wstring_view WtdExe{ L"wtd.exe" };
-constexpr std::wstring_view WindowsTerminalExe{ L"WindowsTerminal.exe" };
 constexpr std::wstring_view LocalAppDataAppsPath{ L"%LOCALAPPDATA%\\Microsoft\\WindowsApps\\" };
 constexpr std::wstring_view ElevateShimExe{ L"elevate-shim.exe" };
 
@@ -61,12 +62,12 @@ _TIL_INLINEPREFIX bool IsDevBuild()
 //   for this instance of the shell extension. If we're running the dev build,
 //   it should be a `wtd.exe`, but if we're preview or release, we want to make
 //   sure to get the correct `wt.exe` that corresponds to _us_.
-// - If we're unpackaged, this needs to get us `WindowsTerminal.exe`, because
+// - If we're unpackaged, this needs to get us the local host executable, because
 //   the `wt*exe` alias won't have been installed for this install.
 // Arguments:
 // - <none>
 // Return Value:
-// - the full path to the exe, one of `wt.exe`, `wtd.exe`, or `WindowsTerminal.exe`.
+// - the full path to the exe, one of `wt.exe`, `wtd.exe`, or the local host executable.
 _TIL_INLINEPREFIX const std::wstring& GetWtExePath()
 {
     static const auto exePath = []() -> std::wstring {
@@ -97,11 +98,11 @@ _TIL_INLINEPREFIX const std::wstring& GetWtExePath()
 
         // If we're here, then we couldn't resolve our exe from the package. This
         // means we're running unpackaged. We should just use the
-        // WindowsTerminal.exe that's sitting in the directory next to us.
+        // host executable that's sitting in the directory next to us.
         try
         {
             std::filesystem::path module = wil::GetModuleFileNameW<std::wstring>(nullptr);
-            module.replace_filename(WindowsTerminalExe);
+            module.replace_filename(TerminalExe);
             return module;
         }
         CATCH_LOG();

@@ -40,9 +40,9 @@ pwsh -NoProfile -File .\tools\backslash\New-PortableDistribution.ps1 -BuildRun '
 pwsh -NoProfile -File .\tools\backslash\Test-PortableIsolation.ps1 -PortableDirectory '.\artifacts\portable\Backslash-Dev-<successful-run-directory>'
 ```
 
-Launch `WindowsTerminal.exe` by its full path inside the generated portable directory, keeping `.portable` and the complete distribution together. The executable name is retained for compatibility. The unsigned MSIX build output is an intermediate payload with retained upstream package identity; use the portable distribution for development runs.
+Launch `Backslash.exe` by its full path inside the generated Dev portable directory, keeping `.portable` and the complete distribution together. Older recorded artifacts use `WindowsTerminal.exe`. The unsigned MSIX build output is an intermediate payload with retained upstream package identity; use the portable distribution for development runs.
 
-The [Windows build guide](tools/backslash/README.md) covers prerequisites, overrides and logs. The [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) explains assembly, isolation and limitations. The [project documentation index](docs/backslash/README.md) links detailed designs and validation records.
+The [Windows build guide](tools/backslash/README.md) covers prerequisites, overrides and logs. The [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) explains assembly, isolation and limitations. The [documentation entry point](docs/README.md) links detailed designs and validation records.
 
 ## Screenshots
 

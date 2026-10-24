@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 [CmdletBinding()]
-param([Parameter(Mandatory)][string]$EvidenceDirectory,[string]$VsInstallPath='C:\Program Files\Microsoft Visual Studio\18\Community')
+param([Parameter(Mandatory)][string]$EvidenceDirectory,[switch]$LayoutOnly,[string]$VsInstallPath='C:\Program Files\Microsoft Visual Studio\18\Community')
 $ErrorActionPreference='Stop';$PSNativeCommandUseErrorActionPreference=$false
 $repo=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $evidence=(Resolve-Path -LiteralPath $EvidenceDirectory).Path
@@ -11,7 +11,8 @@ Import-Module (Join-Path $VsInstallPath 'Common7\Tools\Microsoft.VisualStudio.De
 Enter-VsDevShell -VsInstallPath $VsInstallPath -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64'
 & cl.exe /nologo /EHsc /std:c++20 /W4 /WX /MT "/I$repo\packages\Microsoft.Windows.ImplementationLibrary.1.0.250325.1\include" (Join-Path $PSScriptRoot 'BadgeComposedTests.cpp') "/Fe:$work\BadgeComposedTests.exe" "/Fo:$work\BadgeComposedTests.obj" /link windowsapp.lib user32.lib windowscodecs.lib /MANIFEST:EMBED "/MANIFESTINPUT:$repo\src\cascadia\WindowsTerminal\WindowsTerminal.manifest" *> "$work\build.log"
 if($LASTEXITCODE){Get-Content "$work\build.log" -Tail 25;throw 'Composed badge test build failed.'}
-& "$work\BadgeComposedTests.exe" $work *> "$work\result.log"
+if($LayoutOnly){ & "$work\BadgeComposedTests.exe" $work --layout-only *> "$work\result.log" }
+else { & "$work\BadgeComposedTests.exe" $work *> "$work\result.log" }
 $code=$LASTEXITCODE;Get-Content "$work\result.log"
 if($code){throw "Composed badge regression failed. Evidence: $work"}
 Write-Output "Composed badge evidence: $work"

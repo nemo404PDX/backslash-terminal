@@ -84,3 +84,11 @@ Only after authorized builds and implementation: test upgrades/migrations, acces
 Review [internal app commands](APP-COMMANDS-DESIGN.md), [resumable sessions](RESUMABLE-SESSIONS-DESIGN.md) and the [source-backed settings layout proposal](SETTINGS-LAYOUT-PROPOSAL.md) as separate bounded slices. Dedicated local app-command ownership/typed dispatch precedes any optional inline interception. A first resumable job must survive disconnect and return the same session's result/missed output; viewers, input locks and opt-in presence follow later. Presence then progresses to organization-enforced identity/access, with server/gateway policy covering alternate clients. Saved tab groups are implemented layout recipes and do not provide these persistence or identity features.
 
 The settings proposal places Workspaces, Connections and Retro Appearance prominently and inventories inherited controls without changing runtime navigation. Search should reuse existing indexing/navigation and gain exact-control coverage plus ancestor expansion. Animated background/noise optimization requires the source/runtime distinctions and measured comparison in [CRT rendering research](CRT-RENDERING-PLAN.md); no benchmark result is implied.
+
+
+## Tracked future appearance and Explorer work
+
+These are documentation-only future items, outside the current full setup export/import and About/version implementation slices. No recipe UI or Explorer registration is delivered by recording them.
+
+- [ ] [Appearance recipes: named starting looks](APPEARANCE-RECIPES-DESIGN.md): coherent editable looks to avoid starting from scratch; baseline defaults with explicit profile overrides in either direction. Keep recipe scope distinct from full setup transfer.
+- [ ] [Optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md): portable-compatible, explicit machine-local opt-in, distinct from Open in Terminal; cover moved executable paths, same/new-location updates, multiple copies, repair and owned unregister. No registry changes in this pass.

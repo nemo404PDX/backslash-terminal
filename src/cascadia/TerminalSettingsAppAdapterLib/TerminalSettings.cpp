@@ -298,6 +298,11 @@ namespace winrt::Microsoft::Terminal::Settings
         // Fill in the Terminal Setting's CoreSettings from the profile
         _RetroBezelEnabled = profile.RetroBezelEnabled();
         _RetroBezelSize = static_cast<int32_t>(profile.RetroBezelSize());
+        _RetroBezelTopSize = static_cast<int32_t>(profile.RetroBezelTopSize());
+        _RetroBezelRightSize = static_cast<int32_t>(profile.RetroBezelRightSize());
+        _RetroBezelBottomSize = static_cast<int32_t>(profile.RetroBezelBottomSize());
+        _RetroBezelLeftSize = static_cast<int32_t>(profile.RetroBezelLeftSize());
+
         _RetroBezelBadge = static_cast<int32_t>(profile.RetroBezelBadge());
         _RetroBezelFiller = static_cast<int32_t>(profile.RetroBezelFiller());
         _HistorySize = profile.HistorySize();

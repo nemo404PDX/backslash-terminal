@@ -69,6 +69,10 @@ namespace SettingsModelUnitTests
                 "experimental.retroBezelBadge":"top", "unfocusedAppearance":{"opacity":50} }] }
         })");
         const auto profile = settings->ActiveProfiles().GetAt(0);
+        profile.RetroBezelTopSize(RetroBezelEdgeSize::Slim);
+        profile.RetroBezelRightSize(RetroBezelEdgeSize::Wide);
+        profile.RetroBezelBottomSize(RetroBezelEdgeSize::Medium);
+        profile.RetroBezelLeftSize(RetroBezelEdgeSize::Wide);
         const auto baseline = TerminalSettings::CreateWithProfile(*settings, profile);
         for (int color = 0; color < 9; ++color)
         {
@@ -76,6 +80,10 @@ namespace SettingsModelUnitTests
             const auto result = TerminalSettings::CreateWithProfile(*settings, profile);
             VERIFY_IS_TRUE(result.DefaultSettings()->RetroBezelEnabled());
             VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelSize());
+            VERIFY_ARE_EQUAL(0, result.DefaultSettings()->RetroBezelTopSize());
+            VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelRightSize());
+            VERIFY_ARE_EQUAL(1, result.DefaultSettings()->RetroBezelBottomSize());
+            VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelLeftSize());
             VERIFY_ARE_EQUAL(2, result.DefaultSettings()->RetroBezelBadge());
             // The wrapper reads casing color directly from the profile. Terminal
             // appearance stays independent; the adapter only forwards geometry.
@@ -85,6 +93,10 @@ namespace SettingsModelUnitTests
             // No appearance/focus-dependent casing changes.
             VERIFY_IS_TRUE(result.UnfocusedSettings()->RetroBezelEnabled());
             VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelSize());
+            VERIFY_ARE_EQUAL(0, result.UnfocusedSettings()->RetroBezelTopSize());
+            VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelRightSize());
+            VERIFY_ARE_EQUAL(1, result.UnfocusedSettings()->RetroBezelBottomSize());
+            VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelLeftSize());
             VERIFY_ARE_EQUAL(2, result.UnfocusedSettings()->RetroBezelBadge());
             VERIFY_ARE_EQUAL(baseline.UnfocusedSettings()->DefaultForeground(), result.UnfocusedSettings()->DefaultForeground());
             VERIFY_ARE_EQUAL(baseline.UnfocusedSettings()->DefaultBackground(), result.UnfocusedSettings()->DefaultBackground());

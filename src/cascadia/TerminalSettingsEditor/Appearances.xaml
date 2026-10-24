@@ -2,7 +2,7 @@
     Copyright (c) Microsoft Corporation. All rights reserved. Licensed under
     the MIT License. See LICENSE in the project root for license information.
 -->
-<UserControl x:Class="Microsoft.Terminal.Settings.Editor.Appearances"
+<UserControl x:Name="AppearanceControl" x:Class="Microsoft.Terminal.Settings.Editor.Appearances"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -58,6 +58,105 @@
             <DataTemplate x:Key="EnumComboBoxTemplate"
                           x:DataType="local:EnumEntry">
                 <TextBlock Text="{x:Bind EnumName, Mode=OneWay}" />
+            </DataTemplate>
+
+            <!-- Borderless inner fields retain SettingContainer's reset and source tooltips. -->
+            <Style x:Key="BezelThicknessFieldStyle" TargetType="local:SettingContainer">
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="local:SettingContainer">
+                            <StackPanel Spacing="6" AutomationProperties.Name="{TemplateBinding Header}">
+                                <Grid>
+                                    <TextBlock Text="{TemplateBinding Header}" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Style="{StaticResource SettingsPageItemHeaderStyle}" />
+                                    <Button x:Name="ResetButton" HorizontalAlignment="Right" Style="{StaticResource SettingContainerResetButtonStyle}">
+                                        <FontIcon Glyph="&#xE845;" Style="{StaticResource SettingContainerFontIconStyle}" />
+                                    </Button>
+                                </Grid>
+                                <TextBlock x:Name="HelpTextBlock" Text="{TemplateBinding HelpText}" Style="{StaticResource SettingsPageItemDescriptionStyle}" />
+                                <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Keep thickness bindings in a separate tracker, with non-UI content. -->
+            <DataTemplate x:Key="BezelEdgeControlsTemplate" x:DataType="local:AppearanceViewModel">
+                <Border x:Name="BezelThicknessGroup" Margin="0,4,0,0" Padding="16"
+                        Background="{ThemeResource ExpanderHeaderBackground}" BorderBrush="{ThemeResource ExpanderHeaderBorderBrush}"
+                        BorderThickness="{ThemeResource ExpanderHeaderBorderThickness}" CornerRadius="{ThemeResource ControlCornerRadius}"
+                        HorizontalAlignment="Stretch" MaxWidth="1000">
+                    <StackPanel Spacing="12">
+                        <TextBlock x:Uid="Profile_BezelThicknessHeader" Style="{StaticResource SettingsPageItemHeaderStyle}" FontWeight="SemiBold" />
+                        <TextBlock x:Uid="Profile_BezelThicknessHelp" Style="{StaticResource SettingsPageItemDescriptionStyle}" />
+                        <local:SettingContainer x:Name="RetroBezelSize" x:Uid="Profile_RetroBezelSize"
+                                                Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Style="{StaticResource BezelThicknessFieldStyle}"
+                                                ClearSettingValue="{x:Bind ClearRetroBezelSize}"
+                                                HasSettingValue="{x:Bind HasRetroBezelSize, Mode=OneWay}"
+                                                SettingOverrideSource="{x:Bind RetroBezelSizeOverrideSource, Mode=OneWay}">
+                            <ComboBox x:Uid="Profile_RetroBezelSizePicker" AutomationProperties.AccessibilityView="Content"
+                                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                                      ItemsSource="{x:Bind RetroBezelSizeList, Mode=OneWay}"
+                                      SelectedItem="{x:Bind CurrentRetroBezelSize, Mode=TwoWay}"
+                                      Style="{StaticResource ComboBoxSettingStyle}" MinWidth="0" HorizontalAlignment="Stretch" />
+                        </local:SettingContainer>
+                        <Grid x:Name="BezelEdgesGrid" ColumnSpacing="12" RowSpacing="12" SizeChanged="{x:Bind BezelEdgesGrid_SizeChanged}">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                        <local:SettingContainer x:Name="RetroBezelTopSize" x:Uid="Profile_RetroBezelTopSize"
+                                                Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Style="{StaticResource BezelThicknessFieldStyle}"
+                                                ClearSettingValue="{x:Bind ClearRetroBezelTopSize}"
+                                                HasSettingValue="{x:Bind HasRetroBezelTopSize, Mode=OneWay}"
+                                                SettingOverrideSource="{x:Bind RetroBezelTopSizeOverrideSource, Mode=OneWay}">
+                            <ComboBox x:Uid="Profile_RetroBezelTopSizePicker" AutomationProperties.AccessibilityView="Content"
+                                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                                      ItemsSource="{x:Bind RetroBezelTopSizeList, Mode=OneWay}"
+                                      SelectedItem="{x:Bind CurrentRetroBezelTopSize, Mode=TwoWay}"
+                                      Style="{StaticResource ComboBoxSettingStyle}" MinWidth="0" HorizontalAlignment="Stretch" />
+                        </local:SettingContainer>
+                        <local:SettingContainer x:Name="RetroBezelLeftSize" x:Uid="Profile_RetroBezelLeftSize"
+                                                Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Style="{StaticResource BezelThicknessFieldStyle}"
+                                                ClearSettingValue="{x:Bind ClearRetroBezelLeftSize}"
+                                                HasSettingValue="{x:Bind HasRetroBezelLeftSize, Mode=OneWay}"
+                                                SettingOverrideSource="{x:Bind RetroBezelLeftSizeOverrideSource, Mode=OneWay}">
+                            <ComboBox x:Uid="Profile_RetroBezelLeftSizePicker" AutomationProperties.AccessibilityView="Content"
+                                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                                      ItemsSource="{x:Bind RetroBezelLeftSizeList, Mode=OneWay}"
+                                      SelectedItem="{x:Bind CurrentRetroBezelLeftSize, Mode=TwoWay}"
+                                      Style="{StaticResource ComboBoxSettingStyle}" MinWidth="0" HorizontalAlignment="Stretch" />
+                        </local:SettingContainer>
+                        <local:SettingContainer x:Name="RetroBezelRightSize" x:Uid="Profile_RetroBezelRightSize"
+                                                Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Style="{StaticResource BezelThicknessFieldStyle}"
+                                                ClearSettingValue="{x:Bind ClearRetroBezelRightSize}"
+                                                HasSettingValue="{x:Bind HasRetroBezelRightSize, Mode=OneWay}"
+                                                SettingOverrideSource="{x:Bind RetroBezelRightSizeOverrideSource, Mode=OneWay}">
+                            <ComboBox x:Uid="Profile_RetroBezelRightSizePicker" AutomationProperties.AccessibilityView="Content"
+                                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                                      ItemsSource="{x:Bind RetroBezelRightSizeList, Mode=OneWay}"
+                                      SelectedItem="{x:Bind CurrentRetroBezelRightSize, Mode=TwoWay}"
+                                      Style="{StaticResource ComboBoxSettingStyle}" MinWidth="0" HorizontalAlignment="Stretch" />
+                        </local:SettingContainer>
+                        <local:SettingContainer x:Name="RetroBezelBottomSize" x:Uid="Profile_RetroBezelBottomSize"
+                                                Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                                Style="{StaticResource BezelThicknessFieldStyle}"
+                                                ClearSettingValue="{x:Bind ClearRetroBezelBottomSize}"
+                                                HasSettingValue="{x:Bind HasRetroBezelBottomSize, Mode=OneWay}"
+                                                SettingOverrideSource="{x:Bind RetroBezelBottomSizeOverrideSource, Mode=OneWay}">
+                            <ComboBox x:Uid="Profile_RetroBezelBottomSizePicker" AutomationProperties.AccessibilityView="Content"
+                                      ItemTemplate="{StaticResource EnumComboBoxTemplate}"
+                                      ItemsSource="{x:Bind RetroBezelBottomSizeList, Mode=OneWay}"
+                                      SelectedItem="{x:Bind CurrentRetroBezelBottomSize, Mode=TwoWay}"
+                                      Style="{StaticResource ComboBoxSettingStyle}" MinWidth="0" HorizontalAlignment="Stretch" />
+                        </local:SettingContainer>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </DataTemplate>
 
             <DataTemplate x:Key="FontFaceComboBoxItemTemplate"
@@ -640,16 +739,9 @@
                                     SettingOverrideSource="{x:Bind Appearance.RetroBezelEnabledOverrideSource, Mode=OneWay}">
                 <ToggleSwitch IsOn="{x:Bind Appearance.RetroBezelEnabled, Mode=TwoWay}" Style="{StaticResource ToggleSwitchInExpanderStyle}" />
             </local:SettingContainer>
-            <local:SettingContainer x:Name="RetroBezelSize" x:Uid="Profile_RetroBezelSize"
-                                    ClearSettingValue="{x:Bind Appearance.ClearRetroBezelSize}"
-                                    HasSettingValue="{x:Bind Appearance.HasRetroBezelSize, Mode=OneWay}"
-                                    SettingOverrideSource="{x:Bind Appearance.RetroBezelSizeOverrideSource, Mode=OneWay}">
-                <ComboBox AutomationProperties.AccessibilityView="Content"
-                          ItemTemplate="{StaticResource EnumComboBoxTemplate}"
-                          ItemsSource="{x:Bind RetroBezelSizeList, Mode=OneWay}"
-                          SelectedItem="{x:Bind CurrentRetroBezelSize, Mode=TwoWay}"
-                          Style="{StaticResource ComboBoxSettingStyle}" />
-            </local:SettingContainer>
+            <ContentControl Content="{x:Bind Appearance, Mode=OneWay}"
+                            ContentTemplate="{StaticResource BezelEdgeControlsTemplate}" IsTabStop="False"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" />
             <local:SettingContainer x:Name="RetroBezelColor" x:Uid="Profile_RetroBezelColor"
                                     ClearSettingValue="{x:Bind Appearance.ClearRetroBezelColor}"
                                     HasSettingValue="{x:Bind Appearance.HasRetroBezelColor, Mode=OneWay}"

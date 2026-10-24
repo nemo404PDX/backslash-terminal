@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include <fstream>
+#include <til/io.h>
 
 #include "../TerminalSettingsModel/ColorScheme.h"
 #include "../TerminalSettingsModel/CascadiaSettings.h"
@@ -55,6 +56,7 @@ namespace SettingsModelUnitTests
         TEST_METHOD(BackslashGroupSaveEligibility);
         TEST_METHOD(BackslashGroupSaveDraftMerge);
         TEST_METHOD(BackslashGroupSaveNoticeState);
+        TEST_METHOD(BackslashProfilesSidebarState);
         TEST_METHOD(BackslashRetroIntensityValidation);
         TEST_METHOD(GlobalSettings);
         TEST_METHOD(Profile);
@@ -352,6 +354,32 @@ namespace SettingsModelUnitTests
         VERIFY_ARE_EQUAL(toString(liveJson),toString(live->ToJson()));VERIFY_ARE_EQUAL(toString(draftJson),toString(winrt::get_self<implementation::CascadiaSettings>(fullDraft)->ToJson()));
         // Normal Reset copies the newly saved source, retaining the addition and discarding draft edits.
         const auto reset=updated.Copy();VERIFY_ARE_EQUAL(winrt::hstring{L"Local"},reset.FindProfile(Utils::GuidFromString(L"{22222222-2222-4222-8222-222222222222}")).Name());VERIFY_ARE_EQUAL(size_t{2},Store::Read(reset.GlobalSettings().SavedTabGroupsJson()).groups.size());
+    }
+
+    void SerializationTests::BackslashProfilesSidebarState()
+    {
+        GUID id;
+        THROW_IF_FAILED(CoCreateGuid(&id));
+        const auto directory = std::filesystem::temp_directory_path() / (L"Backslash-sidebar-state-tests-" + std::wstring{ winrt::to_hstring(id) });
+        VERIFY_IS_TRUE(std::filesystem::create_directory(directory));
+        Log::Comment(directory.c_str());
+        // Explicit implementation construction: every read/write is rooted in
+        // this unique temporary directory. Never resolve SharedInstance here.
+        auto state = winrt::make_self<implementation::ApplicationState>(directory);
+        VERIFY_IS_FALSE(state->SettingsProfilesCollapsed()); // First run is expanded.
+        for (const bool collapsed : { true, false, true })
+        {
+            state->SettingsProfilesCollapsed(collapsed);
+            state->Flush();
+            state = nullptr;
+            state = winrt::make_self<implementation::ApplicationState>(directory);
+            VERIFY_ARE_EQUAL(collapsed, state->SettingsProfilesCollapsed());
+            const auto persisted = til::io::read_file_as_utf8_string_if_exists(directory / L"state.json");
+            const auto root = VerifyParseSucceeded(persisted);
+            VERIFY_IS_TRUE(root["backslash.settingsProfilesCollapsed"].isBool());
+            VERIFY_ARE_EQUAL(collapsed, root["backslash.settingsProfilesCollapsed"].asBool());
+        }
+        state = nullptr;
     }
 
     void SerializationTests::BackslashGroupSaveNoticeState()

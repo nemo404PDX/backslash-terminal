@@ -155,7 +155,7 @@ namespace Microsoft::Terminal::Backslash::Pins
             }
             return result;
         }
-        void Write(const Snapshot& state) const
+        static std::string Serialize(const Snapshot& state)
         {
             Json::Value root{ Json::objectValue }; root["version"] = 1; root["catalog"] = ParseJson(state.catalog.Write()); root["leases"] = Json::Value{ Json::arrayValue };
             for (const auto& [id, lease] : state.leases)
@@ -164,11 +164,15 @@ namespace Microsoft::Terminal::Backslash::Pins
                 row["transfer"] = lease.transfer; row["targetWindow"] = Json::UInt64{ lease.targetWindow }; row["transferUntil"] = Json::UInt64{ lease.transferUntil };
                 root["leases"].append(std::move(row));
             }
-            _writer(_root / L"pins.json", Json::writeString(Json::StreamWriterBuilder{}, root));
+            return Json::writeString(Json::StreamWriterBuilder{}, root);
+        }
+        void Write(const Snapshot& state) const
+        {
+            _writer(_root / L"pins.json", Serialize(state));
         }
         template<typename F> auto Edit(F&& action) const
         {
-            Lock lock{ _root }; auto state = Read(); bool dirty = false;
+            Lock lock{ _root }; RequireNoPendingImport(_root); auto state = Read(); bool dirty = false;
             for (auto it = state.leases.begin(); it != state.leases.end();)
             {
                 const auto life = _probe(it->second.owner);
@@ -189,6 +193,27 @@ namespace Microsoft::Terminal::Backslash::Pins
         explicit Store(std::filesystem::path root, std::function<Life(const Owner&)> probe = Probe,
                        std::function<void(const std::filesystem::path&, std::string_view)> writer = [](const auto& path, auto content) { til::io::write_utf8_string_to_file_atomic(path, content); }) :
             _root{ std::move(root) }, _probe{ std::move(probe) }, _writer{ std::move(writer) } {}
+
+        // Settings readers/writers and catalog imports share the ordinary Pins lock.
+        // A failed/crashed two-file import fences all access until explicit recovery.
+        static void RequireNoPendingImport(const std::filesystem::path& root)
+        {
+            if (std::filesystem::exists(root / L"setup-import.pending.json"))
+            {
+                throw winrt::hresult_error(E_PENDING, L"A setup import needs recovery. Open Settings, then choose Recover interrupted setup import before changing settings or Pins.");
+            }
+        }
+        template<typename F> static auto WithSetupLock(const std::filesystem::path& root, F&& action, bool allowPending = false)
+        {
+            Lock lock{ root };
+            if (!allowPending) { RequireNoPendingImport(root); }
+            return action();
+        }
+        template<typename F> auto WithLockedSnapshot(F&& action) const
+        {
+            return WithSetupLock(_root, [&] { return action(Read()); });
+        }
+        static std::string SerializeSnapshot(const Snapshot& state) { return Serialize(state); }
 
         Snapshot Get() const { return Edit([](auto& state, bool&) { return state; }); }
         Lease Add(const Destination& pin, const Owner& owner) const

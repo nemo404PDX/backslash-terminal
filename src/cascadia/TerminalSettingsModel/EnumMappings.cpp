@@ -46,6 +46,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
     // Profile Settings
     DEFINE_ENUM_MAP(Model::RetroBezelSize, RetroBezelSize);
+    DEFINE_ENUM_MAP(Model::RetroBezelEdgeSize, RetroBezelEdgeSize);
     DEFINE_ENUM_MAP(Model::RetroBezelColor, RetroBezelColor);
     DEFINE_ENUM_MAP(Model::RetroBezelFiller, RetroBezelFiller);
     DEFINE_ENUM_MAP(Model::RetroBezelBadgeStyle, RetroBezelBadgeStyle);

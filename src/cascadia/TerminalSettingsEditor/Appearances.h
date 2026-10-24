@@ -164,6 +164,20 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelEnabled);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelSize);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelTopSize);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelRightSize);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBottomSize);
+        OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelLeftSize);
+
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelSize, Microsoft::Terminal::Settings::Model::RetroBezelSize, RetroBezelSize);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelTopSize, Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, RetroBezelTopSize);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelRightSize, Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, RetroBezelRightSize);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelBottomSize, Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, RetroBezelBottomSize);
+        GETSET_BINDABLE_ENUM_SETTING(RetroBezelLeftSize, Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, RetroBezelLeftSize);
+
+    public:
+        void BezelEdgesGrid_SizeChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::SizeChangedEventArgs& args);
+
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelColor);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadge);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelFiller);
@@ -248,7 +262,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     public:
         static Windows::UI::Xaml::Media::Brush BezelShadeBrush(int32_t value);
-        GETSET_BINDABLE_ENUM_SETTING(RetroBezelSize, Microsoft::Terminal::Settings::Model::RetroBezelSize, Appearance().RetroBezelSize);
         GETSET_BINDABLE_ENUM_SETTING(RetroBezelColor, Microsoft::Terminal::Settings::Model::RetroBezelColor, Appearance().RetroBezelColor);
         GETSET_BINDABLE_ENUM_SETTING(RetroBezelFiller, Microsoft::Terminal::Settings::Model::RetroBezelFiller, Appearance().RetroBezelFiller);
         GETSET_BINDABLE_ENUM_SETTING(RetroBezelBadgeStyle, Microsoft::Terminal::Settings::Model::RetroBezelBadgeStyle, Appearance().RetroBezelBadgeStyle);

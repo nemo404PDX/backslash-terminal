@@ -133,8 +133,22 @@
                         </ResourceDictionary>
                     </mux:SplitButton.Resources>
                 </mux:SplitButton>
-                <mux:DropDownButton x:Name="GroupsButton" x:Uid="SavedGroups_Button" Grid.Column="1" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control" />
-                <mux:DropDownButton x:Name="PinsButton" x:Uid="Pins_Button" Grid.Column="2" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control" />
+                <mux:DropDownButton x:Name="GroupsButton" x:Uid="SavedGroups_Button" Grid.Column="1" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <!-- Exact 12x12 outline from docs/images/backslash-groups.svg; preserve its even-odd holes and canvas. -->
+                        <Path Width="12" Height="12" VerticalAlignment="Center" Stretch="None"
+                              Fill="{Binding Foreground, ElementName=GroupsButton}"
+                              Data="F0 M10.034,0.667c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l-0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm-6.6,-0.711c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm6.6,5.789c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l-0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm-6.6,-0.711c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Z"
+                              AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Uid="SavedGroups_ButtonLabel" VerticalAlignment="Center" />
+                    </StackPanel>
+                </mux:DropDownButton>
+                <mux:DropDownButton x:Name="PinsButton" x:Uid="Pins_Button" Grid.Column="2" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE718;" AutomationProperties.AccessibilityView="Raw" />
+                        <TextBlock x:Uid="Pins_ButtonLabel" VerticalAlignment="Center" />
+                    </StackPanel>
+                </mux:DropDownButton>
             </Grid>
         </mux:TabView.TabStripFooter>
 

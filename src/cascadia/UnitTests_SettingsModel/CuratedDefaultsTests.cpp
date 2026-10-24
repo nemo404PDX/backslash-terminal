@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 #include "pch.h"
 #include "../TerminalSettingsModel/CascadiaSettings.h"
+#include "../TerminalSettingsModel/ColorScheme.h"
 #include "../TerminalSettingsModel/resource.h"
 #include "../TerminalSettingsAppAdapterLib/TerminalSettings.h"
 #include "../inc/LaunchPositionPolicy.h"
@@ -20,6 +21,8 @@ namespace SettingsModelUnitTests
         TEST_METHOD(PackagedDefaultsAndAdapter);
         TEST_METHOD(ExplicitSettingsRoundtrip);
         TEST_METHOD(CenteringPrecedence);
+        TEST_METHOD(BackslashColorSchemeFreshOnly);
+        TEST_METHOD(CheesePuffOptionalColorScheme);
     };
     void CuratedDefaultsTests::PackagedDefaultsAndAdapter()
     {
@@ -94,6 +97,74 @@ namespace SettingsModelUnitTests
         const auto position=reloaded->GlobalSettings().InitialPosition();
         VERIFY_ARE_EQUAL(19,position.X.Value());VERIFY_ARE_EQUAL(27,position.Y.Value());
     }
+    void CuratedDefaultsTests::BackslashColorSchemeFreshOnly()
+    {
+        const auto inbox = M::LoadStringResource(IDR_DEFAULTS);
+        const auto fresh = make_self<M::CascadiaSettings>(M::LoadStringResource(IDR_USER_DEFAULTS), inbox);
+        VERIFY_IS_TRUE(fresh->GlobalSettings().ColorSchemes().HasKey(L"Backslash"));
+        for (const auto name : { L"Cyberpunk Neon", L"Hermes", L"Hermes Aurora", L"Ubuntu", L"Ubuntu-24.04-ColorScheme" })
+            VERIFY_IS_TRUE(fresh->GlobalSettings().ColorSchemes().HasKey(name));
+        VERIFY_ARE_EQUAL(hstring{ L"Backslash" }, fresh->ProfileDefaults().DefaultAppearance().DarkColorSchemeName());
+        for (const auto profile : fresh->ActiveProfiles())
+        {
+            VERIFY_ARE_EQUAL(hstring{ L"Backslash" }, profile.DefaultAppearance().DarkColorSchemeName());
+            VERIFY_ARE_EQUAL(hstring{ L"Backslash" }, profile.DefaultAppearance().LightColorSchemeName());
+            VERIFY_IS_FALSE(profile.DefaultAppearance().HasDarkColorSchemeName());
+        }
+        const auto scheme = fresh->GlobalSettings().ColorSchemes().Lookup(L"Backslash");
+        VERIFY_ARE_EQUAL(til::color(0x16,0x18,0x18), til::color{ scheme.Background() });
+        VERIFY_ARE_EQUAL(til::color(0x14,0xff,0xca), til::color{ scheme.CursorColor() });
+        VERIFY_ARE_EQUAL(size_t{ 16 }, scheme.Table().size());
+        const auto saved = Json::writeString(Json::StreamWriterBuilder{}, fresh->ToJson());
+        const auto restored = make_self<M::CascadiaSettings>(std::string_view{ saved }, inbox);
+        VERIFY_ARE_EQUAL(hstring{ L"Backslash" }, restored->ProfileDefaults().DefaultAppearance().DarkColorSchemeName());
+
+        // An existing file with no color choice retains the historical fallback.
+        const auto existing = make_self<M::CascadiaSettings>(std::string_view{ R"({"profiles":{"list":[]}})" }, inbox);
+        for (const auto profile : existing->ActiveProfiles())
+            VERIFY_ARE_EQUAL(hstring{ L"Campbell" }, profile.DefaultAppearance().DarkColorSchemeName());
+
+        // ColorScheme::FromJson requires all 16 ANSI colors. A name/background-only
+        // object is rejected, so use a complete valid custom scheme for this check.
+        auto customScheme = get_self<M::ColorScheme>(scheme)->ToJson();
+        customScheme["background"] = "#101112";
+        const auto overriddenJson = std::string{ R"({"profiles":{"defaults":{"colorScheme":"Backslash"},"list":[{"guid":"{61c54bbd-c2c6-5271-96e7-009a87ff44bf}","colorScheme":{"dark":"Campbell","light":"Campbell Powershell"},"foreground":"#ABCDEF"}]},"schemes":[)" } + Json::writeString(Json::StreamWriterBuilder{}, customScheme) + "]}";
+        const auto overridden = make_self<M::CascadiaSettings>(std::string_view{ overriddenJson }, inbox);
+        const auto profile = overridden->FindProfile(guid{ L"{61c54bbd-c2c6-5271-96e7-009a87ff44bf}" });
+        VERIFY_ARE_EQUAL(hstring{ L"Campbell" }, profile.DefaultAppearance().DarkColorSchemeName());
+        VERIFY_ARE_EQUAL(hstring{ L"Campbell Powershell" }, profile.DefaultAppearance().LightColorSchemeName());
+        VERIFY_ARE_EQUAL(til::color(0xab,0xcd,0xef), til::color{ profile.DefaultAppearance().Foreground().Value() });
+        VERIFY_ARE_EQUAL(til::color(0x10,0x11,0x12), til::color{ overridden->GlobalSettings().ColorSchemes().Lookup(overridden->ProfileDefaults().DefaultAppearance().DarkColorSchemeName()).Background() });
+    }
+
+    void CuratedDefaultsTests::CheesePuffOptionalColorScheme()
+    {
+        const auto inbox = M::LoadStringResource(IDR_DEFAULTS);
+        const auto fresh = make_self<M::CascadiaSettings>(M::LoadStringResource(IDR_USER_DEFAULTS), inbox);
+        VERIFY_ARE_EQUAL(hstring{ L"Backslash" }, fresh->ProfileDefaults().DefaultAppearance().DarkColorSchemeName());
+        const auto scheme = fresh->GlobalSettings().ColorSchemes().Lookup(L"Cheese Puff");
+        VERIFY_ARE_EQUAL(til::color(0x21,0x17,0x0f), til::color{ scheme.Background() });
+        VERIFY_ARE_EQUAL(til::color(0xf6,0xe7,0xcd), til::color{ scheme.Foreground() });
+        VERIFY_ARE_EQUAL(til::color(0xff,0xc4,0x5c), til::color{ scheme.CursorColor() });
+        VERIFY_ARE_EQUAL(til::color(0x6b,0x49,0x26), til::color{ scheme.SelectionBackground() });
+        const auto table = scheme.Table();
+        VERIFY_ARE_EQUAL(size_t{ 16 }, table.size());
+        for (uint32_t i = 0; i < 8; ++i)
+            VERIFY_ARE_NOT_EQUAL(til::color{ table[i] }, til::color{ table[i + 8] });
+        for (uint32_t i = 1; i < 7; ++i)
+            for (uint32_t j = i + 1; j < 7; ++j)
+                VERIFY_ARE_NOT_EQUAL(til::color{ table[i] }, til::color{ table[j] });
+
+        const auto selected = make_self<M::CascadiaSettings>(std::string_view{ R"({"profiles":{"defaults":{"colorScheme":"Cheese Puff"},"list":[{"guid":"{61c54bbd-c2c6-5271-96e7-009a87ff44bf}","colorScheme":"Campbell"}]}})" }, inbox);
+        VERIFY_ARE_EQUAL(hstring{ L"Cheese Puff" }, selected->ProfileDefaults().DefaultAppearance().DarkColorSchemeName());
+        const auto profile = selected->FindProfile(guid{ L"{61c54bbd-c2c6-5271-96e7-009a87ff44bf}" });
+        VERIFY_ARE_EQUAL(hstring{ L"Campbell" }, profile.DefaultAppearance().DarkColorSchemeName());
+        const auto saved = Json::writeString(Json::StreamWriterBuilder{}, selected->ToJson());
+        const auto restored = make_self<M::CascadiaSettings>(std::string_view{ saved }, inbox);
+        VERIFY_ARE_EQUAL(hstring{ L"Cheese Puff" }, restored->ProfileDefaults().DefaultAppearance().DarkColorSchemeName());
+        VERIFY_ARE_EQUAL(hstring{ L"Campbell" }, restored->FindProfile(profile.Guid()).DefaultAppearance().DarkColorSchemeName());
+    }
+
     void CuratedDefaultsTests::CenteringPrecedence()
     {
         namespace P=::Microsoft::Terminal::Backslash::LaunchPositionPolicy;

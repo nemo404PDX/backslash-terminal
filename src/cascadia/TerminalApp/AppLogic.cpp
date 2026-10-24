@@ -214,11 +214,13 @@ namespace winrt::TerminalApp::implementation
             if (newSettings.GetLoadingError())
             {
                 _settingsLoadExceptionText = _GetErrorText(newSettings.GetLoadingError().Value());
+                if (!_settings) { _settings = newSettings.DefaultsForLoadFailure(); }
                 return E_INVALIDARG;
             }
             else if (!newSettings.GetSerializationErrorMessage().empty())
             {
                 _settingsLoadExceptionText = newSettings.GetSerializationErrorMessage();
+                if (!_settings) { _settings = newSettings.DefaultsForLoadFailure(); }
                 return E_INVALIDARG;
             }
 
@@ -388,7 +390,7 @@ namespace winrt::TerminalApp::implementation
         {
             if (initialLoad)
             {
-                _settings = CascadiaSettings::LoadDefaults();
+                if (!_settings) { _settings = CascadiaSettings::LoadDefaults(); }
             }
             else
             {

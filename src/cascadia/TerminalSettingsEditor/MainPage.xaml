@@ -194,14 +194,23 @@
                                      x:Uid="Nav_Extensions"
                                      Tag="Extensions_Nav" />
 
-            <muxc:NavigationViewItemHeader x:Uid="Nav_Profiles" />
-
-            <muxc:NavigationViewItem x:Name="BaseLayerMenuItem"
-                                     x:Uid="Nav_ProfileDefaults"
-                                     Tag="GlobalProfile_Nav" />
+            <muxc:NavigationViewItem x:Name="ProfilesGroupNavItem" x:Uid="Nav_Profiles"
+                                     IsExpanded="True" SelectsOnInvoked="False">
+                <muxc:NavigationViewItem.MenuItems>
+                    <muxc:NavigationViewItem x:Name="BaseLayerMenuItem"
+                                             x:Uid="Nav_ProfileDefaults"
+                                             Tag="GlobalProfile_Nav" />
+                </muxc:NavigationViewItem.MenuItems>
+            </muxc:NavigationViewItem>
         </muxc:NavigationView.MenuItems>
 
         <muxc:NavigationView.FooterMenuItems>
+            <muxc:NavigationViewItem x:Name="ExportSetupNavItem" x:Uid="SetupTransfer_Export"
+                                     SelectsOnInvoked="False" Tag="ExportSetup_Nav" />
+            <muxc:NavigationViewItem x:Name="ImportSetupNavItem" x:Uid="SetupTransfer_Import"
+                                     SelectsOnInvoked="False" Tag="ImportSetup_Nav" />
+            <muxc:NavigationViewItem x:Name="RecoverSetupNavItem" x:Uid="SetupTransfer_Recover"
+                                     SelectsOnInvoked="False" Tag="RecoverSetup_Nav" />
             <muxc:NavigationViewItem x:Name="OpenJsonNavItem"
                                      x:Uid="Nav_OpenJSON"
                                      SelectsOnInvoked="False"
@@ -215,6 +224,9 @@
             </Grid.RowDefinitions>
             <ScrollViewer x:Name="SettingsMainPage_ScrollViewer"
                           Grid.Row="0">
+                <StackPanel>
+                    <muxc:InfoBar x:Name="SettingsStaleDraftNotice" x:Uid="Settings_StaleDraftNotice"
+                                 Margin="16,12,16,0" IsOpen="False" IsClosable="False" Severity="Warning" />
                 <Frame x:Name="contentFrame"
                        Grid.Row="0"
                        Padding="16,0,16,48">
@@ -228,6 +240,7 @@
                         </TransitionCollection>
                     </Frame.ContentTransitions>
                 </Frame>
+                </StackPanel>
             </ScrollViewer>
             <!--  Explicitly set the background color on grid to prevent the navigation animation from overflowing it  -->
             <Grid Grid.Row="1"

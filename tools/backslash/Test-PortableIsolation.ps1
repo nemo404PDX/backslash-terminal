@@ -21,7 +21,7 @@ $routing = Get-Content (Join-Path $repo 'src\cascadia\WindowsTerminal\WindowEmpe
 Require (-not $routing.Contains('windowClassName.append(L"Windows Terminal') -and $routing.Contains('windowClassName.append(L"Backslash Dev")')) 'Independent window-routing prefix for all branding modes'
 Require ($routing.Contains('if (!IsPackaged())') -and $routing.Contains('windowClassName.append(L" Admin")')) 'Executable-path and elevation routing separation retained'
 $portable = (Resolve-Path -LiteralPath $PortableDirectory).Path
-foreach ($name in '.portable','WindowsTerminal.exe','OpenConsole.exe','TerminalApp.dll','Microsoft.Terminal.Settings.Model.dll','Microsoft.Terminal.Control.dll','Microsoft.UI.Xaml.dll','Microsoft.UI.Xaml','resources.pri','vcruntime140.dll','msvcp140.dll','LICENSE','NOTICE.md','NOTICE.html','Microsoft.UI.Xaml.LICENSE.txt') {
+foreach ($name in '.portable','Backslash.exe','OpenConsole.exe','TerminalApp.dll','Microsoft.Terminal.Settings.Model.dll','Microsoft.Terminal.Control.dll','Microsoft.UI.Xaml.dll','Microsoft.UI.Xaml','resources.pri','vcruntime140.dll','msvcp140.dll','LICENSE','NOTICE.md','NOTICE.html','Microsoft.UI.Xaml.LICENSE.txt') {
     Require (Test-Path -LiteralPath (Join-Path $portable $name)) "Portable contains $name"
 }
 foreach ($badge in 'backslash-badge.svg','backslash-badge-outline.svg','backslash-badge-currentcolor.svg') {
@@ -31,6 +31,8 @@ foreach ($badge in 'backslash-badge.svg','backslash-badge-outline.svg','backslas
 }
 Require (@(Get-ChildItem -LiteralPath (Join-Path $portable 'Assets\branding') -File).Count -eq 3) 'Only the three working SVGs are runtime branding assets'
 Require (@(Get-ChildItem -LiteralPath $portable -Filter 'Appx*').Count -eq 0) 'No package manifest/registration material in portable root'
-$version = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $portable 'WindowsTerminal.exe'))
-Require ($version.FileDescription -eq 'Backslash Portable Development Host') 'Executable description identifies Backslash development build'
+$version = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $portable 'Backslash.exe'))
+Require ($version.FileDescription -eq 'Backslash') 'Executable description identifies Backslash development build'
+Require ($version.ProductName -eq 'Backslash' -and $version.OriginalFilename -eq 'Backslash.exe') 'Executable product/original filename identify Backslash'
+Require (-not (Test-Path -LiteralPath (Join-Path $portable 'WindowsTerminal.exe'))) 'No stale upstream-named host executable in portable'
 Write-Output "Version: $($version.FileVersion)"

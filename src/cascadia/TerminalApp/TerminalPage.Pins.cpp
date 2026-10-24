@@ -75,7 +75,7 @@ namespace winrt::TerminalApp::implementation
     }
     void TerminalPage::_PinError(const hstring& message)
     {
-        if (!_pinsClosing) { _ShowControlNoticeDialog(RS_(L"Pins_Button/Content"), message); }
+        if (!_pinsClosing) { _ShowControlNoticeDialog(RS_(L"Pins_ButtonLabel/Text"), message); }
     }
     com_ptr<Tab> TerminalPage::_FindPinTab(const std::string& id) const
     {

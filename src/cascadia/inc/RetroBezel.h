@@ -205,12 +205,12 @@ namespace Microsoft::Terminal::Backslash
             _frame.Children().Append(content);
         }
 
-        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false, int filler = 0, int badgeStyle = 0, std::wstring_view lettering = L"#FFFFFF", std::wstring_view backing = L"#000000")
+        void Update(bool enabled, int size, int color, int badge, bool center, bool fullscreen = false, int filler = 0, int badgeStyle = 0, std::wstring_view lettering = L"#FFFFFF", std::wstring_view backing = L"#000000", int top = -1, int right = -1, int bottom = -1, int left = -1)
         {
             using namespace winrt::Windows::UI::Xaml;
             // Balance inside the full-size material casing. An outer Grid margin
             // left an unpainted strip that showed wallpaper in transparent fullscreen hosts.
-            Insets = GetBezelInsetsForMode(enabled, size, badge, center, fullscreen, filler);
+            Insets = GetBezelInsetsForMode(enabled, size, badge, center, fullscreen, filler, top, right, bottom, left);
             const auto frame = Insets;
             _frame.Margin({ 0, 0, 0, 0 });
             if (_content) { _content.Margin({ frame.left, frame.top, frame.right, frame.bottom }); }

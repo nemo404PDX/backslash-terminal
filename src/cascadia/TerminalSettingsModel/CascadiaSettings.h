@@ -24,6 +24,7 @@ Author(s):
 #include "ExtensionPackage.g.h"
 
 #include "GlobalAppSettings.h"
+#include "SettingsWriteState.h"
 #include "Profile.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Model
@@ -88,6 +89,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         SettingsLoader(const std::string_view& userJSON, const std::string_view& inboxJSON);
 
         std::vector<winrt::com_ptr<implementation::Profile>> GenerateProfilesFor(const IDynamicProfileGenerator& generator);
+        bool IsProfileSourceEnabled(const winrt::hstring& source) const noexcept { return !_ignoredNamespaces.contains(source); }
         void GenerateProfiles();
         void GenerateExtensionPackagesFromProfileGenerators();
         void ApplyRuntimeInitialSettings();
@@ -161,7 +163,19 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         CascadiaSettings() noexcept = default;
         CascadiaSettings(const winrt::hstring& userJSON, const winrt::hstring& inboxJSON);
         CascadiaSettings(const std::string_view& userJSON, const std::string_view& inboxJSON = {});
-        explicit CascadiaSettings(SettingsLoader&& loader);
+        // Ordinary application loading resolves media. Import preview validates
+        // typed settings only; diagnostics must never probe imported paths.
+        enum class ValidationMode { Ordinary, SetupPreview };
+        explicit CascadiaSettings(SettingsLoader&& loader, ValidationMode validationMode = ValidationMode::Ordinary,
+            const Model::MediaResourceResolver& mediaResourceResolver = nullptr);
+        // Internal synthetic-load seam: binds parsed fixture/model data to the exact
+        // disk snapshot read before parsing, just like LoadAll.
+        CascadiaSettings(const std::string_view& userJSON, const std::string_view& inboxJSON,
+                         ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsFileSnapshot baseline);
+
+
+        // Error-model constructor keeps only the exact captured failure baseline.
+        CascadiaSettings(::Microsoft::Terminal::Backslash::SetupTransfer::SettingsFileSnapshot baseline, const winrt::hstring& loadFailure);
 
         // user settings
         winrt::hstring Hash() const noexcept;
@@ -175,7 +189,15 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void ResetToDefaultSettings();
         bool WriteSettingsToDisk();
         bool WriteSettingsToDisk(const std::function<void(std::string_view)>& writer, ApplicationState& state);
-        Json::Value ToJson() const;
+        bool WriteSettingsToDisk(const std::filesystem::path& path, ApplicationState& state, const std::function<void()>& beforeCommit = {});
+        winrt::hstring LastSaveErrorMessage() const { return _lastSaveError; }
+        Model::CascadiaSettings DefaultsForLoadFailure() const;
+        Model::CascadiaSettings ValidateSetupImport(const winrt::hstring& userJSON) const;
+        // Native test seam; the preview path must not invoke this resolver.
+        Model::CascadiaSettings ValidateSetupImport(const winrt::hstring& userJSON, const Model::MediaResourceResolver& mediaResourceResolver) const;
+        void RebaseAfterGroupAppend(const Model::CascadiaSettings& before, const Model::CascadiaSettings& after);
+        Json::Value ToJson(bool preserveExplicit = false) const;
+        winrt::hstring ExplicitSettingsJson() const;
         bool EqualsForGroupSave(const Model::CascadiaSettings& other, bool ignoreGroups) const;
         Model::Profile ProfileDefaults() const;
         Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles();
@@ -218,15 +240,16 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         Model::Profile _getProfileForCommandLine(const winrt::hstring& commandLine) const;
         void _refreshDefaultTerminals();
         void _writeSettingsToDisk(std::string_view contents);
+        void _writeSettingsToDisk(const std::filesystem::path& path, std::string_view contents);
 
         void _resolveDefaultProfile() const;
         void _resolveNewTabMenuProfiles() const;
         void _resolveNewTabMenuProfilesSet(const winrt::Windows::Foundation::Collections::IVector<Model::NewTabMenuEntry> entries, winrt::Windows::Foundation::Collections::IMap<int, Model::Profile>& remainingProfiles, Model::RemainingProfilesEntry& remainingProfilesEntry) const;
 
-        void _validateSettings();
+        void _validateSettings(ValidationMode validationMode, const Model::MediaResourceResolver& mediaResourceResolver);
         void _validateAllSchemesExist();
         void _resolveSingleMediaResource(OriginTag origin, std::wstring_view basePath, const Model::IMediaResource& resource);
-        void _validateMediaResources();
+        void _validateMediaResources(const Model::MediaResourceResolver& resolver = nullptr);
         void _validateProfileEnvironmentVariables();
         void _validateKeybindings() const;
         void _validateColorSchemesInCommands() const;
@@ -238,6 +261,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
         // user settings
         winrt::hstring _hash;
+        ::Microsoft::Terminal::Backslash::SetupTransfer::SettingsWriteState _settingsWriteState;
+        winrt::hstring _lastSaveError;
+        bool _settingsWriteConflict = false;
         winrt::com_ptr<implementation::GlobalAppSettings> _globals = winrt::make_self<implementation::GlobalAppSettings>();
         winrt::com_ptr<implementation::Profile> _baseLayerProfile = winrt::make_self<implementation::Profile>();
         winrt::Windows::Foundation::Collections::IObservableVector<Model::Profile> _allProfiles = winrt::single_threaded_observable_vector<Model::Profile>();

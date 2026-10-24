@@ -43,6 +43,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
         // Profile Settings
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelSize> RetroBezelSize();
+        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelEdgeSize> RetroBezelEdgeSize();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelColor> RetroBezelColor();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelBadge> RetroBezelBadge();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Model::RetroBezelFiller> RetroBezelFiller();

@@ -1,3 +1,5 @@
+> **Historical preparation inventory.** This dated record is not the complete current file list. Use the [Backslash guide](README.md) and [documentation entry point](../README.md). Original descriptions below, including the retained upstream README and unimplemented bezel, describe earlier preparation stages.
+
 # Exact project documentation inventory
 
 [Project entry point](README.md)

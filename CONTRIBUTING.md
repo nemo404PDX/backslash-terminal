@@ -1,3 +1,5 @@
+> **Inherited Microsoft Windows Terminal document.** Original text below is preserved for provenance. Microsoft workflows, CLA requirements, contacts and response commitments describe upstream; they have not been established as Backslash policy or support. See [Backslash documentation](docs/README.md) and [inherited references](doc/README.md). Upstream private security-reporting guidance remains relevant to upstream vulnerabilities; a separate Backslash reporting contact is not established here. Avoid publishing vulnerability details in public issues.
+
 # Terminal Contributor's Guide
 
 Below is our guidance for how to report issues, propose new features, and submit contributions via Pull Requests (PRs).
@@ -14,7 +16,7 @@ The point of doing all this work in public is to ensure that we are holding ours
 
 The team triages new issues several times a week. During triage, the team uses labels to categorize, manage, and drive the project workflow.
 
-We employ [a bot engine](./doc/bot.md) to help us automate common processes within our workflow.
+We employ [a bot engine](./doc/upstream/history/bot.md) to help us automate common processes within our workflow.
 
 We drive the bot by tagging issues with specific labels which cause the bot engine to close issues, merge branches, etc. This bot engine helps us keep the repo clean by automating the process of notifying appropriate parties if/when information/follow-up is needed, and closing stale issues/PRs after reminders have remained unanswered for several days.
 

@@ -15,6 +15,7 @@ import "FontConfig.idl";
 namespace Microsoft.Terminal.Settings.Model
 {
     enum RetroBezelSize { Slim, Medium, Wide };
+    enum RetroBezelEdgeSize { Default = -1, Slim = 0, Medium = 1, Wide = 2 };
 
     // Persisted/adapter values: append new finishes, never renumber existing shades.
     enum RetroBezelColor {
@@ -80,6 +81,11 @@ namespace Microsoft.Terminal.Settings.Model
         INHERITABLE_PROFILE_SETTING(String, Padding);
         INHERITABLE_PROFILE_SETTING(Boolean, RetroBezelEnabled);
         INHERITABLE_PROFILE_SETTING(RetroBezelSize, RetroBezelSize);
+        INHERITABLE_PROFILE_SETTING(RetroBezelEdgeSize, RetroBezelTopSize);
+        INHERITABLE_PROFILE_SETTING(RetroBezelEdgeSize, RetroBezelRightSize);
+        INHERITABLE_PROFILE_SETTING(RetroBezelEdgeSize, RetroBezelBottomSize);
+        INHERITABLE_PROFILE_SETTING(RetroBezelEdgeSize, RetroBezelLeftSize);
+
         INHERITABLE_PROFILE_SETTING(RetroBezelColor, RetroBezelColor);
         INHERITABLE_PROFILE_SETTING(RetroBezelBadge, RetroBezelBadge);
         INHERITABLE_PROFILE_SETTING(RetroBezelFiller, RetroBezelFiller);

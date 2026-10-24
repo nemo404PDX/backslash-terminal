@@ -6,6 +6,7 @@
 #include "../types/inc/Viewport.hpp"
 #include "resource.h"
 #include "icon.h"
+#include "../WinRTUtils/inc/TerminalExecutable.h"
 #include <dwmapi.h>
 #include <TerminalThemeHelpers.h>
 #include <CoreWindow.h>
@@ -150,7 +151,7 @@ void IslandWindow::MakeWindow() noexcept
     // entirely. Weird.
     WINRT_VERIFY(CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | (_alwaysOnTop ? WS_EX_TOPMOST : 0),
                                 wc.lpszClassName,
-                                L"Windows Terminal",
+                                TerminalDisplayName.data(),
                                 WS_OVERLAPPEDWINDOW,
                                 CW_USEDEFAULT,
                                 CW_USEDEFAULT,

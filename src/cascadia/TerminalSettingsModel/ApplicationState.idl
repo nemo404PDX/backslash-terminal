@@ -35,6 +35,7 @@ namespace Microsoft.Terminal.Settings.Model
         Boolean DismissBadge(String badgeId);
         Boolean BadgeDismissed(String badgeId);
 
+        Boolean SettingsProfilesCollapsed;
         Boolean SavedGroupSettingsNoticeDismissed;
         String SettingsHash;
         Windows.Foundation.Collections.IVector<WindowLayout> PersistedWindowLayouts;

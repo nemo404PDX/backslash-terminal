@@ -212,12 +212,38 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     AppearanceViewModel::AppearanceViewModel(const Model::AppearanceConfig& appearance) :
         _appearance{ appearance }
     {
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelSize, RetroBezelSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize, L"Profile_RetroBezelSize", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelTopSize, RetroBezelEdgeSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, L"Profile_RetroBezelEdgeSize", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelRightSize, RetroBezelEdgeSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, L"Profile_RetroBezelEdgeSize", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelBottomSize, RetroBezelEdgeSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, L"Profile_RetroBezelEdgeSize", L"Content");
+        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelLeftSize, RetroBezelEdgeSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize, L"Profile_RetroBezelEdgeSize", L"Content");
+
         // Add a property changed handler to our own property changed event.
         // This propagates changes from the settings model to anybody listening to our
         //  unique view model members.
         PropertyChanged([this](auto&&, const PropertyChangedEventArgs& args) {
             const auto viewModelProperty{ args.PropertyName() };
-            if (viewModelProperty == L"BackgroundImagePath")
+            if (viewModelProperty == L"RetroBezelSize")
+            {
+                _NotifyChanges(L"CurrentRetroBezelSize");
+            }
+            else if (viewModelProperty == L"RetroBezelTopSize")
+            {
+                _NotifyChanges(L"CurrentRetroBezelTopSize");
+            }
+            else if (viewModelProperty == L"RetroBezelRightSize")
+            {
+                _NotifyChanges(L"CurrentRetroBezelRightSize");
+            }
+            else if (viewModelProperty == L"RetroBezelBottomSize")
+            {
+                _NotifyChanges(L"CurrentRetroBezelBottomSize");
+            }
+            else if (viewModelProperty == L"RetroBezelLeftSize")
+            {
+                _NotifyChanges(L"CurrentRetroBezelLeftSize");
+            }
+            else if (viewModelProperty == L"BackgroundImagePath")
             {
                 // notify listener that all background image related values might have changed
                 //
@@ -1168,6 +1194,40 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return _getColorPreview(_appearance.CursorColor(), CurrentColorScheme().CursorColor().Color());
     }
 
+    // Use the card's available width rather than the window width: Settings can
+    // have a wide navigation pane even when this group is narrow.
+    void AppearanceViewModel::BezelEdgesGrid_SizeChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::SizeChangedEventArgs& args)
+    {
+        const auto grid = sender.as<Windows::UI::Xaml::Controls::Grid>();
+        const bool twoColumns = args.NewSize().Width >= 480;
+        const uint32_t rows = twoColumns ? 3 : 4;
+        if (grid.RowDefinitions().Size() != rows)
+        {
+            grid.RowDefinitions().Clear();
+            for (uint32_t row = 0; row < rows; ++row)
+            {
+                Windows::UI::Xaml::Controls::RowDefinition definition;
+                definition.Height({ 1, Windows::UI::Xaml::GridUnitType::Auto });
+                grid.RowDefinitions().Append(definition);
+            }
+        }
+        int32_t index = 0;
+        for (const auto& child : grid.Children())
+        {
+            const auto element = child.as<Windows::UI::Xaml::FrameworkElement>();
+            // Declaration/tab order is Top, Left, Right, Bottom.
+            const bool centered = index == 0 || index == 3;
+            const auto row = twoColumns ? (index == 0 ? 0 : (index == 3 ? 2 : 1)) : index;
+            Windows::UI::Xaml::Controls::Grid::SetRow(element, row);
+            Windows::UI::Xaml::Controls::Grid::SetColumn(element, twoColumns && index == 2 ? 1 : 0);
+            Windows::UI::Xaml::Controls::Grid::SetColumnSpan(element, twoColumns && !centered ? 1 : 2);
+            element.Width(twoColumns ? (args.NewSize().Width - grid.ColumnSpacing()) / 2 : args.NewSize().Width);
+            element.HorizontalAlignment(Windows::UI::Xaml::HorizontalAlignment::Center);
+            child.as<Editor::SettingContainer>().HorizontalContentAlignment(twoColumns ? Windows::UI::Xaml::HorizontalAlignment::Center : Windows::UI::Xaml::HorizontalAlignment::Left);
+            ++index;
+        }
+    }
+
     DependencyProperty Appearances::_AppearanceProperty{ nullptr };
 
     Appearances::Appearances()
@@ -1189,7 +1249,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
         }
 
-        INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelSize, RetroBezelSize, winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize, L"Profile_RetroBezelSize", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelColor, RetroBezelColor, winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor, L"Profile_RetroBezelColor", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelFiller, RetroBezelFiller, winrt::Microsoft::Terminal::Settings::Model::RetroBezelFiller, L"Profile_RetroBezelFiller", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(RetroBezelBadgeStyle, RetroBezelBadgeStyle, winrt::Microsoft::Terminal::Settings::Model::RetroBezelBadgeStyle, L"Profile_RetroBezelBadgeStyle", L"Content");
@@ -1496,7 +1555,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
             _ViewModelChangedRevoker = appearance.PropertyChanged(winrt::auto_revoke, [=](auto&&, const PropertyChangedEventArgs& args) {
                 const auto settingName{ args.PropertyName() };
-                if (settingName == L"RetroBezelFiller" || settingName == L"RetroBezelBadgeStyle" || settingName == L"RetroBezelSize" || settingName == L"RetroBezelColor" || settingName == L"RetroBezelBadge")
+                if (settingName == L"RetroBezelFiller" || settingName == L"RetroBezelBadgeStyle" || settingName == L"RetroBezelColor" || settingName == L"RetroBezelBadge")
                 {
                     PropertyChanged.raise(*this, PropertyChangedEventArgs{ hstring{ L"Current" } + settingName });
                 }
@@ -1573,7 +1632,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 // button won't work right.
             });
 
-            PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelSize" });
+
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelColor" });
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelFiller" });
             PropertyChanged.raise(*this, PropertyChangedEventArgs{ L"CurrentRetroBezelBadgeStyle" });

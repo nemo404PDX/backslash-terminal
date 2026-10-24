@@ -23,6 +23,7 @@ namespace SettingsModelUnitTests
         TEST_CLASS(ProfileTests);
 
         TEST_METHOD(BackslashBezelModel);
+        TEST_METHOD(BackslashBezelEdges);
         TEST_METHOD(BackslashBezelPaletteRoundtrip);
         TEST_METHOD(BackslashBezelGeometry);
         TEST_METHOD(ProfileGeneratesGuid);
@@ -37,6 +38,61 @@ namespace SettingsModelUnitTests
         TEST_METHOD(TestCorrectOldDefaultShellPaths);
         TEST_METHOD(ProfileDefaultsProhibitedSettings);
     };
+
+    void ProfileTests::BackslashBezelEdges()
+    {
+        const auto defaults = winrt::make_self<implementation::Profile>();
+        VERIFY_ARE_EQUAL(RetroBezelEdgeSize::Default, defaults->RetroBezelTopSize());
+        VERIFY_IS_FALSE(defaults->HasRetroBezelLeftSize());
+        const auto input = VerifyParseSucceeded(R"({"experimental.retroBezelTopSize":"slim",
+            "experimental.retroBezelRightSize":"wide", "experimental.retroBezelBottomSize":"medium",
+            "experimental.retroBezelLeftSize":"wide"})");
+        defaults->LayerJson(input);
+        VERIFY_ARE_EQUAL(input, defaults->ToJson());
+        VERIFY_ARE_EQUAL(input, defaults->CopySettings()->ToJson());
+        const auto child = winrt::make_self<implementation::Profile>();
+        child->AddLeastImportantParent(defaults);
+        VERIFY_ARE_EQUAL(RetroBezelEdgeSize::Wide, child->RetroBezelLeftSize());
+        child->RetroBezelLeftSize(RetroBezelEdgeSize::Default);
+        VERIFY_ARE_EQUAL(RetroBezelEdgeSize::Default, child->RetroBezelLeftSize());
+        child->ClearRetroBezelLeftSize();
+        VERIFY_ARE_EQUAL(RetroBezelEdgeSize::Wide, child->RetroBezelLeftSize());
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroBezelRightSize":"huge"})")), std::exception);
+        using namespace ::Microsoft::Terminal::Backslash;
+        for (int size = 0; size < 3; ++size)
+        for (int top = -1; top < 3; ++top)
+        for (int right = -1; right < 3; ++right)
+        for (int bottom = -1; bottom < 3; ++bottom)
+        for (int left = -1; left < 3; ++left)
+        {
+            const auto insets = GetBezelInsets(true, size, 0, false, 0, top, right, bottom, left);
+            const auto expected = [size](int edge) { return GetVisibleBezelCasingWidth(edge < 0 ? size : edge) + 24; };
+            VERIFY_ARE_EQUAL(expected(top), insets.top);
+            VERIFY_ARE_EQUAL(expected(right), insets.right);
+            VERIFY_ARE_EQUAL(expected(bottom), insets.bottom);
+            VERIFY_ARE_EQUAL(expected(left), insets.left);
+            const auto aperture = GetBezelApertureBounds(800, 600, insets);
+            VERIFY_ARE_EQUAL(insets.left, aperture.screen.left);
+            VERIFY_ARE_EQUAL(800 - insets.right, aperture.screen.right);
+            VERIFY_ARE_EQUAL(insets.top - 24, aperture.recess.top);
+            VERIFY_ARE_EQUAL(600 - insets.bottom + 24, aperture.recess.bottom);
+            const auto filled = GetBezelInsetsForMode(true, size, 0, true, true, 1, top, right, bottom, left);
+            VERIFY_ARE_EQUAL(insets.top + 28, filled.top);
+            VERIFY_ARE_EQUAL(insets.bottom + 28, filled.bottom);
+            VERIFY_ARE_EQUAL(insets.left, filled.left);
+            VERIFY_ARE_EQUAL(insets.right, filled.right);
+        }
+        const auto mixed = GetBezelInsets(true, 1, 0, false, 0, 0, 2, 1, 2);
+        VERIFY_ARE_EQUAL(64.0f, mixed.top);
+        VERIFY_ARE_EQUAL(96.0f, mixed.left);
+        VERIFY_ARE_EQUAL(96.0f, mixed.right);
+        VERIFY_ARE_EQUAL(80.0f, mixed.bottom);
+        const auto bounds = GetBezelScreenBounds(800, 600, mixed);
+        VERIFY_ARE_EQUAL(704.0f, bounds.right);
+        VERIFY_ARE_EQUAL(520.0f, bounds.bottom);
+        VERIFY_ARE_EQUAL(0.0f, GetBezelInsets(false, 1, 0, false, 0, 0, 2, 1, 2).Width());
+        VERIFY_ARE_EQUAL(GetBezelInsets(true, 2, 0).Width(), GetBezelInsets(true, 2, 0, false, -1, -1, -1, -1, -1).Width());
+    }
 
     void ProfileTests::BackslashBezelModel()
     {
@@ -97,16 +153,17 @@ namespace SettingsModelUnitTests
     void ProfileTests::BackslashBezelPaletteRoundtrip()
     {
         constexpr const char* names[] = { "offWhite", "cream", "lightYellow", "agedYellow", "graphite",
-                                          "charcoal", "nearBlack", "slateBlue", "mutedOlive" };
+                                          "charcoal", "nearBlack", "slateBlue", "mutedOlive", "mutedRed", "warmMustard" };
         constexpr RetroBezelColor values[] = { RetroBezelColor::OffWhite, RetroBezelColor::Cream,
             RetroBezelColor::LightYellow, RetroBezelColor::AgedYellow, RetroBezelColor::Graphite,
-            RetroBezelColor::Charcoal, RetroBezelColor::NearBlack, RetroBezelColor::SlateBlue, RetroBezelColor::MutedOlive };
+            RetroBezelColor::Charcoal, RetroBezelColor::NearBlack, RetroBezelColor::SlateBlue, RetroBezelColor::MutedOlive,
+            RetroBezelColor::MutedRed, RetroBezelColor::WarmMustard };
         const auto mappings = implementation::EnumMappings::RetroBezelColor();
-        VERIFY_ARE_EQUAL(uint32_t{ 9 }, mappings.Size());
+        VERIFY_ARE_EQUAL(static_cast<uint32_t>(std::size(values)), mappings.Size());
         auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({"profiles":[{
             "name":"palette","guid":"{6239a42c-0000-49a3-80bd-e8fdd045185c}"}]})");
         const auto source = settings->AllProfiles().GetAt(0);
-        for (int i = 0; i < 9; ++i)
+        for (int i = 0; i < static_cast<int>(std::size(values)); ++i)
         {
             VERIFY_ARE_EQUAL(i, static_cast<int>(values[i])); // Saved values 0-3 retain their meaning.
             VERIFY_ARE_EQUAL(values[i], mappings.Lookup(winrt::to_hstring(names[i])));

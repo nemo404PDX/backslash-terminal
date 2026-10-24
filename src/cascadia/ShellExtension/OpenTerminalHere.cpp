@@ -49,10 +49,10 @@ try
         siEx.StartupInfo.wShowWindow = SW_SHOWNORMAL;
 
         std::filesystem::path modulePath{ wil::GetModuleFileNameW<std::wstring>(wil::GetModuleInstanceHandle()) };
-        modulePath.replace_filename(runElevated ? ElevateShimExe : WindowsTerminalExe);
+        modulePath.replace_filename(runElevated ? ElevateShimExe : TerminalExe);
 
         std::wstring cmdline;
-        cmdline.reserve(256); // The WindowsTerminal.exe path is ~110 characters long
+        cmdline.reserve(256); // Reserve space for the host executable path
         cmdline.push_back(L'"');
         cmdline.append(modulePath.native());
         cmdline.append(LR"(" -d )");
@@ -132,11 +132,10 @@ HRESULT OpenTerminalHere::GetIcon(IShellItemArray* /*psiItemArray*/,
 try
 {
     std::filesystem::path modulePath{ wil::GetModuleFileNameW<std::wstring>(wil::GetModuleInstanceHandle()) };
-    // WindowsTerminal.exe,-101 will be the first icon group in WT
-    // We're using WindowsTerminal here explicitly, and not wt (from GetWtExePath), because
-    // WindowsTerminal is the only one built with the right icons.
-    modulePath.replace_filename(L"WindowsTerminal.exe,-101");
-    return SHStrDupW(modulePath.c_str(), ppszIcon);
+    // The host executable owns icon group 101; alias shims have different icons.
+    modulePath.replace_filename(TerminalExe);
+    const auto iconPath = modulePath.native() + L",-101";
+    return SHStrDupW(iconPath.c_str(), ppszIcon);
 }
 CATCH_RETURN();
 
