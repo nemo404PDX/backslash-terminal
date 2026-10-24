@@ -26,6 +26,7 @@ Require 'float scanlineIntensity;\s+// Offset:\s+4 Size:\s+4' 'b1 scanline offse
 Require 'float scanlineThickness;\s+// Offset:\s+8 Size:\s+4' 'b1 thickness offset 8'
 Require 'float scanlineGap;\s+// Offset:\s+12 Size:\s+4' 'b1 gap offset 12'
 Require 'float4 tintColorAndIntensity;\s+// Offset:\s+16 Size:\s+16' 'Built-in tint occupies bytes 16 through 31'
+Require 'float4 scanlineColorAndPadding;\s+// Offset:\s+32 Size:\s+16' 'Built-in white choice occupies bytes 32 through 47'
 Require 'if_nz' 'Compiled shader retains conditional effect branches'
 
 if ($Runtime) {
@@ -39,6 +40,6 @@ if ($Runtime) {
     if ((Test-Path -LiteralPath $exe) -or (Test-Path -LiteralPath $obj)) { throw 'Fresh runtime evidence paths required.' }
     & cl.exe /nologo /EHsc /std:c++20 /W4 /WX /MT (Join-Path $PSScriptRoot 'RetroShaderTests.cpp') "/Fe:$exe" "/Fo:$obj" /link d3d11.lib d3dcompiler.lib
     if ($LASTEXITCODE -ne 0) { throw "Runtime test compile failed: $LASTEXITCODE" }
-    & $exe (Join-Path $repo 'src\renderer\atlas\custom_shader_vs.hlsl') (Join-Path $repo 'src\renderer\atlas\custom_shader_ps.hlsl')
+    & $exe (Join-Path $repo 'src\renderer\atlas\custom_shader_vs.hlsl') (Join-Path $repo 'src\renderer\atlas\custom_shader_ps.hlsl') $evidence
     if ($LASTEXITCODE -ne 0) { throw "Runtime shader tests failed: $LASTEXITCODE" }
 }

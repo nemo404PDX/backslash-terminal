@@ -17,6 +17,9 @@ namespace SettingsModelUnitTests
     {
         TEST_CLASS(SetupTransferTests);
         TEST_METHOD(ExplicitRoundtripAndInheritance);
+        TEST_METHOD(DeepBezelColorsRoundtrip);
+        TEST_METHOD(WhiteScanlineRoundtrip);
+        TEST_METHOD(BackslashPhosphorContrastGuard);
         TEST_METHOD(RepeatChangedAndUnrelatedProfiles);
         TEST_METHOD(DefaultsAndOverridesReplaceWithoutFlattening);
         TEST_METHOD(ProfileAndGroupConflicts);
@@ -66,6 +69,93 @@ namespace SettingsModelUnitTests
             return S::Parse(S::Export(settings, pins));
         }
     };
+
+    void SetupTransferTests::WhiteScanlineRoundtrip()
+    {
+        auto input = Settings();
+        input["profiles"]["defaults"]["experimental.retroTerminalScanlineWhite"] = true;
+        input["profiles"]["list"][0]["experimental.retroTerminalScanlineWhite"] = false;
+        const auto plan = S::Prepare(Document(input), Settings(), {});
+        VERIFY_IS_TRUE(plan.CanApply());
+        using namespace winrt::Microsoft::Terminal::Settings::Model;
+        const auto model = winrt::make_self<implementation::CascadiaSettings>(S::JsonText(plan.settings));
+        VERIFY_IS_TRUE(model->ProfileDefaults().DefaultAppearance().RetroTerminalScanlineWhite());
+        const auto profile = model->FindProfile(::Microsoft::Console::Utils::GuidFromString(winrt::to_hstring(A).c_str()));
+        VERIFY_IS_FALSE(profile.DefaultAppearance().RetroTerminalScanlineWhite());
+        VERIFY_IS_TRUE(profile.DefaultAppearance().HasRetroTerminalScanlineWhite());
+        const auto roundtrip = Document(model->ToJson());
+        VERIFY_IS_TRUE(roundtrip.settings["profiles"]["defaults"]["experimental.retroTerminalScanlineWhite"].asBool());
+        bool found = false;
+        for (const auto& saved : roundtrip.settings["profiles"]["list"])
+        {
+            if (saved["guid"].asString() == A)
+            {
+                VERIFY_IS_TRUE(saved.isMember("experimental.retroTerminalScanlineWhite"));
+                VERIFY_IS_FALSE(saved["experimental.retroTerminalScanlineWhite"].asBool());
+                found = true;
+            }
+        }
+        VERIFY_IS_TRUE(found);
+    }
+    void SetupTransferTests::BackslashPhosphorContrastGuard()
+    {
+        auto input = Settings();
+        input["profiles"]["defaults"]["experimental.retroTerminalContrastGuard"] = true;
+        input["profiles"]["list"][0]["experimental.retroTerminalContrastGuard"] = false;
+        input["profiles"]["list"][0]["unfocusedAppearance"]["experimental.retroTerminalContrastGuard"] = true;
+        const auto plan = S::Prepare(Document(input), Settings(), {});
+        VERIFY_IS_TRUE(plan.CanApply());
+        using namespace winrt::Microsoft::Terminal::Settings::Model;
+        const auto model = winrt::make_self<implementation::CascadiaSettings>(S::JsonText(plan.settings));
+        VERIFY_IS_TRUE(model->ProfileDefaults().DefaultAppearance().RetroTerminalContrastGuard());
+        const auto profile = model->FindProfile(::Microsoft::Console::Utils::GuidFromString(winrt::to_hstring(A).c_str()));
+        VERIFY_IS_FALSE(profile.DefaultAppearance().RetroTerminalContrastGuard());
+        VERIFY_IS_TRUE(profile.DefaultAppearance().HasRetroTerminalContrastGuard());
+        VERIFY_IS_TRUE(profile.UnfocusedAppearance().RetroTerminalContrastGuard());
+        VERIFY_IS_TRUE(profile.UnfocusedAppearance().HasRetroTerminalContrastGuard());
+        const auto roundtrip = Document(model->ToJson());
+        VERIFY_IS_TRUE(roundtrip.settings["profiles"]["defaults"]["experimental.retroTerminalContrastGuard"].asBool());
+        bool found = false;
+        for (const auto& saved : roundtrip.settings["profiles"]["list"])
+        {
+            if (saved["guid"].asString() == A)
+            {
+                VERIFY_IS_TRUE(saved.isMember("experimental.retroTerminalContrastGuard"));
+                VERIFY_IS_FALSE(saved["experimental.retroTerminalContrastGuard"].asBool());
+                VERIFY_IS_TRUE(saved["unfocusedAppearance"]["experimental.retroTerminalContrastGuard"].asBool());
+                found = true;
+            }
+        }
+        VERIFY_IS_TRUE(found);
+    }
+
+
+    void SetupTransferTests::DeepBezelColorsRoundtrip()
+    {
+        using namespace winrt::Microsoft::Terminal::Settings::Model;
+        for (const auto name : { "deepPurple", "deepTeal" })
+        {
+            auto input = Settings();
+            input["profiles"]["defaults"]["experimental.retroBezelColor"] = name;
+            input["profiles"]["list"][0]["experimental.retroBezelColor"] = "nearBlack";
+            const auto plan = S::Prepare(Document(input), Settings(), {});
+            VERIFY_IS_TRUE(plan.CanApply());
+            const auto model = winrt::make_self<implementation::CascadiaSettings>(S::JsonText(plan.settings));
+            const auto expected = std::string_view{ name } == "deepPurple" ? RetroBezelColor::DeepPurple : RetroBezelColor::DeepTeal;
+            VERIFY_ARE_EQUAL(expected, model->ProfileDefaults().RetroBezelColor());
+            const auto profile = model->FindProfile(::Microsoft::Console::Utils::GuidFromString(winrt::to_hstring(A).c_str()));
+            VERIFY_ARE_EQUAL(RetroBezelColor::NearBlack, profile.RetroBezelColor());
+            VERIFY_IS_TRUE(profile.HasRetroBezelColor());
+            const auto serialized = model->ToJson();
+            const auto exported = Document(serialized);
+            VERIFY_ARE_EQUAL(std::string{ name }, exported.settings["profiles"]["defaults"]["experimental.retroBezelColor"].asString());
+            const auto repeat = S::Prepare(Document(plan.settings), plan.settings, plan.pins);
+            VERIFY_IS_TRUE(repeat.CanApply()); VERIFY_IS_FALSE(repeat.changed);
+            profile.ClearRetroBezelColor();
+            VERIFY_IS_FALSE(profile.HasRetroBezelColor());
+            VERIFY_ARE_EQUAL(expected, profile.RetroBezelColor());
+        }
+    }
 
     void SetupTransferTests::ExplicitRoundtripAndInheritance()
     {

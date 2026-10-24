@@ -16,7 +16,7 @@ The frame is disabled by default. Settings → Profiles → a profile (or Defaul
 | --- | --- | --- |
 | `experimental.retroBezelEnabled` | `false` | Boolean |
 | `experimental.retroBezelSize` | `"medium"` | `"slim"` (40 DIP casing), `"medium"` (56 DIP casing), `"wide"` (72 DIP casing) |
-| `experimental.retroBezelColor` | `"offWhite"` | `"offWhite"` (#E8E8DD), `"cream"` (#E5DABD), `"lightYellow"` (#D9C796), `"agedYellow"` (#C4AB68), `"graphite"`, `"charcoal"`, `"nearBlack"`, `"slateBlue"`, `"mutedOlive" |
+| `experimental.retroBezelColor` | `"offWhite"` | `"offWhite"` (#E8E8DD), `"cream"` (#E5DABD), `"lightYellow"` (#D9C796), `"agedYellow"` (#C4AB68), `"graphite"`, `"charcoal"`, `"nearBlack"`, `"slateBlue"`, `"mutedOlive"`, `"mutedRed"`, `"warmMustard"`, `"deepPurple"` (#3B0B66), `"deepTeal"` (#073D42) |
 | `experimental.retroBezelBadge` | `"bottom"` | `"none"`, `"bottom"`, `"top"` |
 | `experimental.retroBezelCenterFullscreen` | `true` | Boolean; effective only with an enabled frame in fullscreen |
 
@@ -489,3 +489,8 @@ Validation: Release x64 build `artifacts/build/20261023-154103-680-Release-x64-6
 Evidence is in `C:/Users/nemo/Documents/Codex/2026-10-23/task`: `bezel-tests.log`, `badge-tests.log`, `portable-isolation.log`, `badge-composed-5ae2bf5f/` (PNG comparisons and composed-results.json), and `edge-layout-probe/`. Fresh portable: `artifacts/portable/Backslash-Dev-20261023-154103-680-Release-x64-6b057f10/WindowsTerminal.exe`; launch by full path with the entire directory and `.portable` marker retained. No running terminal sessions or existing settings were touched.
 
 Limits: interactive actual-app dropdown/reset/save/reopen, actual terminal clipping/status overlays, and desktop window rectangle checks remain unrun because the required native Computer Use runtime is unavailable. Native tests establish production shared-bezel layout/pixels, not those full-app behaviors. The Library reference could not be inspected locally: materialization returned a cloud-only `/workspace/...` path with no download transfer, and that path does not exist on this Windows host. No image-dependent styling or new bevel-depth work was performed. No commit or push.
+
+
+## Deep saturated casing finishes
+
+Optional Deep purple (`deepPurple`, #3B0B66, persisted value 11) and Deep teal (`deepTeal`, #073D42, value 12) append to the existing casing palette. Earlier names, values, default off-white finish and bezel-off default are unchanged. Both use the existing opaque dark-material casing/rim/recess/badge treatment; terminal color schemes, phosphor tint, opacity and geometry are independent. These low-luminance finishes complement vivid magenta/cyan displays without changing their ANSI colors. Strong phosphor tint can reduce semantic text-color distinctions; assessing that interaction is separate future work.

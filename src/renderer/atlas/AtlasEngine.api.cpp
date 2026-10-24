@@ -433,6 +433,22 @@ void AtlasEngine::SetRetroTerminalGlowIntensity(float value) noexcept
     }
 }
 
+void AtlasEngine::SetRetroTerminalContrastGuard(bool value) noexcept
+{
+    if (_api.s->retroTerminalContrastGuard != value)
+    {
+        _api.s.write()->retroTerminalContrastGuard = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalScanlineWhite(bool value) noexcept
+{
+    if (_api.s->retroTerminalScanlineWhite != value)
+    {
+        _api.s.write()->retroTerminalScanlineWhite = value;
+    }
+}
+
 void AtlasEngine::SetRetroTerminalScanlineIntensity(float value) noexcept
 {
     value = std::isfinite(value) ? std::clamp(value, 0.0f, 1.0f) : 0.5f;

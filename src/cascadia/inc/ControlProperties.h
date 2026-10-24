@@ -27,6 +27,8 @@
     X(winrt::Windows::UI::Xaml::HorizontalAlignment, BackgroundImageHorizontalAlignment, winrt::Windows::UI::Xaml::HorizontalAlignment::Center) \
     X(winrt::Windows::UI::Xaml::VerticalAlignment, BackgroundImageVerticalAlignment, winrt::Windows::UI::Xaml::VerticalAlignment::Center)       \
     X(float, RetroTerminalGlowIntensity, 0.15f) \
+    X(bool, RetroTerminalScanlineWhite, false) \
+    X(bool, RetroTerminalContrastGuard, true) \
     X(float, RetroTerminalScanlineIntensity, 0.10f) \
     X(float, RetroTerminalScanlineThickness, 4.0f) \
     X(float, RetroTerminalScanlineGap, 4.0f) \

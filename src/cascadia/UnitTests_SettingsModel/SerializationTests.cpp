@@ -47,6 +47,8 @@ namespace SettingsModelUnitTests
         TEST_METHOD(BackslashRetroIntensityModel);
         TEST_METHOD(BackslashScanlineDimensions);
         TEST_METHOD(BackslashPhosphorTint);
+        TEST_METHOD(BackslashScanlineWhite);
+        TEST_METHOD(BackslashPhosphorContrastGuard);
         TEST_METHOD(BackslashStartupGroupScope);
         TEST_METHOD(BackslashStartupGroupSelection);
         TEST_METHOD(BackslashStartupGroupSettings);
@@ -458,6 +460,54 @@ namespace SettingsModelUnitTests
         VERIFY_IS_FALSE(Store::LocalFolder("/home/user"));VERIFY_IS_FALSE(Store::LocalFolder("\\\\server\\share"));VERIFY_IS_FALSE(Store::LocalFolder("C:relative"));VERIFY_IS_FALSE(Store::LocalFolder("C:\\%USERPROFILE%"));
         VERIFY_IS_TRUE(Store::LocalFolder("C:\\space and unicode-folder"));
     }
+
+    void SerializationTests::BackslashScanlineWhite()
+    {
+        const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_IS_FALSE(parent->RetroTerminalScanlineWhite());
+        VERIFY_IS_FALSE(parent->HasRetroTerminalScanlineWhite());
+        parent->RetroTerminalScanlineWhite(true);
+        const auto child = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        child->AddLeastImportantParent(parent);
+        VERIFY_IS_TRUE(child->RetroTerminalScanlineWhite());
+        VERIFY_IS_FALSE(child->HasRetroTerminalScanlineWhite());
+        VERIFY_IS_NOT_NULL(child->RetroTerminalScanlineWhiteOverrideSource());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineWhite":false})"));
+        VERIFY_IS_FALSE(child->RetroTerminalScanlineWhite());
+        VERIFY_IS_TRUE(child->HasRetroTerminalScanlineWhite());
+        VERIFY_IS_FALSE(child->ToJson()["experimental.retroTerminalScanlineWhite"].asBool());
+        const auto copy = implementation::AppearanceConfig::CopyAppearance(child.get(), {});
+        VERIFY_ARE_EQUAL(toString(child->ToJson()), toString(copy->ToJson()));
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineWhite":null})"));
+        VERIFY_IS_TRUE(child->RetroTerminalScanlineWhite());
+        VERIFY_IS_FALSE(child->HasRetroTerminalScanlineWhite());
+        VERIFY_IS_FALSE(child->ToJson().isMember("experimental.retroTerminalScanlineWhite"));
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalScanlineWhite":"white"})")), std::exception);
+    }
+    void SerializationTests::BackslashPhosphorContrastGuard()
+    {
+        const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_IS_TRUE(parent->RetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(parent->HasRetroTerminalContrastGuard());
+        parent->RetroTerminalContrastGuard(true);
+        const auto child = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        child->AddLeastImportantParent(parent);
+        VERIFY_IS_TRUE(child->RetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(child->HasRetroTerminalContrastGuard());
+        VERIFY_IS_NOT_NULL(child->RetroTerminalContrastGuardOverrideSource());
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalContrastGuard":false})"));
+        VERIFY_IS_FALSE(child->RetroTerminalContrastGuard());
+        VERIFY_IS_TRUE(child->HasRetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(child->ToJson()["experimental.retroTerminalContrastGuard"].asBool());
+        const auto copy = implementation::AppearanceConfig::CopyAppearance(child.get(), {});
+        VERIFY_ARE_EQUAL(toString(child->ToJson()), toString(copy->ToJson()));
+        child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalContrastGuard":null})"));
+        VERIFY_IS_TRUE(child->RetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(child->HasRetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(child->ToJson().isMember("experimental.retroTerminalContrastGuard"));
+        VERIFY_THROWS(child->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalContrastGuard":"white"})")), std::exception);
+    }
+
 
     void SerializationTests::BackslashPhosphorTint()
     {

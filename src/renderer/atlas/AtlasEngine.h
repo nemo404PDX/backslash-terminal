@@ -75,6 +75,8 @@ namespace Microsoft::Console::Render::Atlas
         void SetRetroTerminalEffect(bool enable) noexcept;
         void SetDiagnostics(std::shared_ptr<RenderDiagnostics> diagnostics) noexcept { _p.diagnostics = std::move(diagnostics); }
         void SetRetroTerminalGlowIntensity(float value) noexcept;
+        void SetRetroTerminalScanlineWhite(bool value) noexcept;
+        void SetRetroTerminalContrastGuard(bool value) noexcept;
         void SetRetroTerminalScanlineIntensity(float value) noexcept;
         void SetRetroTerminalScanlineThickness(float value) noexcept;
         void SetRetroTerminalScanlineGap(float value) noexcept;

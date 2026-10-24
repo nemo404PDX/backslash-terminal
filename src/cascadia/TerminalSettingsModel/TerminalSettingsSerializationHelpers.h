@@ -92,7 +92,7 @@ JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelSize)
 
 JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor)
 {
-    static constexpr std::array<pair_type, 11> mappings = {
+    static constexpr std::array<pair_type, 13> mappings = {
         pair_type{ "offWhite", ValueType::OffWhite },
         pair_type{ "cream", ValueType::Cream },
         pair_type{ "lightYellow", ValueType::LightYellow },
@@ -103,7 +103,9 @@ JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor)
         pair_type{ "slateBlue", ValueType::SlateBlue },
         pair_type{ "mutedOlive", ValueType::MutedOlive },
         pair_type{ "mutedRed", ValueType::MutedRed },
-        pair_type{ "warmMustard", ValueType::WarmMustard }
+        pair_type{ "warmMustard", ValueType::WarmMustard },
+        pair_type{ "deepPurple", ValueType::DeepPurple },
+        pair_type{ "deepTeal", ValueType::DeepTeal }
     };
 };
 

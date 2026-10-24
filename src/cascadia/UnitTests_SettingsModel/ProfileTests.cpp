@@ -153,11 +153,11 @@ namespace SettingsModelUnitTests
     void ProfileTests::BackslashBezelPaletteRoundtrip()
     {
         constexpr const char* names[] = { "offWhite", "cream", "lightYellow", "agedYellow", "graphite",
-                                          "charcoal", "nearBlack", "slateBlue", "mutedOlive", "mutedRed", "warmMustard" };
+                                          "charcoal", "nearBlack", "slateBlue", "mutedOlive", "mutedRed", "warmMustard", "deepPurple", "deepTeal" };
         constexpr RetroBezelColor values[] = { RetroBezelColor::OffWhite, RetroBezelColor::Cream,
             RetroBezelColor::LightYellow, RetroBezelColor::AgedYellow, RetroBezelColor::Graphite,
             RetroBezelColor::Charcoal, RetroBezelColor::NearBlack, RetroBezelColor::SlateBlue, RetroBezelColor::MutedOlive,
-            RetroBezelColor::MutedRed, RetroBezelColor::WarmMustard };
+            RetroBezelColor::MutedRed, RetroBezelColor::WarmMustard, RetroBezelColor::DeepPurple, RetroBezelColor::DeepTeal };
         const auto mappings = implementation::EnumMappings::RetroBezelColor();
         VERIFY_ARE_EQUAL(static_cast<uint32_t>(std::size(values)), mappings.Size());
         auto settings = winrt::make_self<implementation::CascadiaSettings>(R"({"profiles":[{

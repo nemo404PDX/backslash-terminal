@@ -400,3 +400,8 @@ Native Settings interaction, hardware-GPU pixels/readability and timing, screens
 After testing, the user confirmed background opacity and phosphor tint passed. This adds user-reported visual acceptance to the measured white-glyph, alpha and live-resource evidence for build `20261014-171049-545-Release-x64-13ebff74`. It does not add hardware timing or claim every DPI/accessibility/custom-shader manual case has been completed. Saved-group creation, startup and saving while Settings is open were also user-confirmed.
 
 The user requested committing the completed work locally before the next slice. No push, tag, publication or next-slice implementation accompanies this checkpoint; configured remote destinations await explicit confirmation. Earlier active-copy hash mismatch evidence remains preserved without attribution or file restoration.
+
+
+## Phosphor foreground/background protection (2026-10-24)
+
+See [PHOSPHOR-CONTRAST.md](PHOSPHOR-CONTRAST.md) for the cell-role-aware guard, bounded protected bloom, inherited legacy opt-out and font-independent ANSI background preview samples. This follow-up addresses monochrome color-pair collapse; the historical tint/opacity evidence above remains the protection-disabled reference. No animated effects were added.

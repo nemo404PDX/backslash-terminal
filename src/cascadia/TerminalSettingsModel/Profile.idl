@@ -21,7 +21,7 @@ namespace Microsoft.Terminal.Settings.Model
     enum RetroBezelColor {
         OffWhite = 0, Cream = 1, LightYellow = 2, AgedYellow = 3,
         Graphite = 4, Charcoal = 5, NearBlack = 6, SlateBlue = 7, MutedOlive = 8,
-        MutedRed = 9, WarmMustard = 10
+        MutedRed = 9, WarmMustard = 10, DeepPurple = 11, DeepTeal = 12
     };
 
     // Preserve Bottom=1 / Top=2; both are centered placement choices.

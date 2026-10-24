@@ -354,6 +354,15 @@ void BackendD3D::_handleSettingsUpdate(const RenderingPayload& p)
         _recreateCustomRenderTargetView(p);
     }
 
+    _phosphorContrastScale = 0;
+    if (mode == PostProcessMode::Retro && p.s->retroTerminalContrastGuard && p.s->retroTerminalTintIntensity > 0)
+    {
+        const auto linear = [](float v) { return v <= 0.04045f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f); };
+        const auto c = p.s->retroTerminalTintColor;
+        auto luminance = 0.2126f * linear((c & 255) / 255.0f) + 0.7152f * linear(((c >> 8) & 255) / 255.0f) + 0.0722f * linear(((c >> 16) & 255) / 255.0f);
+        if ((c & 0xffffff) == 0) { luminance = 1; } // Existing black endpoint grayscale fallback.
+        _phosphorContrastScale = 1 + p.s->retroTerminalTintIntensity * (luminance - 1);
+    }
     _recreateConstBuffer(p);
     _setupDeviceContextState(p);
 
@@ -649,7 +658,7 @@ void BackendD3D::_recreateBackgroundColorBitmap(const RenderingPayload& p)
 
     const D3D11_TEXTURE2D_DESC desc{
         .Width = p.s->viewportCellCount.x,
-        .Height = p.s->viewportCellCount.y,
+        .Height = static_cast<UINT>(p.s->viewportCellCount.y) * 2,
         .MipLevels = 1,
         .ArraySize = 1,
         .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -661,6 +670,7 @@ void BackendD3D::_recreateBackgroundColorBitmap(const RenderingPayload& p)
     THROW_IF_FAILED(p.device->CreateTexture2D(&desc, nullptr, _backgroundBitmap.addressof()));
     THROW_IF_FAILED(p.device->CreateShaderResourceView(_backgroundBitmap.get(), nullptr, _backgroundBitmapView.addressof()));
     _backgroundBitmapGeneration = {};
+    _contrastBitmapReady = false;
 }
 
 void BackendD3D::_recreateConstBuffer(const RenderingPayload& p) const
@@ -683,6 +693,7 @@ void BackendD3D::_recreateConstBuffer(const RenderingPayload& p) const
         // The lightLineWidth used for drawing the built-in glyphs is `cellSize.x / 6.0f`.
         // So this ends up using a quarter line width for the dotted glyphs.
         // We use half that for the `cellSize.y`, because usually cells have an aspect ratio of 1:2.
+        data.phosphorContrastScale = _phosphorContrastScale;
         data.shadedGlyphDotSize = std::max(1.0f, std::roundf(std::max(p.s->font->cellSize.x / 12.0f, p.s->font->cellSize.y / 24.0f)));
         p.deviceContext->UpdateSubresource(_psConstantBuffer.get(), 0, nullptr, &data, 0, 0);
     }
@@ -1158,7 +1169,7 @@ void BackendD3D::_recreateInstanceBuffers(const RenderingPayload& p)
 void BackendD3D::_drawBackground(const RenderingPayload& p)
 {
     // Not uploading the bitmap halves (!) the GPU load for any given frame on 2023 hardware.
-    if (_backgroundBitmapGeneration != p.colorBitmapGenerations[0])
+    if (_backgroundBitmapGeneration != p.colorBitmapGenerations[0] || (_phosphorContrastScale > 0 && (!_contrastBitmapReady || _foregroundBitmapGeneration != p.colorBitmapGenerations[1])))
     {
         _uploadBackgroundBitmap(p);
     }
@@ -1175,7 +1186,7 @@ void BackendD3D::_uploadBackgroundBitmap(const RenderingPayload& p)
     THROW_IF_FAILED(p.deviceContext->Map(_backgroundBitmap.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
 
     auto src = std::bit_cast<const char*>(p.backgroundBitmap.data());
-    const auto srcEnd = std::bit_cast<const char*>(p.backgroundBitmap.data() + p.backgroundBitmap.size());
+    const auto srcEnd = std::bit_cast<const char*>(p.backgroundBitmap.data() + p.backgroundBitmap.size() * (_phosphorContrastScale > 0 ? 2 : 1));
     const auto srcWidth = p.s->viewportCellCount.x * sizeof(u32);
     const auto srcStride = p.colorBitmapRowStride * sizeof(u32);
     auto dst = static_cast<char*>(mapped.pData);
@@ -1189,6 +1200,8 @@ void BackendD3D::_uploadBackgroundBitmap(const RenderingPayload& p)
 
     p.deviceContext->Unmap(_backgroundBitmap.get(), 0);
     _backgroundBitmapGeneration = p.colorBitmapGenerations[0];
+    _foregroundBitmapGeneration = p.colorBitmapGenerations[1];
+    _contrastBitmapReady = _phosphorContrastScale > 0;
 }
 
 void BackendD3D::_drawText(RenderingPayload& p)
@@ -2079,6 +2092,15 @@ void BackendD3D::_drawCursorBackground(const RenderingPayload& p)
         // in a minimum squared distance of just 0.029195 across all possible color combinations.
         background = ColorFix::GetPerceivableColor(background, bg, 0.25f * 0.25f);
 
+        if (_phosphorContrastScale > 0)
+        {
+            // Cursor overlay is separate from the cell pair: use opposite endpoints,
+            // then bypass the cell guard for its clipped foreground fragments.
+            const auto fg = p.foregroundBitmap[offset + x0];
+            const auto brightness = [](u32 c) { return 54 * (c & 255) + 183 * ((c >> 8) & 255) + 19 * ((c >> 16) & 255); };
+            background = brightness(bg) > brightness(fg) ? 0xff000000 : 0xffffffff;
+            foreground = background ^ 0xffffff;
+        }
         auto& c0 = _cursorRects.emplace_back(position, size, background, foreground);
 
         switch (static_cast<CursorType>(p.s->cursor->cursorType))
@@ -2337,14 +2359,14 @@ size_t BackendD3D::_drawCursorForegroundSlowPath(const CursorRect& c, size_t off
         target.color = it.color;
     }
 
-    auto color = c.foreground == 0xffffffff ? it.color ^ 0xffffff : c.foreground;
+    auto color = _phosphorContrastScale > 0 ? c.foreground : (c.foreground == 0xffffffff ? it.color ^ 0xffffff : c.foreground);
     color = ColorFix::GetPerceivableColor(color, c.background, 0.5f * 0.5f);
 
     // If the cursor covers the entire glyph (like, let's say, a full-box cursor with an ASCII character),
     // we don't append a new quad, but rather reuse the one that already exists (cutoutCount == 0).
     auto& target = cutoutCount ? _appendQuad() : _instances[offset];
 
-    target.shadingType = it.shadingType;
+    target.shadingType = it.shadingType | (_phosphorContrastScale > 0 ? 0x100 : 0);
     target.renditionScale.x = it.renditionScale.x;
     target.renditionScale.y = it.renditionScale.y;
     target.position.x = static_cast<i16>(intersectionL);
@@ -2464,6 +2486,7 @@ void BackendD3D::_executeCustomShader(RenderingPayload& p)
                     static_cast<f32>((p.s->retroTerminalTintColor >> 16) & 255) / 255.0f,
                     p.s->retroTerminalTintIntensity,
                 },
+                .scanlineColorAndPadding = { p.s->retroTerminalScanlineWhite ? 1.0f : 0.0f, _phosphorContrastScale > 0 ? 1.0f : 0.0f, 0, 0 },
             };
             D3D11_MAPPED_SUBRESOURCE mapped{};
             THROW_IF_FAILED(p.deviceContext->Map(_retroShaderConstantBuffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));

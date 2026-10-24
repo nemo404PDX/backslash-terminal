@@ -15,10 +15,43 @@ cbuffer ConstBuffer : register(b0)
     float doubleUnderlineWidth;
     float curlyLineHalfHeight;
     float shadedGlyphDotSize;
+    float phosphorContrastScale;
 }
 
 Texture2D<float4> background : register(t0);
 Texture2D<float4> glyphAtlas : register(t1);
+
+// Cell-role-aware luminance guard, before flattening and phosphor/glow.
+float3 GuardLinear(float3 v) { return v <= 0.04045f ? v / 12.92f : pow((v + 0.055f) / 1.055f, 2.4f); }
+float3 GuardEncoded(float3 v) { return v <= 0.0031308f ? 12.92f * v : 1.055f * pow(v, 1.0f / 2.4f) - 0.055f; }
+float GuardLuminance(float3 v) { return dot(GuardLinear(saturate(v)), float3(0.2126f, 0.7152f, 0.0722f)); }
+float3 GuardMove(float3 rgb, float oldY, float newY)
+{
+    float3 linearColor = GuardLinear(saturate(rgb));
+    linearColor = newY < oldY ? linearColor * (newY / max(oldY, 1e-8f)) : lerp(linearColor, 1, (newY - oldY) / max(1 - oldY, 1e-8f));
+    return GuardEncoded(saturate(linearColor));
+}
+float4 GuardCell(float4 value, float4 fg, float4 bg, bool foreground)
+{
+    // Identical source colors can encode deliberate concealment (SGR 8).
+    // Do not reveal that text. The guard addresses distinct colors lost to tint.
+    float3 straightBg = bg.a > 0 ? bg.rgb / bg.a : 0;
+    if (all(abs(fg.rgb - straightBg) < (0.5f / 255))) { return value; }
+    float fy = GuardLuminance(fg.rgb);
+    float by = GuardLuminance(bg.a > 0 ? bg.rgb / bg.a : 0);
+    float lo = min(fy, by), hi = max(fy, by);
+    float ratio = (hi * phosphorContrastScale + 0.05f) / (lo * phosphorContrastScale + 0.05f);
+    if (ratio < 4.5f)
+    {
+        // Retain source polarity. Equal luminance chooses light text on dark,
+        // dark text on light. Zero is the darkest available monochrome endpoint.
+        bool brightText = fy > by || (abs(fy - by) < 1e-5f && by <= 0.5f);
+        float target = (foreground == brightText) ? max(hi, min(1, 0.175f / max(phosphorContrastScale, 1e-8f))) : 0;
+        float oldY = foreground ? GuardLuminance(value.rgb / max(value.a, 1e-8f)) : by;
+        value.rgb = GuardMove(value.rgb / max(value.a, 1e-8f), oldY, target) * value.a;
+    }
+    return value;
+}
 
 struct Output
 {
@@ -32,6 +65,16 @@ Output main(PSData data) : SV_Target
 {
     float4 color;
     float4 weights;
+    bool cursorText = (data.shadingType & 0x100) != 0;
+    data.shadingType &= 0xff;
+    if (phosphorContrastScale > 0 && !cursorText && data.shadingType >= SHADING_TYPE_TEXT_GRAYSCALE && data.shadingType <= SHADING_TYPE_SOLID_LINE && data.shadingType != SHADING_TYPE_TEXT_PASSTHROUGH)
+    {
+        float2 cell = data.position.xy / backgroundCellSize;
+        float4 cellBg = all(cell < backgroundCellCount) ? background[cell] : backgroundColor;
+        float4 fg = premultiplyColor(data.color);
+        fg = GuardCell(fg, data.color, cellBg, true);
+        data.color.rgb = fg.rgb / max(fg.a, 1e-8f);
+    }
 
     switch (data.shadingType)
     {
@@ -39,6 +82,11 @@ Output main(PSData data) : SV_Target
     {
         float2 cell = data.position.xy / backgroundCellSize;
         color = all(cell < backgroundCellCount) ? background[cell] : backgroundColor;
+        if (phosphorContrastScale > 0)
+        {
+            float4 cellFg = all(cell < backgroundCellCount) ? background[uint2(cell) + uint2(0, backgroundCellCount.y)] : float4(1, 1, 1, 1);
+            color = GuardCell(color, cellFg, color, false);
+        }
         weights = float4(1, 1, 1, 1);
         break;
     }

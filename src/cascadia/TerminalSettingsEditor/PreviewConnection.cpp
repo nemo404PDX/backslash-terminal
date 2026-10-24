@@ -14,7 +14,11 @@ static constexpr std::wstring_view PromptTextPowerline{ L"\x1b[49;34m\xe0b6\x1b[
 static constexpr std::wstring_view PreviewText{
     L"\x001b"
     L"c" // Hard Reset (RIS); on separate lines to avoid becoming 0x01BC
-    L"Windows Terminal\r\n"
+    L"Backslash\r\n"
+    L"Folders: \x1b[97;44m src/ \x1b[m \x1b[30;103m docs/ \x1b[m\r\n"
+    L"Indexed: \x1b[38;5;16;48;5;33m modules/ \x1b[m\r\n"
+    L"Truecolor: \x1b[38;2;255;0;0;48;2;0;148;0m equal-light/ \x1b[m\r\n"
+    L"Reverse: \x1b[97;44;7m reversed/ \x1b[m\r\n"
     L"{0}\x1b[93m" L"git\x1b[m diff \x1b[90m-w\x1b[m\r\n"
     L"\x1b[1m" L"diff --git a/win b/win\x1b[m\r\n"
     L"\x1b[36m@@ -1 +1 @@\x1b[m\r\n"

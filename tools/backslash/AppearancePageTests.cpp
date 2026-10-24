@@ -313,6 +313,37 @@ int wmain(int argc,wchar_t**argv)
 #if defined(APPEARANCE_EDGE_VM_TESTS)
         if(testedProfile)
         {
+            stage=L"phosphor contrast protection and reset";
+            {
+                auto vm=testedProfile.DefaultAppearance();
+                Require(vm.RetroTerminalContrastGuard()&&!vm.HasRetroTerminalContrastGuard(),L"Protection defaults on without creating an override");
+                auto field=FindElement(page,L"RetroTerminalContrastGuard").as<E::SettingContainer>();
+                auto toggle=field.Content().as<X::Controls::ToggleSwitch>();toggle.IsOn(false);Pump(100);
+                Require(!vm.RetroTerminalContrastGuard()&&vm.HasRetroTerminalContrastGuard(),L"Actual protection toggle writes explicit false");
+                auto reset=FindElement(field,L"ResetButton").as<X::Controls::Button>();X::Automation::Peers::ButtonAutomationPeer peer{reset};
+                peer.GetPattern(X::Automation::Peers::PatternInterface::Invoke).as<X::Automation::Provider::IInvokeProvider>().Invoke();Pump(100);
+                Require(vm.RetroTerminalContrastGuard()&&!vm.HasRetroTerminalContrastGuard(),L"Protection reset restores inheritance");
+                std::wcout<<L"PASS: actual phosphor protection toggle, explicit false and inherited reset"<<std::endl;
+            }
+            stage=L"scanline color choice and reset";
+            {
+                auto scanVm=testedProfile.DefaultAppearance();
+                const auto inherited=scanVm.RetroTerminalScanlineWhite();
+                Require(!scanVm.HasRetroTerminalScanlineWhite(),L"Loading scanline choice preserves inheritance");
+                auto field=FindElement(page,L"RetroTerminalScanlineWhite").as<E::SettingContainer>();
+                auto combo=field.Content().as<X::Controls::ComboBox>();
+                Require(combo.Items().Size()==2,L"Scanline offers exactly Black and White");
+                combo.SelectedIndex(1);Pump(150);
+                Require(scanVm.RetroTerminalScanlineWhite()&&scanVm.HasRetroTerminalScanlineWhite(),L"Actual White choice updates appearance override");
+                combo.SelectedIndex(0);Pump(150);
+                Require(!scanVm.RetroTerminalScanlineWhite()&&scanVm.HasRetroTerminalScanlineWhite(),L"Actual Black choice is an explicit override");
+                auto reset=FindElement(field,L"ResetButton").as<X::Controls::Button>();
+                X::Automation::Peers::ButtonAutomationPeer peer{reset};
+                peer.GetPattern(X::Automation::Peers::PatternInterface::Invoke).as<X::Automation::Provider::IInvokeProvider>().Invoke();Pump(150);
+                Require(!scanVm.HasRetroTerminalScanlineWhite()&&scanVm.RetroTerminalScanlineWhite()==inherited,L"Scanline Reset restores inherited color");
+                Require(combo.SelectedIndex()==(inherited?1:0),L"Reset updates displayed scanline choice");
+                std::wcout<<L"PASS: actual Black/White scanline choices and inherited reset"<<std::endl;
+            }
             stage=L"mixed edge selections and reset";
             using Size=winrt::Microsoft::Terminal::Settings::Model::RetroBezelEdgeSize;
             auto vm=testedProfile.DefaultAppearance();
@@ -330,6 +361,24 @@ int wmain(int argc,wchar_t**argv)
             std::wcout<<L"PASS: mixed edges, four choices, inherited reset, Current notifications="<<notifications<<std::endl;
             // Restore a useful mixed example for native rendering.
             vm.CurrentRetroBezelRightSize(choice(vm.RetroBezelRightSizeList(),Size::Wide));
+            stage=L"new dark casing choices and native preview";
+            auto colorField=FindElement(page,L"RetroBezelColor").as<E::SettingContainer>();
+            auto colorCombo=colorField.Content().as<X::Controls::ComboBox>();
+            Require(colorCombo.Items().Size()==13,L"Casing dropdown contains all 13 finishes");
+            vm.RetroBezelEnabled(true);
+            bool neonFound=false;
+            for(const auto& scheme:vm.SchemesList())if(scheme.Name()==L"Cyberpunk Neon"){vm.CurrentColorScheme(scheme);neonFound=true;break;}
+            Require(neonFound,L"Native casing comparison uses bundled Cyberpunk Neon");
+            for(const auto color:{winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor::DeepPurple,winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor::DeepTeal})
+            {
+                bool found=false;
+                for(const auto& item:colorCombo.Items())if(auto entry=item.try_as<E::EnumEntry>();entry&&winrt::unbox_value<winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor>(entry.EnumValue())==color){colorCombo.SelectedItem(entry);found=true;break;}
+                Require(found,L"New casing finish has a localized dropdown entry");Pump(150);page.UpdateLayout();
+                Require(vm.RetroBezelColor()==color,L"Native casing selection updates profile binding");
+                auto preview=frame.Content().as<X::FrameworkElement>().FindName(L"ControlPreview").as<X::FrameworkElement>();
+                SavePng(std::filesystem::path{argv[2]}/(color==winrt::Microsoft::Terminal::Settings::Model::RetroBezelColor::DeepPurple?L"bezel-deep-purple.png":L"bezel-deep-teal.png"),preview);
+            }
+            std::wcout<<L"PASS: 13 casing choices, new localized options, actual selection bindings and native previews"<<std::endl;
         }
 #endif
         if(testedProfile&&argc>2)

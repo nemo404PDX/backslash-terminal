@@ -592,8 +592,9 @@ namespace SettingsModelUnitTests
             return 0.2126 * linear((argb >> 16) & 255u) + 0.7152 * linear((argb >> 8) & 255u) + 0.0722 * linear(argb & 255u);
         };
         constexpr std::uint32_t colors[] = { 0xffe8e8dd, 0xffe5dabd, 0xffd9c796, 0xffc4ab68,
-                                             0xff666b6c, 0xff414648, 0xff222629, 0xff566572, 0xff626a55 };
-        VERIFY_ARE_EQUAL(9, BezelPaletteCount);
+                                             0xff666b6c, 0xff414648, 0xff222629, 0xff566572, 0xff626a55,
+                                             0xff7c5955, 0xff95814f, 0xff3b0b66, 0xff073d42 };
+        VERIFY_ARE_EQUAL(static_cast<int>(std::size(colors)), BezelPaletteCount);
         auto settings = winrt::make_self<implementation::CascadiaSettings>(localJSON);
         const auto profile = settings->AllProfiles().GetAt(0);
         const auto appearance = profile.DefaultAppearance();
@@ -605,6 +606,7 @@ namespace SettingsModelUnitTests
         for (int color = 0; color < BezelPaletteCount; ++color)
         {
             VERIFY_ARE_EQUAL(colors[color], BezelPaletteArgb(color));
+            if (color >= 11) { VERIFY_IS_TRUE(luminance(BezelPaletteArgb(color)) < 0.05); }
             VERIFY_ARE_EQUAL(color >= 4, IsDarkBezelPalette(color));
             profile.RetroBezelColor(static_cast<RetroBezelColor>(color));
             VERIFY_ARE_EQUAL(L"Campbell", appearance.DarkColorSchemeName());

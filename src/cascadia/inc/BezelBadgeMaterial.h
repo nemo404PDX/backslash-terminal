@@ -12,7 +12,7 @@ namespace Microsoft::Terminal::Backslash
     constexpr float BezelBadgeVerticalContentInset = 2;
     constexpr std::uint16_t BezelBadgeFontWeight = 700;
 
-    constexpr int BezelPaletteCount = 11;
+    constexpr int BezelPaletteCount = 13;
     constexpr bool IsDarkBezelPalette(int color) noexcept { return color >= 4 && color < BezelPaletteCount; }
 
     constexpr std::uint32_t BezelPaletteArgb(int color) noexcept
@@ -21,7 +21,7 @@ namespace Microsoft::Terminal::Backslash
         constexpr std::uint32_t colors[] = {
             0xffe8e8dd, 0xffe5dabd, 0xffd9c796, 0xffc4ab68,
             0xff666b6c, 0xff414648, 0xff222629, 0xff566572, 0xff626a55,
-            0xff7c5955, 0xff95814f
+            0xff7c5955, 0xff95814f, 0xff3b0b66, 0xff073d42
         };
         static_assert(sizeof(colors) / sizeof(colors[0]) == BezelPaletteCount);
         return colors[color >= 0 && color < BezelPaletteCount ? color : 0];

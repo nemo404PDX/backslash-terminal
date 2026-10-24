@@ -11,6 +11,8 @@
 #include <cstdio>
 #include <stdexcept>
 #include <vector>
+#include <filesystem>
+#include <fstream>
 using Microsoft::WRL::ComPtr;
 static void Check(HRESULT hr) { if (FAILED(hr)) { throw std::runtime_error("D3D operation failed"); } }
 static ComPtr<ID3DBlob> Compile(const wchar_t* path, const char* target)
@@ -29,12 +31,12 @@ static void Near(float actual, float expected, const char* label)
 int wmain(int argc, wchar_t** argv)
 try
 {
-    if (argc != 3) { throw std::runtime_error("Expected production vertex and pixel shader paths"); }
+    if (argc < 3 || argc > 4) { throw std::runtime_error("Expected production vertex and pixel shader paths"); }
     const auto vsCode = Compile(argv[1], "vs_4_0");
     const auto psCode = Compile(argv[2], "ps_4_0");
     ComPtr<ID3D11ShaderReflection> reflection;
     Check(D3DReflect(psCode->GetBufferPointer(), psCode->GetBufferSize(), IID_PPV_ARGS(&reflection)));
-    for (const auto& entry : std::array<std::pair<const char*, UINT>, 2>{{ {"PixelShaderSettings",32}, {"RetroShaderSettings",32} }})
+    for (const auto& entry : std::array<std::pair<const char*, UINT>, 2>{{ {"PixelShaderSettings",32}, {"RetroShaderSettings",48} }})
     {
         D3D11_SHADER_BUFFER_DESC desc{};
         Check(reflection->GetConstantBufferByName(entry.first)->GetDesc(&desc));
@@ -70,7 +72,7 @@ try
     D3D11_SUBRESOURCE_DATA bufferInitial{b0Data,0,0};
     ComPtr<ID3D11Buffer> b0,b1;
     Check(device->CreateBuffer(&bufferDesc,&bufferInitial,&b0));
-    bufferDesc.ByteWidth=32;
+    bufferDesc.ByteWidth=48;
     Check(device->CreateBuffer(&bufferDesc,nullptr,&b1));
     D3D11_SAMPLER_DESC samplerDesc{};
     samplerDesc.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -91,10 +93,11 @@ try
     context->PSSetSamplers(0,1,sampler.GetAddressOf());
     ID3D11Buffer* buffers[]{b0.Get(),b1.Get()};
     context->PSSetConstantBuffers(0,2,buffers);
-    auto render=[&](float glow,float scanline,float thickness=1.0f,float gap=1.0f,float dpiScale=1.0f,float tint=0.0f,std::array<float,3> phosphor={0,1,65.0f/255.0f}) {
+    std::filesystem::path capture;
+    auto render=[&](float glow,float scanline,float thickness=1.0f,float gap=1.0f,float dpiScale=1.0f,float tint=0.0f,std::array<float,3> phosphor={0,1,65.0f/255.0f},float white=0) {
         const float settings[8]{0,dpiScale,size,size,0,0,0,1};
         context->UpdateSubresource(b0.Get(),0,nullptr,settings,0,0);
-        const float values[8]{glow,scanline,thickness,gap,phosphor[0],phosphor[1],phosphor[2],tint};
+        const float values[12]{glow,scanline,thickness,gap,phosphor[0],phosphor[1],phosphor[2],tint,white,0,0,0};
         context->UpdateSubresource(b1.Get(),0,nullptr,values,0,0);
         context->OMSetRenderTargets(1,rtv.GetAddressOf(),nullptr);
         context->Draw(4,0);
@@ -110,6 +113,13 @@ try
             result[2+y]=pixels[16*4];
             result[2+size+y]=pixels[16*4+3];
             for(UINT channel=0;channel<4;++channel) { result[2+size*2+y*4+channel]=pixels[16*4+channel]; }
+        }
+        if(!capture.empty()) {
+            BITMAPFILEHEADER header{};header.bfType=0x4d42;header.bfOffBits=sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER);header.bfSize=header.bfOffBits+size*size*4;
+            BITMAPINFOHEADER info{};info.biSize=sizeof(info);info.biWidth=size;info.biHeight=-static_cast<LONG>(size);info.biPlanes=1;info.biBitCount=32;
+            std::ofstream file(capture,std::ios::binary);file.write(reinterpret_cast<const char*>(&header),sizeof(header));file.write(reinterpret_cast<const char*>(&info),sizeof(info));
+            for(UINT y=0;y<size;++y){const auto captureRow=reinterpret_cast<const float*>(static_cast<const char*>(mapped.pData)+y*mapped.RowPitch);for(UINT x=0;x<size;++x){const auto p=captureRow+x*4;const unsigned char bgra[]{static_cast<unsigned char>(std::lround(std::clamp(p[2],0.0f,1.0f)*255)),static_cast<unsigned char>(std::lround(std::clamp(p[1],0.0f,1.0f)*255)),static_cast<unsigned char>(std::lround(std::clamp(p[0],0.0f,1.0f)*255)),255};file.write(reinterpret_cast<const char*>(bgra),4);}}
+            if(!file){throw std::runtime_error("GPU evidence capture write failed");}
         }
         context->Unmap(readback.Get(),0);
         return result;
@@ -252,6 +262,57 @@ try
         }
     }
     std::printf("PASS: %u tint cases: exact zero, RGB oracle, relative-luminance scaling, opaque/partial/near-zero alpha, colored-white endpoints and combined CRT\n",tintCases);
+    unsigned int whiteCases=0;
+    for(const auto pixel:std::array<std::array<float,4>,5>{{{0,0,0,1},{0.15f,0.6f,0.3f,1},{0.9f,0.9f,0.9f,1},{0.1f,0.02f,0.2f,0.4f},{0,0,0,0}}}) {
+        setInput(pixel);
+        for(const auto dpi:std::array<float,5>{0.75f,1,1.25f,1.5f,2}) {
+            for(const auto dimensions:std::array<std::array<float,2>,4>{{{1,1},{0.5f,3},{4,4},{8,0}}}) {
+                for(const auto strength:std::array<float,4>{0,0.1f,0.5f,1}) {
+                    for(const auto tint:std::array<float,2>{0,0.8f}) {
+                        const std::array<float,3> phosphor{1,0,1};
+                        const auto base=sample(render(0,0,dimensions[0],dimensions[1],dpi,tint,phosphor),16);
+                        const auto actual=render(0,strength,dimensions[0],dimensions[1],dpi,tint,phosphor,1);
+                        for(UINT y=0;y<size;++y) {
+                            const auto mask=static_cast<float>(coverage(y+0.5,dimensions[0],dimensions[1],dpi))*strength;
+                            const auto out=sample(actual,y);
+                            for(UINT c=0;c<4;++c) {
+                                const auto expected=c==3 ? pixel[3] : base[c]+(pixel[3]-base[c])*mask;
+                                if(std::abs(out[c]-expected)>0.00002f || (c==3 && out[c]!=pixel[3]) || (strength==0 && out[c]!=base[c])) { throw std::runtime_error("White scanline band/gap, zero, tint ordering or alpha mismatch"); }
+                            }
+                        }
+                        ++whiteCases;
+                    }
+                }
+            }
+        }
+    }
+    setInput({0,0,0,1});
+    const auto whiteBlack=render(0,0.1f,1,1,1,0,{1,0,1},1);
+    Near(whiteBlack[0],0,"White scanline leaves true-black gap unchanged");
+    Near(whiteBlack[1],0.1f,"White scanline is visible on empty true-black background at default intensity");
+    const auto blackBlack=render(0,0.1f,1,1);
+    Near(blackBlack[0],0,"Black scanline true-black gap unchanged");
+    Near(blackBlack[1],0,"Black scanline true-black band remains black");
+    const auto fullWhite=render(0,1,1,1,1,1,{1,0,1},1);
+    const auto clear=sample(fullWhite,16),band=sample(fullWhite,17);
+    for(UINT c=0;c<3;++c){Near(clear[c],0,"Phosphor black gap unchanged by white choice");Near(band[c],1,"Full white reaches white only in bands after phosphor");}
+    std::printf("PASS: %u white scanline cases: black/colored backgrounds, glyph tones, zero/full/subtle intensity, DPI, gap, tint and premultiplied alpha\n",whiteCases);
+    if(argc==4) {
+        // Diagnostic text-like strokes on true black and magenta cell backgrounds.
+        // These captures come from actual shader readback, composited on black.
+        const unsigned int letters[3][5]{{6,5,5,5,6},{7,2,2,2,7},{6,5,6,5,5}};
+        for(UINT y=0;y<size;++y)for(UINT x=0;x<size;++x)source[y*size+x]=y<16?std::array<float,4>{0,0,0,1}:std::array<float,4>{0.5f,0,0.5f,1};
+        for(UINT sampleBand=0;sampleBand<2;++sampleBand)for(UINT letter=0;letter<3;++letter)for(UINT y=0;y<5;++y)for(UINT x=0;x<3;++x)if(letters[letter][y]&(1u<<(2-x)))for(UINT sy=0;sy<2;++sy)for(UINT sx=0;sx<2;++sx)source[(sampleBand*16+2+y*2+sy)*size+2+letter*9+x*2+sx]={0.9f,0.9f,0.9f,1};
+        context->UpdateSubresource(input.Get(),0,nullptr,source.data(),size*16,0);
+        const auto directory=std::filesystem::path{argv[3]};
+        capture=directory/L"scanline-neutral.bmp";render(0,0,4,4);
+        capture=directory/L"scanline-black-10.bmp";render(0,0.1f,4,4);
+        capture=directory/L"scanline-white-10.bmp";render(0,0.1f,4,4,1,0,{1,0,1},1);
+        capture=directory/L"scanline-white-50.bmp";render(0,0.5f,4,4,1,0,{1,0,1},1);
+        capture=directory/L"scanline-white-10-phosphor.bmp";render(0,0.1f,4,4,1,0.8f,{1,0,1},1);
+        capture.clear();
+        std::puts("PASS: actual GPU captures of synthetic foreground strokes, black and magenta backgrounds written");
+    }
     auto* timeVar=reflection->GetConstantBufferByName("PixelShaderSettings")->GetVariableByName("time");
     D3D11_SHADER_VARIABLE_DESC timeDesc{}; Check(timeVar->GetDesc(&timeDesc));
     if(timeDesc.uFlags&D3D_SVF_USED) { throw std::runtime_error("Static scanlines must not use Time"); }

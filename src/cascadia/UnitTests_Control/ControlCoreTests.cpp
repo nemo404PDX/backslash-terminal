@@ -45,6 +45,7 @@ namespace ControlUnitTests
         TEST_METHOD(BackslashRenderingVisibilityKeepsOutput);
         TEST_METHOD(BackslashPostProcessWARP);
         TEST_METHOD(BackslashPhosphorOpacityWARP);
+        TEST_METHOD(BackslashPhosphorContrastWARP);
         TEST_METHOD(BackslashConnectionTitleSnapshot);
         TEST_METHOD(BackslashReportedDirectory);
 
@@ -464,6 +465,158 @@ namespace ControlUnitTests
         }
     }
 
+    void ControlCoreTests::BackslashPhosphorContrastWARP()
+    {
+        // Production WIC loading runs on a render worker (MTA), not the STA test host.
+        std::exception_ptr workerFailure;
+        std::thread worker([&]() {
+            try
+            {
+                winrt::init_apartment(winrt::apartment_type::multi_threaded);
+                auto uninitialize = wil::scope_exit([] { winrt::uninit_apartment(); });
+                using namespace ::Microsoft::Console::Render::Atlas;
+                auto [settings, conn] = _createSettingsAndConnection();
+                settings->DefaultForeground(til::color{255,255,255});settings->DefaultBackground(til::color{0,0,0});
+                settings->RetroTerminalContrastGuard(true);settings->RetroTerminalEffect(true);settings->RetroTerminalGlowIntensity(0);settings->RetroTerminalScanlineIntensity(0);settings->RetroTerminalTintIntensity(1);settings->RetroTerminalTintColor(til::color{255,0,255});
+                auto core = createCore(*settings, *conn);
+                _standardInit(core);
+                auto& engine = *core->_renderEngine;
+                engine.SetCallback([](HANDLE) {});
+                engine.EnableTransparentBackground(false);
+                engine.SetGraphicsAPI(GraphicsAPI::Direct3D11);
+                VERIFY_SUCCEEDED(engine.UpdateViewport({ 0, 0, 29, 19 }));
+                auto diagnostics = std::make_shared<::Microsoft::Console::Render::RenderDiagnostics>();
+                engine.SetDiagnostics(diagnostics);
+                auto& payload = engine._p;
+                payload.warningCallback = [](HRESULT hr, wil::zwstring_view message) {
+                    Log::Comment(String().Format(L"POSTPROCESS_WARNING 0x%08x %s", static_cast<unsigned int>(hr), message.c_str()));
+                };
+
+                wil::com_ptr<ID3D11Device> device;
+                wil::com_ptr<ID3D11DeviceContext> context;
+                D3D_FEATURE_LEVEL featureLevel{};
+                VERIFY_SUCCEEDED(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_WARP, nullptr,
+                    D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_SINGLETHREADED, nullptr, 0,
+                    D3D11_SDK_VERSION, device.put(), &featureLevel, context.put()));
+                payload.device = device.query<ID3D11Device2>();
+                payload.deviceContext = context.query<ID3D11DeviceContext2>();
+                const auto dxgiDevice = device.query<IDXGIDevice>();
+                wil::com_ptr<IDXGIAdapter> adapter;
+                VERIFY_SUCCEEDED(dxgiDevice->GetAdapter(adapter.put()));
+                wil::com_ptr<IDXGIFactory2> factory;
+                VERIFY_SUCCEEDED(adapter->GetParent(IID_PPV_ARGS(factory.put())));
+                const DXGI_SWAP_CHAIN_DESC1 desc{
+                    .Width = 270, .Height = 380, .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+                    .SampleDesc = { 1, 0 }, .BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
+                    .BufferCount = 2, .Scaling = DXGI_SCALING_STRETCH,
+                    .SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+                    .AlphaMode = DXGI_ALPHA_MODE_PREMULTIPLIED,
+                };
+                wil::com_ptr<IDXGISwapChain1> swapChain;
+                VERIFY_SUCCEEDED(factory->CreateSwapChainForComposition(device.get(), &desc, nullptr, swapChain.put()));
+                payload.swapChain.swapChain = swapChain.query<IDXGISwapChain2>();
+                BackendD3D backend{ payload };
+
+
+                auto draw = [&](bool guard, bool effect, float glow, bool transparent, bool blackSelection = false, bool cursorOnLight = false) {
+                    engine.SetRetroTerminalContrastGuard(guard);engine.SetRetroTerminalEffect(effect);engine.SetRetroTerminalGlowIntensity(glow);
+                    engine.EnableTransparentBackground(transparent);
+                    VERIFY_SUCCEEDED(engine.InvalidateAll());VERIFY_SUCCEEDED(engine.StartPaint());
+                    const auto bg=transparent?0u:0xff000000u;
+                    std::fill(payload.backgroundBitmap.begin(),payload.backgroundBitmap.end(),bg);payload.colorBitmapGenerations[0].bump();
+                    const std::array<til::point_span,1> selection{til::point_span{{0,5},{12,5}}};
+                    ::Microsoft::Console::Render::RenderFrameInfo info{};info.selectionSpans=selection;info.selectionBackground=blackSelection?til::color{0,0,0}:til::color{255,0,0};VERIFY_SUCCEEDED(engine.PrepareRenderInfo(info));
+                    const std::wstring_view label{L" Directory/ "};
+                    std::vector<::Microsoft::Console::Render::Cluster> text;
+                    for(size_t i=0;i<label.size();++i){text.emplace_back(label.substr(i,1),1);}
+                    for(int row=0;row<11;++row){
+                        TextAttribute a;
+                        switch(row){
+                        case 0:a.SetForeground(RGB(255,0,0));a.SetBackground(RGB(0,148,0));break; // Nearly equal luminance, distinct hue.
+                        case 1:a.SetForeground(RGB(0,148,0));a.SetBackground(RGB(255,0,0));break;
+                        case 2:a.SetForeground(TextColor{16,true});a.SetBackground(TextColor{33,true});break;
+                        case 3:a.SetForeground(RGB(255,255,255));a.SetBackground(RGB(0,0,128));a.Invert();break;
+                        case 4:a.SetForeground(RGB(0,0,0));a.SetBackground(RGB(255,255,255));break;
+                        case 5:a.SetForeground(RGB(255,255,255));a.SetBackground(RGB(0,0,0));break;
+                        case 6:a.SetForeground(RGB(255,255,255));a.SetBackground(RGB(0,0,0));break;
+                        case 7:a.SetForeground(RGB(0,0,0));a.SetBackground(RGB(255,255,255));break;
+                        case 8:a.SetForeground(RGB(128,0,128));a.SetBackground(RGB(128,0,128));break;
+                        case 9:a.SetForeground(RGB(255,255,255));break;
+                        case 10:a.SetForeground(RGB(255,0,0));break;
+                        }
+                        VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes(a,core->_terminal->GetRenderSettings(),gsl::make_not_null(core->_terminal.get()),false,false));
+                        VERIFY_SUCCEEDED(engine.PaintBufferLine(text,{0,row},false));engine._flushBufferLine();
+                    }
+                    ::Microsoft::Console::Render::CursorOptions cursor{};cursor.coordCursor={4,cursorOnLight?7:6};cursor.cursorType=CursorType::FullBox;cursor.fUseColor=true;cursor.cursorColor=RGB(255,0,0);cursor.isVisible=cursor.isOn=cursor.inViewport=true;VERIFY_SUCCEEDED(engine.PaintCursor(cursor));
+                    VERIFY_SUCCEEDED(engine.EndPaint());backend.Render(payload);
+                    wil::com_ptr<ID3D11Texture2D> target;
+                    VERIFY_SUCCEEDED(swapChain->GetBuffer(0, IID_PPV_ARGS(target.put())));
+                    D3D11_TEXTURE2D_DESC readDesc{};
+                    target->GetDesc(&readDesc);
+                    readDesc.Usage = D3D11_USAGE_STAGING;
+                    readDesc.BindFlags = 0;
+                    readDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+                    readDesc.MiscFlags = 0;
+                    wil::com_ptr<ID3D11Texture2D> staging;
+                    VERIFY_SUCCEEDED(device->CreateTexture2D(&readDesc, nullptr, staging.put()));
+                    context->CopyResource(staging.get(), target.get());
+                    D3D11_MAPPED_SUBRESOURCE mapped{};
+                    VERIFY_SUCCEEDED(context->Map(staging.get(), 0, D3D11_MAP_READ, 0, &mapped));
+                    std::vector<uint32_t> pixels(static_cast<size_t>(readDesc.Width) * readDesc.Height);
+                    for (UINT y = 0; y < readDesc.Height; ++y)
+                    {
+                        memcpy(pixels.data() + static_cast<size_t>(y) * readDesc.Width,
+                            static_cast<const char*>(mapped.pData) + static_cast<size_t>(y) * mapped.RowPitch,
+                            static_cast<size_t>(readDesc.Width) * sizeof(uint32_t));
+                    }
+                    context->Unmap(staging.get(), 0);
+                    return pixels;
+                };
+                auto linear=[](double v){return v<=0.04045?v/12.92:std::pow((v+0.055)/1.055,2.4);};
+                auto luminance=[&](uint32_t v){return .2126*linear(((v>>16)&255)/255.0)+.7152*linear(((v>>8)&255)/255.0)+.0722*linear((v&255)/255.0);};
+                const auto cell=engine._api.s->font->cellSize;
+                const auto save=[&](const wchar_t* name,const std::vector<uint32_t>& pixels){
+                    const auto dir=std::filesystem::temp_directory_path()/L"Backslash-Phosphor-Contrast-WARP";std::filesystem::create_directories(dir);
+                    std::ofstream stream(dir/name,std::ios::binary);stream<<"P6\n"<<desc.Width<<" "<<desc.Height<<"\n255\n";
+                    for(auto pixel:pixels){const char rgb[]{static_cast<char>(pixel>>16),static_cast<char>(pixel>>8),static_cast<char>(pixel)};stream.write(rgb,3);}
+                    VERIFY_IS_TRUE(stream.good());
+                };
+                const auto legacy=draw(false,true,0,false),guarded=draw(true,true,0,false),glow=draw(true,true,.15f,false);
+                save(L"legacy-magenta.ppm",legacy);save(L"guarded-magenta.ppm",guarded);save(L"guarded-glow-magenta.ppm",glow);
+                const auto fullGlow=draw(true,true,1,false);save(L"guarded-full-glow-magenta.ppm",fullGlow);
+                for(int row=0;row<6;++row){
+                    const auto contrast=[&](const auto& image){double lo=1,hi=0;for(int y=row*cell.y;y<(row+1)*cell.y;++y)for(int x=0;x<12*cell.x;++x){const auto l=luminance(image[static_cast<size_t>(y)*desc.Width+x]);lo=std::min(lo,l);hi=std::max(hi,l);}return (hi+.05)/(lo+.05);};
+                    const auto a=contrast(legacy),b=contrast(guarded),c=contrast(glow),d=contrast(fullGlow);
+                    Log::Comment(String().Format(L"ROW %d: legacy %.3f guard %.3f glow %.3f full-glow %.3f",row,a,b,c,d));
+                    VERIFY_IS_TRUE(b>=4.3,L"Actual glyph/background row retains monochrome contrast");VERIFY_IS_TRUE(c>=3.0,L"Default glow retains actual glyph/background separation");VERIFY_IS_TRUE(d>=3.0,L"Full glow retains actual glyph/background separation");
+                    if(row<2)VERIFY_IS_TRUE(b>a+1,L"Equal-luminance color pairs improve through the actual renderer");
+                }
+                bool concealed=true;for(int y=8*cell.y;y<9*cell.y;++y)for(int x=0;x<12*cell.x;++x){const auto i=static_cast<size_t>(y)*desc.Width+x;concealed=concealed&&legacy[i]==guarded[i];}VERIFY_IS_TRUE(concealed,L"Identical-color/concealed text remains concealed");
+                const auto blackSelection=draw(true,true,0,false,true);save(L"guarded-black-selection.ppm",blackSelection);
+                VERIFY_IS_TRUE(luminance(blackSelection[static_cast<size_t>(5*cell.y)*desc.Width])>.1,L"Black selection remains a lit visible cue under protection");
+                const auto lightCursor=draw(true,true,0,false,false,true);save(L"guarded-light-cursor.ppm",lightCursor);
+                double cursorLo=1,cursorHi=0;for(int y=7*cell.y;y<8*cell.y;++y)for(int x=4*cell.x;x<5*cell.x;++x){const auto l=luminance(lightCursor[static_cast<size_t>(y)*desc.Width+x]);cursorLo=std::min(cursorLo,l);cursorHi=std::max(cursorHi,l);}
+                VERIFY_IS_TRUE((cursorHi+.05)/(cursorLo+.05)>=4.3,L"Cursor glyph and box remain distinct on a light backdrop");
+                VERIFY_IS_TRUE(glow!=guarded,L"Protected glow still produces a visible halo");
+                VERIFY_IS_TRUE(draw(false,false,0,false)==draw(true,false,0,false),L"Effects off is exactly unchanged");
+                engine.SetRetroTerminalTintIntensity(0);VERIFY_IS_TRUE(draw(false,true,0,false)==draw(true,true,0,false),L"Zero tint bypasses guard exactly");engine.SetRetroTerminalTintIntensity(1);
+                const auto alpha=draw(true,true,0,true);save(L"guarded-transparent.ppm",alpha);VERIFY_IS_TRUE((alpha.back()>>24)==0,L"Transparent default-background hole remains transparent");
+                size_t partialCoverage=0;for(int y=9*cell.y;y<11*cell.y;++y)for(int x=0;x<12*cell.x;++x){const auto a=alpha[static_cast<size_t>(y)*desc.Width+x]>>24;if(a>0&&a<255)++partialCoverage;}
+                VERIFY_IS_TRUE(partialCoverage>0,L"Protected glyphs retain partial antialias coverage over transparent background");
+                core->_setOpacity(.5f);engine._resolveTransparencySettings();const auto alphaGlow=draw(true,true,.15f,true);save(L"guarded-transparent-glow.ppm",alphaGlow);
+                VERIFY_IS_TRUE((alphaGlow.back()>>24)==0,L"Protected glow leaves distant transparent holes clear");
+                bool validCoverage=true;for(auto pixel:alphaGlow){const auto a=pixel>>24;validCoverage=validCoverage&&((pixel>>16)&255)<=a&&((pixel>>8)&255)<=a&&(pixel&255)<=a;}VERIFY_IS_TRUE(validCoverage,L"Protected bloom remains valid premultiplied coverage");
+                for(auto endpoint:{RGB(0,255,65),RGB(255,176,0),RGB(0,0,255),RGB(0,0,0),RGB(255,255,255)}){engine.SetRetroTerminalTintColor(endpoint);const auto image=draw(true,true,.15f,false);VERIFY_IS_TRUE(image!=legacy);}
+                engine.SetRetroTerminalTintColor(RGB(0,255,65));engine.SetRetroTerminalScanlineWhite(true);engine.SetRetroTerminalScanlineIntensity(.1f);
+                const auto whiteScanlines=draw(true,true,.15f,false);save(L"guarded-green-white-scanlines.ppm",whiteScanlines);
+                VERIFY_IS_TRUE(whiteScanlines!=glow,L"Actual green phosphor plus White scanline combination renders");
+                Log::Comment(L"Actual Atlas glyph/background contrast, indexed/truecolor/reverse/selection/cursor/transparency, endpoint and bypass readbacks passed. PPM captures in temp Backslash-Phosphor-Contrast-WARP.");
+            }
+            catch (...) { workerFailure=std::current_exception(); }
+        });
+        worker.join();if(workerFailure)std::rethrow_exception(workerFailure);
+    }
+
     void ControlCoreTests::BackslashPhosphorOpacityWARP()
     {
         // Production WIC loading runs on a render worker (MTA), not the STA test host.
@@ -476,7 +629,7 @@ namespace ControlUnitTests
                 using namespace ::Microsoft::Console::Render::Atlas;
                 auto [settings, conn] = _createSettingsAndConnection();
                 settings->DefaultForeground(til::color{255,255,255});settings->DefaultBackground(til::color{0,0,0});
-                settings->RetroTerminalEffect(true);settings->RetroTerminalGlowIntensity(0);settings->RetroTerminalScanlineIntensity(0);settings->RetroTerminalTintIntensity(1);settings->RetroTerminalTintColor(til::color{0,255,65});
+                settings->RetroTerminalContrastGuard(false);settings->RetroTerminalEffect(true);settings->RetroTerminalGlowIntensity(0);settings->RetroTerminalScanlineIntensity(0);settings->RetroTerminalTintIntensity(1);settings->RetroTerminalTintColor(til::color{0,255,65});
                 auto core = createCore(*settings, *conn);
                 _standardInit(core);
                 auto& engine = *core->_renderEngine;

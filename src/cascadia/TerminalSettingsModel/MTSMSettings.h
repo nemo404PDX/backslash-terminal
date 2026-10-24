@@ -151,6 +151,8 @@ Author(s):
     X(uint32_t, CursorHeight, "cursorHeight", DEFAULT_CURSOR_HEIGHT)                                                                                               \
     X(float, BackgroundImageOpacity, "backgroundImageOpacity", 1.0f)                                                                                               \
     X(winrt::Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode, "backgroundImageStretchMode", winrt::Windows::UI::Xaml::Media::Stretch::UniformToFill) \
+    X(bool, RetroTerminalScanlineWhite, "experimental.retroTerminalScanlineWhite", false) \
+    X(bool, RetroTerminalContrastGuard, "experimental.retroTerminalContrastGuard", true) \
     X(bool, RetroTerminalEffect, "experimental.retroTerminalEffect", false)                                                                                        \
     X(IMediaResource, PixelShaderPath, "experimental.pixelShaderPath", implementation::MediaResource::Empty())                                                     \
     X(IMediaResource, PixelShaderImagePath, "experimental.pixelShaderImagePath", implementation::MediaResource::Empty())                                           \

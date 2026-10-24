@@ -271,6 +271,8 @@ namespace winrt::Microsoft::Terminal::Settings
 
         _RetroTerminalEffect = appearance.RetroTerminalEffect();
         _RetroTerminalGlowIntensity = appearance.RetroTerminalGlowIntensity();
+        _RetroTerminalScanlineWhite = appearance.RetroTerminalScanlineWhite();
+        _RetroTerminalContrastGuard = appearance.RetroTerminalContrastGuard();
         _RetroTerminalScanlineIntensity = appearance.RetroTerminalScanlineIntensity();
         _RetroTerminalScanlineThickness = appearance.RetroTerminalScanlineThickness();
         _RetroTerminalScanlineGap = appearance.RetroTerminalScanlineGap();

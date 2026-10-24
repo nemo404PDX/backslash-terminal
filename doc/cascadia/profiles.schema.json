@@ -424,6 +424,16 @@
           "maximum": 1,
           "default": 0.15
         },
+        "experimental.retroTerminalContrastGuard": {
+            "type": "boolean",
+            "default": true,
+            "description": "Protect text/background luminance separation under built-in phosphor tint. Disable for legacy tint behavior."
+        },
+        "experimental.retroTerminalScanlineWhite": {
+          "description": "Use light scanline bands instead of dark bands. Existing scanline intensity, thickness and gap still apply. Fully transparent pixels remain transparent.",
+          "type": "boolean",
+          "default": false
+        },
         "experimental.retroTerminalScanlineIntensity": {
           "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
           "type": "number",
@@ -432,7 +442,7 @@
           "default": 0.10
         },
         "experimental.retroTerminalScanlineThickness": {
-          "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
+          "description": "Scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
           "type": "number",
           "default": 4.0,
           "minimum": 0.5,
@@ -2928,7 +2938,7 @@
         "experimental.retroBezelRightSize": { "enum": ["default", "slim", "medium", "wide", null], "default": "default", "description": "Right casing width. Default follows experimental.retroBezelSize; Slim 40, Medium 56, Wide 72 DIP, plus the unchanged recess and clearance." },
         "experimental.retroBezelBottomSize": { "enum": ["default", "slim", "medium", "wide", null], "default": "default", "description": "Bottom casing width. Default follows experimental.retroBezelSize; Slim 40, Medium 56, Wide 72 DIP, plus the unchanged recess and clearance." },
         "experimental.retroBezelLeftSize": { "enum": ["default", "slim", "medium", "wide", null], "default": "default", "description": "Left casing width. Default follows experimental.retroBezelSize; Slim 40, Medium 56, Wide 72 DIP, plus the unchanged recess and clearance." },
-        "experimental.retroBezelColor": { "enum": ["offWhite", "cream", "lightYellow", "agedYellow", "graphite", "charcoal", "nearBlack", "slateBlue", "mutedOlive", "mutedRed", "warmMustard", null], "default": "offWhite", "description": "Choose a casing finish. Terminal colors and transparency stay independent." },
+        "experimental.retroBezelColor": { "enum": ["offWhite", "cream", "lightYellow", "agedYellow", "graphite", "charcoal", "nearBlack", "slateBlue", "mutedOlive", "mutedRed", "warmMustard", "deepPurple", "deepTeal", null], "default": "offWhite", "description": "Choose a casing finish. Terminal colors and transparency stay independent." },
         "experimental.retroBezelBadge": { "enum": ["none", "topLeft", "topCenter", "topRight", "bottomLeft", "bottomCenter", "bottomRight", "top", "bottom", null], "default": "none", "description": "SVG badge placement. Legacy top/bottom map to centered placement and retain their extra bezel space when filler is unspecified." },
         "experimental.retroBezelFiller": { "enum": ["none", "top", "bottom", null], "default": "none", "description": "Add 28 DIP of bezel space independently of branding." },
         "experimental.retroBezelBadgeStyle": { "enum": ["solid", "outline", "currentColor", null], "default": "solid", "description": "Choose supplied badge artwork. CurrentColor is explicitly white; all variants preserve their own backing." },
@@ -3154,6 +3164,16 @@
           "maximum": 1,
           "default": 0.15
         },
+        "experimental.retroTerminalContrastGuard": {
+            "type": "boolean",
+            "default": true,
+            "description": "Protect text/background luminance separation under built-in phosphor tint. Disable for legacy tint behavior."
+        },
+        "experimental.retroTerminalScanlineWhite": {
+          "description": "Use light scanline bands instead of dark bands. Existing scanline intensity, thickness and gap still apply. Fully transparent pixels remain transparent.",
+          "type": "boolean",
+          "default": false
+        },
         "experimental.retroTerminalScanlineIntensity": {
           "description": "Intensity of the built-in retro scanline effect. Custom pixel shaders take precedence.",
           "type": "number",
@@ -3162,7 +3182,7 @@
           "default": 0.10
         },
         "experimental.retroTerminalScanlineThickness": {
-          "description": "Dark scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
+          "description": "Scanline band width in device-independent pixels. Requires nonzero built-in scanline intensity.",
           "type": "number",
           "default": 4.0,
           "minimum": 0.5,

@@ -125,6 +125,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void UseDesktopBGImage(const bool useDesktop);
         bool BackgroundImageSettingsVisible() const;
         void SetBackgroundImageOpacityFromPercentageValue(double percentageValue);
+        int32_t RetroTerminalScanlineColorIndex() const;
+        void RetroTerminalScanlineColorIndex(int32_t value);
         void SetRetroTerminalScanlineIntensityFromPercentageValue(double percentageValue);
         void SetRetroTerminalGlowIntensityFromPercentageValue(double percentageValue);
         void SetRetroTerminalTintIntensityFromPercentageValue(double percentageValue);
@@ -185,6 +187,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadgeLettering);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelBadgeBacking);
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelCenterFullscreen);
+        OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineWhite);
+        OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalContrastGuard);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineIntensity);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineThickness);

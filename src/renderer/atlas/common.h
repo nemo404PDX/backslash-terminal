@@ -409,6 +409,8 @@ namespace Microsoft::Console::Render::Atlas
         til::generational<CursorSettings> cursor;
         til::generational<MiscellaneousSettings> misc;
         f32 retroTerminalGlowIntensity = 0.15f;
+        bool retroTerminalScanlineWhite = false;
+        bool retroTerminalContrastGuard = true;
         f32 retroTerminalScanlineIntensity = 0.10f;
         f32 retroTerminalScanlineThickness = 4.0f;
         f32 retroTerminalScanlineGap = 4.0f;

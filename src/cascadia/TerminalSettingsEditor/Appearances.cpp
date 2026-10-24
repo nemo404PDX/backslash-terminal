@@ -223,7 +223,11 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         //  unique view model members.
         PropertyChanged([this](auto&&, const PropertyChangedEventArgs& args) {
             const auto viewModelProperty{ args.PropertyName() };
-            if (viewModelProperty == L"RetroBezelSize")
+            if (viewModelProperty == L"RetroTerminalScanlineWhite")
+            {
+                _NotifyChanges(L"RetroTerminalScanlineColorIndex");
+            }
+            else if (viewModelProperty == L"RetroBezelSize")
             {
                 _NotifyChanges(L"CurrentRetroBezelSize");
             }
@@ -1026,6 +1030,17 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     Windows::UI::Color AppearanceViewModel::RetroTerminalTintColorPreview() const
     {
         return til::color{ RetroTerminalTintColor() };
+    }
+
+    int32_t AppearanceViewModel::RetroTerminalScanlineColorIndex() const
+    {
+        return RetroTerminalScanlineWhite() ? 1 : 0;
+    }
+
+    void AppearanceViewModel::RetroTerminalScanlineColorIndex(int32_t value)
+    {
+        // ComboBox can transiently deselect while its template is being loaded.
+        if (value == 0 || value == 1) { RetroTerminalScanlineWhite(value == 1); }
     }
 
     void AppearanceViewModel::SetRetroTerminalScanlineIntensityFromPercentageValue(double percentageValue)

@@ -324,13 +324,20 @@ CATCH_RETURN()
 
         _api.selectionSpans = til::point_span_subspan_within_rect(info.selectionSpans, dr);
 
-        const u32 newSelectionColor{ static_cast<COLORREF>(info.selectionBackground) | 0xff000000 };
-        if (_api.s->misc->selectionColor != newSelectionColor)
+        const bool protectSelection = _api.s->retroTerminalContrastGuard && _api.s->retroTerminalTintIntensity > 0 &&
+            _api.s->misc->useRetroTerminalEffect && _api.s->misc->customPixelShaderPath.empty();
+        u32 newSelectionColor{ static_cast<COLORREF>(info.selectionBackground) | 0xff000000 };
+        // Keep a visible selection cue after monochrome mapping: dark glyphs on
+        // a lit cell, even when its ANSI hue would otherwise become the default background.
+        if (protectSelection && (newSelectionColor & 0xffffff) == 0) { newSelectionColor = 0xffffffff; }
+        const u32 newSelectionForeground = protectSelection ? 0xff000000 :
+            (ColorFix::GetLightness(newSelectionColor) < 0.5f ? 0xffffffff : 0xff000000);
+        if (_api.s->misc->selectionColor != newSelectionColor || _api.s->misc->selectionForeground != newSelectionForeground)
         {
             auto misc = _api.s.write()->misc.write();
             misc->selectionColor = newSelectionColor;
             // Select a black or white foreground based on the perceptual lightness of the background.
-            misc->selectionForeground = ColorFix::GetLightness(newSelectionColor) < 0.5f ? 0xffffffff : 0xff000000;
+            misc->selectionForeground = newSelectionForeground;
 
             // We copied the selection colors into _p during StartPaint, which happened just before PrepareRenderInfo
             // This keeps their generations in sync.

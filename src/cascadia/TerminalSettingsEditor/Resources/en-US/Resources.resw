@@ -2846,11 +2846,11 @@
   <data name="Profile_SshInvalid/Text" xml:space="preserve">
     <value>Command rejected. Custom must be nonempty and cannot contain NUL, newlines, or percent signs.</value>
   </data>
-  <data name="Profile_RetroTerminalScanlineThickness.Header" xml:space="preserve"><value>Dark scanline thickness (DIP)</value></data>
-  <data name="Profile_RetroTerminalScanlineThickness.HelpText" xml:space="preserve"><value>Width of each dark band in device-independent pixels. System display scaling is applied automatically. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
-  <data name="Profile_RetroTerminalScanlineThicknessSlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Dark scanline thickness (DIP)</value></data>
+  <data name="Profile_RetroTerminalScanlineThickness.Header" xml:space="preserve"><value>Scanline thickness (DIP)</value></data>
+  <data name="Profile_RetroTerminalScanlineThickness.HelpText" xml:space="preserve"><value>Width of each scanline band in device-independent pixels. System display scaling is applied automatically. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalScanlineThicknessSlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Scanline thickness (DIP)</value></data>
   <data name="Profile_RetroTerminalScanlineGap.Header" xml:space="preserve"><value>Clear gap between scanlines (DIP)</value></data>
-  <data name="Profile_RetroTerminalScanlineGap.HelpText" xml:space="preserve"><value>Width of the clear space between dark bands in device-independent pixels. Zero gives uniform dimming. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
+  <data name="Profile_RetroTerminalScanlineGap.HelpText" xml:space="preserve"><value>Width of the clear space between scanline bands in device-independent pixels. Zero gives a uniform effect. Requires nonzero scanline intensity; a custom pixel shader takes precedence.</value></data>
   <data name="Profile_RetroTerminalScanlineGapSlider.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Clear gap between scanlines (DIP)</value></data>
   <data name="Profile_RetroTerminalTintColor.Header" xml:space="preserve"><value>Screen phosphor color</value></data>
   <data name="Profile_RetroTerminalTintColor.HelpText" xml:space="preserve"><value>Colors terminal text, cell backgrounds, cursor and selection. Background images, acrylic, bezel and tabs keep their colors. Enable Retro terminal effects and increase tint intensity. A custom pixel shader takes precedence.</value></data>
@@ -2909,6 +2909,8 @@
   <data name="Profile_RetroBezelBadgeBacking.HelpText" xml:space="preserve"><value>Choose the CurrentColor badge backing color, or None to make this part transparent.</value></data>
   <data name="Profile_RetroBezelBadgeBackingPicker.NullColorButtonLabel" xml:space="preserve"><value>None (transparent)</value></data>
   <data name="Profile_RetroBezelColorMutedRed.Content" xml:space="preserve"><value>Muted retro red</value></data>
+  <data name="Profile_RetroBezelColorDeepPurple.Content" xml:space="preserve"><value>Deep purple</value></data>
+  <data name="Profile_RetroBezelColorDeepTeal.Content" xml:space="preserve"><value>Deep teal</value></data>
   <data name="Profile_RetroBezelColorWarmMustard.Content" xml:space="preserve"><value>Warm mustard</value></data>
   <data name="Profile_RetroBezelTopSize.Header" xml:space="preserve"><value>Top</value></data>
   <data name="Profile_RetroBezelRightSize.Header" xml:space="preserve"><value>Right</value></data>
@@ -2981,4 +2983,10 @@ Preferences supplied (each matching value or section is replaced; omitted prefer
   <data name="Profile_RetroBezelRightSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Right bezel thickness</value></data>
   <data name="Profile_RetroBezelBottomSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Bottom bezel thickness</value></data>
   <data name="Profile_RetroBezelLeftSizePicker.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve"><value>Left bezel thickness</value></data>
+  <data name="Profile_RetroTerminalScanlineWhite.Header" xml:space="preserve"><value>Scanline color</value></data>
+  <data name="Profile_RetroTerminalScanlineWhite.HelpText" xml:space="preserve"><value>Black darkens the bands; White lightens them, useful on dark backgrounds. Use Intensity to keep either effect subtle.</value></data>
+  <data name="Profile_ScanlineBlack.Content" xml:space="preserve"><value>Black</value></data>
+  <data name="Profile_ScanlineWhite.Content" xml:space="preserve"><value>White</value></data>
+  <data name="Profile_RetroTerminalContrastGuard.Header" xml:space="preserve"><value>Protect phosphor text contrast</value></data>
+  <data name="Profile_RetroTerminalContrastGuard.HelpText" xml:space="preserve"><value>Separate text and background brightness when phosphor tint would merge them. Keeps the selected hue; very dark colors and strong glow can still limit readability. Turn off to retain the original tint behavior.</value></data>
 </root>

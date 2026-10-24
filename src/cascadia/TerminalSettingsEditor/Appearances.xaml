@@ -625,6 +625,16 @@
                                Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalGlowIntensity), Mode=OneWay}" />
                 </Grid>
             </local:SettingContainer>
+            <local:SettingContainer x:Name="RetroTerminalScanlineWhite"
+                                    x:Uid="Profile_RetroTerminalScanlineWhite"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalScanlineWhite}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalScanlineWhite, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalScanlineWhiteOverrideSource, Mode=OneWay}">
+                <ComboBox SelectedIndex="{x:Bind Appearance.RetroTerminalScanlineColorIndex, Mode=TwoWay}">
+                    <ComboBoxItem x:Uid="Profile_ScanlineBlack" />
+                    <ComboBoxItem x:Uid="Profile_ScanlineWhite" />
+                </ComboBox>
+            </local:SettingContainer>
             <local:SettingContainer x:Name="RetroTerminalScanlineIntensity"
                                     x:Uid="Profile_RetroTerminalScanlineIntensity"
                                     ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalScanlineIntensity}"
@@ -714,6 +724,13 @@
                     <TextBlock Grid.Column="1" Style="{StaticResource SliderValueLabelStyle}"
                                Text="{x:Bind mtu:Converters.PercentageToPercentageString(Appearance.RetroTerminalTintIntensity), Mode=OneWay}" />
                 </Grid>
+            </local:SettingContainer>
+
+            <local:SettingContainer x:Name="RetroTerminalContrastGuard" x:Uid="Profile_RetroTerminalContrastGuard"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalContrastGuard}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalContrastGuard, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalContrastGuardOverrideSource, Mode=OneWay}">
+                <ToggleSwitch IsOn="{x:Bind Appearance.RetroTerminalContrastGuard, Mode=TwoWay}" Style="{StaticResource ToggleSwitchInExpanderStyle}" />
             </local:SettingContainer>
 
             <!--  Adjust Indistinguishable Colors  -->

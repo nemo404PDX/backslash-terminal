@@ -37,6 +37,7 @@ namespace Microsoft.Terminal.Settings.Editor
 
         void SetFontWeightFromDouble(Double fontWeight);
         void SetBackgroundImageOpacityFromPercentageValue(Double percentageValue);
+        Int32 RetroTerminalScanlineColorIndex;
         void SetRetroTerminalScanlineIntensityFromPercentageValue(Double percentageValue);
         void SetRetroTerminalGlowIntensityFromPercentageValue(Double percentageValue);
         void SetRetroTerminalTintIntensityFromPercentageValue(Double percentageValue);
@@ -113,6 +114,8 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, RetroBezelBadgeLettering);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(String, RetroBezelBadgeBacking);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroBezelCenterFullscreen);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalScanlineWhite);
+        OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalContrastGuard);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);
         OBSERVABLE_PROJECTED_APPEARANCE_SETTING(Single, RetroTerminalScanlineThickness);

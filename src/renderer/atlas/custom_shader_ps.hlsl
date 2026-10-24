@@ -20,6 +20,7 @@ cbuffer RetroShaderSettings : register(b1)
     float scanlineThickness;
     float scanlineGap;
     float4 tintColorAndIntensity;
+    float4 scanlineColorAndPadding; // x: white bands; y: semantic contrast protection
 };
 
 #define SCANLINE_FACTOR scanlineIntensity
@@ -134,9 +135,27 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
     float4 color = shaderTexture.Sample(samplerState, tex);
     [branch] if (glowIntensity > 0.0f)
     {
-        color += Blur(shaderTexture, tex, SCALED_GAUSSIAN_SIGMA) * glowIntensity;
+        float4 bloom = Blur(shaderTexture, tex, SCALED_GAUSSIAN_SIGMA) * glowIntensity;
+        [branch] if (scanlineColorAndPadding.y > 0.5f && tintColorAndIntensity.a > 0)
+        {
+            // The legacy additive bloom can produce alpha > 1 and lift dark glyphs
+            // into their bright backdrop. Keep physically bounded coverage and
+            // limit the added linear light while retaining the blurred halo.
+            float alpha = saturate(color.a + bloom.a * (1 - color.a));
+            float3 base = SrgbToLinear(saturate(color.rgb / max(color.a, 1e-8f)));
+            float3 lit = SrgbToLinear(saturate((color.rgb + bloom.rgb) / max(alpha, 1e-8f)));
+            float3 weights = float3(0.2126f, 0.7152f, 0.0722f);
+            float limit = min(1, dot(base, weights) + 0.02f);
+            float light = dot(lit, weights);
+            lit *= min(1, limit / max(light, 1e-8f));
+            color = float4(LinearToSrgb(lit) * alpha, alpha);
+        }
+        else
+        {
+            color += bloom;
+        }
     }
-    [branch] if (scanlineIntensity > 0.0f)
+    [branch] if (scanlineIntensity > 0.0f && scanlineColorAndPadding.x < 0.5f)
     {
         color = Scanline(color, pos);
     }
@@ -146,5 +165,11 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
         color = PhosphorTint(color);
     }
 
+    // Light bands follow tint so they remain white without recoloring the gaps.
+    // Preserve coverage alpha: a transparent terminal hole stays transparent.
+    [branch] if (scanlineIntensity > 0.0f && scanlineColorAndPadding.x >= 0.5f)
+    {
+        color.rgb = lerp(color.rgb, color.aaa, 1.0f - SquareWave(pos.y));
+    }
     return color;
 }

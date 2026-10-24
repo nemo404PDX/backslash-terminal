@@ -17,6 +17,8 @@ namespace Microsoft.Terminal.Control
         // Experimental settings
         Boolean RetroTerminalEffect { get; };
         Single RetroTerminalGlowIntensity { get; };
+        Boolean RetroTerminalScanlineWhite { get; };
+        Boolean RetroTerminalContrastGuard { get; };
         Single RetroTerminalScanlineIntensity { get; };
         Single RetroTerminalScanlineThickness { get; };
         Single RetroTerminalScanlineGap { get; };

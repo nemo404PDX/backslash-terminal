@@ -459,6 +459,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
             _renderEngine->SetRetroTerminalEffect(_settings.RetroTerminalEffect());
             _renderEngine->SetRetroTerminalGlowIntensity(_settings.RetroTerminalGlowIntensity());
+            _renderEngine->SetRetroTerminalScanlineWhite(_settings.RetroTerminalScanlineWhite());
+            _renderEngine->SetRetroTerminalContrastGuard(_settings.RetroTerminalContrastGuard());
             _renderEngine->SetRetroTerminalScanlineIntensity(_settings.RetroTerminalScanlineIntensity());
             _renderEngine->SetRetroTerminalScanlineThickness(_settings.RetroTerminalScanlineThickness());
             _renderEngine->SetRetroTerminalScanlineGap(_settings.RetroTerminalScanlineGap());
@@ -1018,6 +1020,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             // Update AtlasEngine settings under the lock
             _renderEngine->SetRetroTerminalEffect(newAppearance.RetroTerminalEffect());
             _renderEngine->SetRetroTerminalGlowIntensity(newAppearance.RetroTerminalGlowIntensity());
+            _renderEngine->SetRetroTerminalScanlineWhite(newAppearance.RetroTerminalScanlineWhite());
+            _renderEngine->SetRetroTerminalContrastGuard(newAppearance.RetroTerminalContrastGuard());
             _renderEngine->SetRetroTerminalScanlineIntensity(newAppearance.RetroTerminalScanlineIntensity());
             _renderEngine->SetRetroTerminalScanlineThickness(newAppearance.RetroTerminalScanlineThickness());
             _renderEngine->SetRetroTerminalScanlineGap(newAppearance.RetroTerminalScanlineGap());

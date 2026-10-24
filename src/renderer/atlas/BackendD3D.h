@@ -46,6 +46,7 @@ namespace Microsoft::Console::Render::Atlas
             alignas(sizeof(f32)) f32 doubleUnderlineWidth = 0;
             alignas(sizeof(f32)) f32 curlyLineHalfHeight = 0;
             alignas(sizeof(f32)) f32 shadedGlyphDotSize = 0;
+            alignas(sizeof(f32)) f32 phosphorContrastScale = 0;
 #pragma warning(suppress : 4324) // 'PSConstBuffer': structure was padded due to alignment specifier
         };
 
@@ -67,8 +68,9 @@ namespace Microsoft::Console::Render::Atlas
             f32 scanlineThickness = 1.0f;
             f32 scanlineGap = 1.0f;
             f32x4 tintColorAndIntensity;
+            f32x4 scanlineColorAndPadding;
         };
-        static_assert(sizeof(RetroConstBuffer) == 32);
+        static_assert(sizeof(RetroConstBuffer) == 48);
 
         enum class ShadingType : u8 // u8 so that it packs perfectly into AtlasGlyphEntry
         {
@@ -317,6 +319,9 @@ namespace Microsoft::Console::Render::Atlas
         wil::com_ptr<ID3D11Texture2D> _backgroundBitmap;
         wil::com_ptr<ID3D11ShaderResourceView> _backgroundBitmapView;
         til::generation_t _backgroundBitmapGeneration;
+        til::generation_t _foregroundBitmapGeneration;
+        bool _contrastBitmapReady = false;
+        f32 _phosphorContrastScale = 0;
 
         wil::com_ptr<ID3D11Texture2D> _glyphAtlas;
         wil::com_ptr<ID3D11ShaderResourceView> _glyphAtlasView;
