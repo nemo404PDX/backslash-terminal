@@ -79,7 +79,7 @@ Diagnosed/fixed: (1) the 6 DIP inner safety gutter exposed the host background; 
 
 **Clean ZIP:** `D:\codex-workspace\backslash-terminal\artifacts\portable\Backslash-Dev-0.0.1.0-Surround-x64-f3e3a085.zip` (258 entries); SHA256 **`0CD83CE7C44387C7DD471EB81244C4DCF3AC43CFBC8C1FC150A29DBEF48AE590`**.
 
-Current change files for this follow-up: `inc/RetroBezel.h`, `RetroBezelGeometry.h`, `TerminalSettingsEditor/Profiles_Base.cpp/.h`, English Resources.resw, `UnitTests_SettingsModel/ProfileSourceTests.cpp`, `tools/backslash/SshCaptureClient.cpp`, `Build-SshCaptureFixture.ps1`, BEZEL-DESIGN.md and this document. Earlier uncommitted files remain as recorded in final-source-status.txt.
+Current change files for this follow-up: `inc/RetroBezel.h`, `RetroBezelGeometry.h`, `TerminalSettingsEditor/Profiles_Base.cpp/.h`, English Resources.resw, `UnitTests_SettingsModel/ProfileSourceTests.cpp`, `backslash/tools/backslash/SshCaptureClient.cpp`, `Build-SshCaptureFixture.ps1`, BEZEL-DESIGN.md and this document. Earlier uncommitted files remain as recorded in final-source-status.txt.
 
 Manual checks remain: actual opaque-black gutter/rounded-edge composition while the screen is transparent/acrylic; badge plate vertical centering at DPI scales; native SSH selection/Save/Cancel/Custom interaction; and a user-controlled **new** SSH session confirming PowerShell. An existing cmd SSH session keeps its shell until disconnected/restarted. Native Computer Use/node_repl is unavailable and CUA native APIs are disabled. The surround screenshot was inspected here; badge positioning used the parent's inspected crop/clarification. No native/live-server verification is claimed.
 

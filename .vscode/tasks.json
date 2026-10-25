@@ -4,16 +4,16 @@
         {
             "type": "process",
             "label": "Build Terminal/Console",
-            "command": "powershell.exe",
+            "command": "pwsh.exe",
             "args": [
               "-Command",
-              "Import-Module ${workspaceFolder}\\tools\\OpenConsole.psm1;",
+              "Import-Module ${workspaceFolder}\\backslash\\tools\\OpenConsole.psm1;",
               "Set-MsBuildDevEnvironment;",
               "$project = switch(\"${input:buildProjectChoice}\"){OpenConsole{\"Conhost\\Host_EXE\"} Terminal{\"Terminal\\CascadiaPackage\"}  TermControl{\"Terminal\\TerminalControl\"}};",
               "$target = switch(\"${input:buildModeChoice}\"){Build{\"\"} Rebuild{\":Rebuild\"} Clean{\":Clean\"}};",
               "$target = $project + $target;",
               "msbuild",
-              "${workspaceFolder}\\OpenConsole.sln",
+              "${workspaceFolder}\\backslash\\OpenConsole.slnx",
               "/p:Configuration=${input:configChoice}",
               "/p:Platform=${input:platformChoice}",
               "/p:AppxSymbolPackageEnabled=false", // This takes a long time, so false if we don't really need it.
@@ -35,12 +35,12 @@
         {
             "type": "process",
             "label": "Register Windows Terminal x64 Debug",
-            "command": "powershell.exe",
+            "command": "pwsh.exe",
             "args": [
               "-Command",
-              "Import-Module ${workspaceFolder}\\tools\\OpenConsole.psm1;",
+              "Import-Module ${workspaceFolder}\\backslash\\tools\\OpenConsole.psm1;",
               "Set-MsBuildDevEnvironment;",
-              "Set-Location -Path ${workspaceFolder}\\src\\cascadia\\CascadiaPackage\\AppPackages\\CascadiaPackage_0.0.1.0_x64_Debug_Test;",
+              "Set-Location -Path ${workspaceFolder}\\backslash\\src\\cascadia\\CascadiaPackage\\AppPackages\\CascadiaPackage_0.0.1.0_x64_Debug_Test;",
               "if ((Get-AppxPackage -Name 'WindowsTerminalDev*') -ne $null) { Remove-AppxPackage 'WindowsTerminalDev_0.0.1.0_x64__8wekyb3d8bbwe'};",
               "New-Item ..\\loose -Type Directory -Force;",
               "makeappx unpack /v /o /p .\\CascadiaPackage_0.0.1.0_x64_Debug.msix /d ..\\Loose\\;",
@@ -62,10 +62,10 @@
         {
             "type": "process",
             "label": "Run Code Format",
-            "command": "powershell.exe",
+            "command": "pwsh.exe",
             "args": [
               "-Command",
-              "Import-Module ${workspaceFolder}\\tools\\OpenConsole.psm1;",
+              "Import-Module ${workspaceFolder}\\backslash\\tools\\OpenConsole.psm1;",
               "Set-MsBuildDevEnvironment;",
               "Invoke-CodeFormat",
             ],

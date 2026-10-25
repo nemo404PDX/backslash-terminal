@@ -24,7 +24,7 @@ Old Windows ConsoleColor integer ordering differs from ANSI ordering. Importers 
 
 ## Verified baseline and implications
 
-[ColorScheme.cpp](../../src/cascadia/TerminalSettingsModel/ColorScheme.cpp) serializes 16 named ANSI entries and the four default roles; its loader currently requires a valid 16-color scheme. [colorTable.cpp](../../src/types/colorTable.cpp) already initializes the extended 256-color table. OSC 4 and 104 modify/reset live entries through the parser and adapter. Persisted 256-color editing therefore needs changes across the settings model, serialization, settings-to-renderer adapter, editor, reset behavior and tests; it does not require inventing 256-color rendering.
+[ColorScheme.cpp](../../backslash/src/cascadia/TerminalSettingsModel/ColorScheme.cpp) serializes 16 named ANSI entries and the four default roles; its loader currently requires a valid 16-color scheme. [colorTable.cpp](../../backslash/src/types/colorTable.cpp) already initializes the extended 256-color table. OSC 4 and 104 modify/reset live entries through the parser and adapter. Persisted 256-color editing therefore needs changes across the settings model, serialization, settings-to-renderer adapter, editor, reset behavior and tests; it does not require inventing 256-color rendering.
 
 The new fill operation needs a deliberate incomplete-input path rather than relying on the current strict scheme loader. Decide whether generated values become explicit stored entries and how imported incomplete palettes are validated.
 

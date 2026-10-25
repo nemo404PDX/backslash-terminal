@@ -8,10 +8,10 @@
             "name": "Debug OpenConsole by Launching (x64, debug)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}\\bin\\x64\\debug\\openconsole.exe",
+            "program": "${workspaceFolder}\\backslash\\bin\\x64\\debug\\openconsole.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/backslash",
             "environment": [],
         },
         {

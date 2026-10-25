@@ -6,7 +6,7 @@ This is a proposed implementation sequence. Source/documentation preparation and
 
 ## Phase 0 — prepared source and decisions
 
-Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. Blocked: approved concept image local materialization (see [brand record](../../branding/concepts/README.md)).
+Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. Blocked: approved concept image local materialization (see [brand record](../../backslash/branding/concepts/README.md)).
 
 Next agent: read provenance and this doc; verify instructions; choose one next slice with the user. Resolve identity strings before editing them. Maintain a decision record for schema, controls and scope decisions. Do not initialize Git or add a remote on the user's behalf.
 

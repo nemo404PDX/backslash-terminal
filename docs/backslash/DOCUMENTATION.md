@@ -9,8 +9,8 @@ Current inventory on 2026-10-13. Paths below are relative to D:\codex-workspace\
 | Exact path | Purpose |
 | --- | --- |
 | [README.md](../../README.md) | Short Backslash introduction followed by the complete original upstream README. |
-| [UPSTREAM-SOURCE.md](../../UPSTREAM-SOURCE.md) | Stable tag/commit/archive hash, source preparation, dependency status and documentation change record. |
-| [branding/concepts/README.md](../../branding/concepts/README.md) | Approved Backslash visual direction, exact Library image identity, transfer blocker and pending production assets. |
+| [UPSTREAM-SOURCE.md](UPSTREAM-SOURCE.md) | Stable tag/commit/archive hash, source preparation, dependency status and documentation change record. |
+| [branding/concepts/README.md](../../backslash/branding/concepts/README.md) | Approved Backslash visual direction, exact Library image identity, transfer blocker and pending production assets. |
 | [docs/backslash/README.md](README.md) | Project entry point, status, scope labels and links. |
 | [docs/backslash/BUILD-BASELINE.md](BUILD-BASELINE.md) | Successful unchanged source-copy build, toolchain/artifact evidence and runtime/identity limits. |
 | [docs/backslash/APP-IDENTITY.md](APP-IDENTITY.md) | Source-grounded portable-first identity, coexistence and later packaging plan. |
@@ -28,7 +28,7 @@ Current inventory on 2026-10-13. Paths below are relative to D:\codex-workspace\
 | [docs/backslash/ROADMAP.md](ROADMAP.md) | Future bounded phases and acceptance criteria; research is not implementation authorization. |
 | [docs/backslash/DOCUMENTATION.md](DOCUMENTATION.md) | This exact path-and-purpose inventory. |
 
-Retained upstream legal/reference files include [LICENSE](../../LICENSE), [NOTICE.md](../../NOTICE.md), [CONTRIBUTING.md](../../CONTRIBUTING.md), component licenses/notices and doc/. No application implementation was changed.
+Retained upstream legal/reference files include [LICENSE](../../LICENSE), [NOTICE.md](../../NOTICE.md), [CONTRIBUTING.md](../../.github/CONTRIBUTING.md), component licenses/notices and doc/. No application implementation was changed.
 
 The concept PNG is **not present**: the resolved Library helper failed its required metadata step on Windows (os.setxattr unavailable). It has not been visually inspected here. No substitute was created. See the brand record for the exact image reference.
 

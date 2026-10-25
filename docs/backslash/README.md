@@ -1,4 +1,4 @@
-> **Backslash-owned documentation.** [All documentation](../README.md) | [Inherited Windows Terminal references/history](../../doc/README.md)
+> **Backslash-owned documentation.** [All documentation](../README.md) | [Inherited Windows Terminal references/history](../../backslash/doc/README.md)
 >
 > **Current implementation:** [root overview](../../README.md), [saved groups](SAVED-TAB-GROUPS.md), [Pins checkpoint](PINNED-STATUS.md), [Pins implementation](PINNED-TABS-IMPLEMENTATION.md), [live folder metadata](LIVE-CWD-AND-SESSION-METADATA.md), [portable delivery](PORTABLE-IMPLEMENTATION.md), [SSH/WSL](SSH-PROFILES.md), [CRT controls](CRT-APPEARANCE.md) and [bezel implementation/evidence](BEZEL-DESIGN.md). Records include validation limits and earlier checkpoints.
 >
@@ -14,7 +14,7 @@ Display brand: **Backslash**. Repository/folder: **backslash-terminal**.
 
 Backslash is a planned independently branded, Windows-first fork of Microsoft Windows Terminal. The goal is approachable saved workspaces, useful inline terminal graphics, understandable palette editing, and optional configurable CRT styling. This is the existing C++/Windows source baseline, not a Rust rewrite or a cross-platform port.
 
-**Current status: isolated portable Backslash Dev builds with configurable CRT/bezel controls and SSH profile controls; modern WSL discovery is corrected.** See [portable implementation](PORTABLE-IMPLEMENTATION.md), [CRT evidence](CRT-APPEARANCE.md), [bezel evidence](BEZEL-DESIGN.md), and [SSH/WSL evidence](SSH-PROFILES.md) for completed scope and unrun visual checks. The unsigned portable delivery is not an installed production release. [Baseline build evidence](BUILD-BASELINE.md) records the earlier preparation stage. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](../../UPSTREAM-SOURCE.md).
+**Current status: isolated portable Backslash Dev builds with configurable CRT/bezel controls and SSH profile controls; modern WSL discovery is corrected.** See [portable implementation](PORTABLE-IMPLEMENTATION.md), [CRT evidence](CRT-APPEARANCE.md), [bezel evidence](BEZEL-DESIGN.md), and [SSH/WSL evidence](SSH-PROFILES.md) for completed scope and unrun visual checks. The unsigned portable delivery is not an installed production release. [Baseline build evidence](BUILD-BASELINE.md) records the earlier preparation stage. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](UPSTREAM-SOURCE.md).
 
 ## Read next
 
@@ -49,7 +49,7 @@ Backslash is a planned independently branded, Windows-first fork of Microsoft Wi
 - [Terminal status bars design](TERMINAL-STATUS-BARS-DESIGN.md): optional top/bottom rows, four anchored slots, reserved layout space and metadata limits; not implemented.
 - [Phased roadmap](ROADMAP.md): bounded future tasks with acceptance checks.
 - [Baseline evidence](BASELINE.md): reused capabilities, source paths and upstream research.
-- [Brand concept](../../branding/concepts/README.md): approved visual direction and exact image transfer status.
+- [Brand concept](../../backslash/branding/concepts/README.md): approved visual direction and exact image transfer status.
 - [Main project README](../../README.md): concise Backslash introduction, implemented features and planned additions.
 - [MIT license](../../LICENSE) and [upstream notices](../../NOTICE.md).
 

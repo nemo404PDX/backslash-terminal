@@ -1,6 +1,6 @@
 # Successful unchanged baseline build
 
-[Project entry point](README.md) · [Application identity prerequisites](APP-IDENTITY.md) · [Roadmap](ROADMAP.md) · [Provenance](../../UPSTREAM-SOURCE.md)
+[Project entry point](README.md) · [Application identity prerequisites](APP-IDENTITY.md) · [Roadmap](ROADMAP.md) · [Provenance](UPSTREAM-SOURCE.md)
 
 Recorded 2026-10-13. **An unchanged upstream source copy built successfully; no independently identified Backslash application or runtime behavior has been validated.** This document records another authorized build task's result and read-only evidence checks. The documentation writer did not rerun the build.
 

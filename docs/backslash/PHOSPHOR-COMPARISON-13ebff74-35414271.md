@@ -38,7 +38,7 @@ For the PowerShell 7 profile, the saved focused and unfocused effective values m
 
 ## Why the picker chips differ
 
-The phosphor color picker gets its 16 shortcut chips from `Appearance.CurrentColorScheme` via `NullableColorPicker.ColorSchemeVM` and `ColorEntryAt(0..15)`. See [Appearances.xaml](../../src/cascadia/TerminalSettingsEditor/Appearances.xaml) around line 563, [CurrentColorScheme](../../src/cascadia/TerminalSettingsEditor/Appearances.cpp) around line 1053, and [NullableColorPicker.xaml](../../src/cascadia/TerminalSettingsEditor/NullableColorPicker.xaml) around line 44. There is no separate fixed named phosphor-preset catalog. The saved independent phosphor RGB and the shortcut palette have different ownership.
+The phosphor color picker gets its 16 shortcut chips from `Appearance.CurrentColorScheme` via `NullableColorPicker.ColorSchemeVM` and `ColorEntryAt(0..15)`. See [Appearances.xaml](../../backslash/src/cascadia/TerminalSettingsEditor/Appearances.xaml) around line 563, [CurrentColorScheme](../../backslash/src/cascadia/TerminalSettingsEditor/Appearances.cpp) around line 1053, and [NullableColorPicker.xaml](../../backslash/src/cascadia/TerminalSettingsEditor/NullableColorPicker.xaml) around line 44. There is no separate fixed named phosphor-preset catalog. The saved independent phosphor RGB and the shortcut palette have different ownership.
 
 Consequently, opening Defaults in the old copy gives IBM 5153 shortcuts, while its PowerShell 7 override gives VSCode Dark Modern shortcuts. The new saved configuration gives Campbell in both contexts. Exact observed literals:
 

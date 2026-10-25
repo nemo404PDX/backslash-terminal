@@ -39,5 +39,5 @@ properties:
       settings:
         productId: Microsoft.VisualStudio.Product.Professional
         channelId: VisualStudio.17.Release
-        vsConfigFile: '${WinGetConfigRoot}\..\.vsconfig'
+        vsConfigFile: '${WinGetConfigRoot}\..\backslash\.vsconfig'
   configurationVersion: 0.2.0

@@ -286,3 +286,10 @@ profiles.json
 
 # MSBuildCache
 /MSBuildCacheLogs/
+# Relocated checked-in upstream files; generated outputs remain ignored.
+!/backslash/dep/WinAppDriver/WinAppDriver.exe
+!/backslash/dep/nuget/nuget.exe
+!/backslash/src/cascadia/WpfTerminalControl/stylecop.json
+
+# Current nested developer setup; keep the old tools rule for existing local files.
+/backslash/tools/.razzlerc.*

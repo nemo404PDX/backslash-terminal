@@ -45,7 +45,7 @@ Executable: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-
 
 Clean ZIP: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-0.0.1.0-Badge-x64-c69d5ac7.zip`. Final SHA256 and inventory are recorded in `badge-delivery-summary.json` under the build run. The portable is fresh and contains no test settings; user/running copies and previous artifacts were not overwritten. No commit/push, registration, installation, SSH/WSL change or window-resize redesign occurred.
 
-Evidence: `badge-validation/` (settings/Control/CRT logs and native XAML probe), `badge-runtime-smoke/badge-runtime-results.json`, `bezel-live-toggle-observation/live-toggle-results.json`, `portable-isolation.log`, source checkpoint/inventory and final summary under this build run. Reproduce the decoder with `tools/backslash/Test-BezelBadgeSvg.ps1 -EvidenceDirectory <existing-evidence-directory>`; it uses existing SDK/C++ tools and creates a fresh owned probe directory, without installation or desktop interaction.
+Evidence: `badge-validation/` (settings/Control/CRT logs and native XAML probe), `badge-runtime-smoke/badge-runtime-results.json`, `bezel-live-toggle-observation/live-toggle-results.json`, `portable-isolation.log`, source checkpoint/inventory and final summary under this build run. Reproduce the decoder with `backslash/tools/backslash/Test-BezelBadgeSvg.ps1 -EvidenceDirectory <existing-evidence-directory>`; it uses existing SDK/C++ tools and creates a fresh owned probe directory, without installation or desktop interaction.
 
 ## Accepted live-toggle behavior and manual checks
 

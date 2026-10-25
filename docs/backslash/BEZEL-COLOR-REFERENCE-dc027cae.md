@@ -10,7 +10,7 @@ The SVG is a flat color/gradient reference, not a rendered monitor or a native v
 
 ## Stored bases and stable names
 
-Source: `src/cascadia/inc/BezelBadgeMaterial.h::BezelPaletteArgb`, `Profile.idl::RetroBezelColor`, `TerminalSettingsSerializationHelpers.h` enum mapping, and English editor resources. Packed constants are **0xAARRGGBB**; every stored alpha is FF=255. Default is **OffWhite/offWhite**. Indices and serialized tokens are compatibility data.
+Source: `backslash/src/cascadia/inc/BezelBadgeMaterial.h::BezelPaletteArgb`, `Profile.idl::RetroBezelColor`, `TerminalSettingsSerializationHelpers.h` enum mapping, and English editor resources. Packed constants are **0xAARRGGBB**; every stored alpha is FF=255. Default is **OffWhite/offWhite**. Indices and serialized tokens are compatibility data.
 
 | Index | English label | Enum / JSON token | Base RGB | RGB8 | Material branch |
 | --- | --- | --- | --- | --- | --- |

@@ -12,7 +12,7 @@ A user explicitly clicks **Install** to fetch a selected font from its official 
 
 Show a code preview with `!=`, `=>` and `===`, plus readable ordinary text. Include license, official source, pinned version, installed/download status and an apply-to-profile action. Preview layout should remain monospaced and communicate whether sample ligatures are enabled.
 
-Offer an understandable per-profile ligatures toggle using existing font feature support where suitable. The baseline [FontConfig.cpp](../../src/cascadia/TerminalSettingsModel/FontConfig.cpp), [FontConfig.idl](../../src/cascadia/TerminalSettingsModel/FontConfig.idl) and [MTSMSettings.h](../../src/cascadia/TerminalSettingsModel/MTSMSettings.h) expose a font feature map. A simple toggle must map deliberately to actual font OpenType features rather than assuming every font uses identical tags; exact behavior needs validation.
+Offer an understandable per-profile ligatures toggle using existing font feature support where suitable. The baseline [FontConfig.cpp](../../backslash/src/cascadia/TerminalSettingsModel/FontConfig.cpp), [FontConfig.idl](../../backslash/src/cascadia/TerminalSettingsModel/FontConfig.idl) and [MTSMSettings.h](../../backslash/src/cascadia/TerminalSettingsModel/MTSMSettings.h) expose a font feature map. A simple toggle must map deliberately to actual font OpenType features rather than assuming every font uses identical tags; exact behavior needs validation.
 
 ## Download and license requirements
 

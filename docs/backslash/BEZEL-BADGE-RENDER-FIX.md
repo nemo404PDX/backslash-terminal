@@ -24,7 +24,7 @@ For a medium bezel, the side inset is 80 DIP and the opening begins 6 DIP outsid
 
 ## Composed and actual-application validation
 
-`tools/backslash/Test-BezelBadgeComposition.ps1 -EvidenceDirectory <existing-directory>` builds the native `BadgeComposedTests.cpp` fixture using existing tools. It hosts the **production RetroBezel**, not an SVG-only decoder, in live-control, wide-preview and narrow scrolling-preview containers, using the production preview layout helper. The screen in this component fixture is a placeholder, so text rendering is not confused with badge glyphs.
+`backslash/tools/backslash/Test-BezelBadgeComposition.ps1 -EvidenceDirectory <existing-directory>` builds the native `BadgeComposedTests.cpp` fixture using existing tools. It hosts the **production RetroBezel**, not an SVG-only decoder, in live-control, wide-preview and narrow scrolling-preview containers, using the production preview layout helper. The screen in this component fixture is a placeholder, so text rendering is not confused with badge glyphs.
 
 **162/162 composed cases passed:** three styles x six positions x three bezel thicknesses x three contexts. They capture native `RenderTargetBitmap` pixels and require a wide painted silhouette, white lettering/logo pixels, dark backing, correct image-transform coordinates, finite source raster dimensions, side-rail exclusion and a fully visible badge after narrow-preview scrolling. No `ImageFailed` event occurred. Comparisons inspect the badge region so unrelated scrollbar animations cannot contaminate the result. The old gray square fails the glyph/aspect requirements.
 

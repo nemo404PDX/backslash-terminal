@@ -4,7 +4,7 @@
 
 Backslash is a Windows-focused fork of Microsoft Windows Terminal, adding saved terminal layouts, pinned destinations, SSH profile tools and optional CRT styling to its tabs and panes. It builds on the existing C++/Windows codebase and upstream terminal capabilities, including split panes, profiles, color schemes and Sixel output.
 
-**Windows is the current target. Linux and macOS support are TBD.** Current deliveries are unsigned, isolated **Backslash Dev portable builds**, not an installed production release. The source baseline is Windows Terminal **v1.25.2733.0**; see [upstream provenance](UPSTREAM-SOURCE.md).
+**Windows is the current target. Linux and macOS support are TBD.** Current deliveries are unsigned, isolated **Backslash Dev portable builds**, not an installed production release. The source baseline is Windows Terminal **v1.25.2733.0**; see [upstream provenance](docs/backslash/UPSTREAM-SOURCE.md).
 
 ## Implemented in development builds
 
@@ -26,25 +26,29 @@ The linked implementation records contain build, model, shader, composed-render 
 
 These are design goals, not shipped features or a release schedule. The [roadmap](docs/backslash/ROADMAP.md) and [feature scope](docs/backslash/FEATURES.md) retain original planning text; use the implementation records above for delivered scope. See also the [file-transfer design](docs/backslash/FILE-TRANSFER-DESIGN.md), [SSH editor research](docs/backslash/SSH-LOCAL-EDITOR-RESEARCH.md) and [resumable-session design](docs/backslash/RESUMABLE-SESSIONS-DESIGN.md).
 
+## Repository layout
+
+Application source, solutions and build tools are in [`backslash/`](backslash/README.md). Project documentation, screenshots and icon exports remain in [`docs/`](docs/README.md); GitHub workflows and community guides remain in [`.github/`](.github/). See the [layout and migration guide](docs/backslash/REPOSITORY-LAYOUT.md).
+
 ## Build and run
 
 Use **PowerShell 7 on Windows** with an installed Visual Studio C++ toolchain, Windows SDK and the upstream packaging prerequisites. The recorded build configuration is **Release x64**. From the repository root:
 
 ```powershell
-pwsh -NoProfile -File .\tools\backslash\Build.ps1 -Preflight
-pwsh -NoProfile -File .\tools\backslash\Build.ps1
+pwsh -NoProfile -File .\backslash\tools\backslash\Build.ps1 -Preflight
+pwsh -NoProfile -File .\backslash\tools\backslash\Build.ps1
 ```
 
 Preflight checks source and tool paths; the build restores dependencies and writes a unique run directory under `artifacts/build`. To assemble and check an isolated portable distribution, replace the build-run placeholder with the successful run's directory:
 
 ```powershell
-pwsh -NoProfile -File .\tools\backslash\New-PortableDistribution.ps1 -BuildRun '.\artifacts\build\<successful-run-directory>'
-pwsh -NoProfile -File .\tools\backslash\Test-PortableIsolation.ps1 -PortableDirectory '.\artifacts\portable\Backslash-Dev-<successful-run-directory>'
+pwsh -NoProfile -File .\backslash\tools\backslash\New-PortableDistribution.ps1 -BuildRun '.\artifacts\build\<successful-run-directory>'
+pwsh -NoProfile -File .\backslash\tools\backslash\Test-PortableIsolation.ps1 -PortableDirectory '.\artifacts\portable\Backslash-Dev-<successful-run-directory>'
 ```
 
 Launch `Backslash.exe` by its full path inside the generated Dev portable directory, keeping `.portable` and the complete distribution together. Older recorded artifacts use `WindowsTerminal.exe`. The unsigned MSIX build output is an intermediate payload with retained upstream package identity; use the portable distribution for development runs.
 
-The [Windows build guide](tools/backslash/README.md) covers prerequisites, overrides and logs. The [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) explains assembly, isolation and limitations. The [documentation entry point](docs/README.md) links detailed designs and validation records.
+The [Windows build guide](backslash/tools/backslash/README.md) covers prerequisites, overrides and logs. The [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) explains assembly, isolation and limitations. The [documentation entry point](docs/README.md) links detailed designs and validation records.
 
 ## Screenshots
 
@@ -70,6 +74,6 @@ The [Windows build guide](tools/backslash/README.md) covers prerequisites, overr
 
 ## Attribution and licensing
 
-Backslash derives from [Microsoft Windows Terminal](https://github.com/microsoft/terminal), including its console and shared components. The source baseline and preparation history are recorded in [upstream provenance](UPSTREAM-SOURCE.md).
+Backslash derives from [Microsoft Windows Terminal](https://github.com/microsoft/terminal), including its console and shared components. The source baseline and preparation history are recorded in [upstream provenance](docs/backslash/UPSTREAM-SOURCE.md).
 
-Original Microsoft attribution, the [MIT license](LICENSE), [third-party notices](NOTICE.md) and component licenses are retained. See also the [contributing guide](CONTRIBUTING.md) and [code of conduct](CODE_OF_CONDUCT.md).
+Original Microsoft attribution, the [MIT license](LICENSE), [third-party notices](NOTICE.md) and component licenses are retained. See also the [contributing guide](.github/CONTRIBUTING.md) and [code of conduct](.github/CODE_OF_CONDUCT.md).

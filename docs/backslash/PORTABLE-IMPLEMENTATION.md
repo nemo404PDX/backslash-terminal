@@ -1,6 +1,6 @@
 # Backslash portable identity implementation and evidence
 
-Current Dev builds use `Backslash.exe`, complete Backslash Dev artwork, and the generated About/CLI build identity described in [BUILD-IDENTITY.md](../../tools/backslash/BUILD-IDENTITY.md). The dated first-slice record below preserves earlier artifact names and metadata.
+Current Dev builds use `Backslash.exe`, complete Backslash Dev artwork, and the generated About/CLI build identity described in [BUILD-IDENTITY.md](../../backslash/tools/backslash/BUILD-IDENTITY.md). The dated first-slice record below preserves earlier artifact names and metadata.
 
 Implemented 2026-10-13 in the selected checkout. This records the first implementation slice of the historical [identity proposal](APP-IDENTITY.md); it does not make the retained upstream package identity installable as Backslash.
 
@@ -15,9 +15,9 @@ Implemented 2026-10-13 in the selected checkout. This records the first implemen
 
 ## Reproduce and run
 
-Run `tools/backslash/Build.ps1` (default Release/x64), then `tools/backslash/New-PortableDistribution.ps1 -BuildRun <successful-run-directory>`. The latter unpacks the exact unsigned build payload **without installation**, adapts upstream resource-merging support, merges WinUI XAML resources, copies app-local x64 VC145 CRT DLLs from the installed toolchain, retains notices/licenses, writes `.portable`, and emits a file/hash inventory. Fresh output is required; previous directories are never overwritten. Resource-staging evidence is retained, with no recursive deletion.
+Run `backslash/tools/backslash/Build.ps1` (default Release/x64), then `backslash/tools/backslash/New-PortableDistribution.ps1 -BuildRun <successful-run-directory>`. The latter unpacks the exact unsigned build payload **without installation**, adapts upstream resource-merging support, merges WinUI XAML resources, copies app-local x64 VC145 CRT DLLs from the installed toolchain, retains notices/licenses, writes `.portable`, and emits a file/hash inventory. Fresh output is required; previous directories are never overwritten. Resource-staging evidence is retained, with no recursive deletion.
 
-Run `tools/backslash/Test-PortableIsolation.ps1 -PortableDirectory <output-directory>` for focused source and distribution checks. Launch `Backslash.exe` by full path inside a current Dev portable directory; the historical artifacts below retain `WindowsTerminal.exe`. No new CLI alias is registered.
+Run `backslash/tools/backslash/Test-PortableIsolation.ps1 -PortableDirectory <output-directory>` for focused source and distribution checks. Launch `Backslash.exe` by full path inside a current Dev portable directory; the historical artifacts below retain `WindowsTerminal.exe`. No new CLI alias is registered.
 
 Delivery directory:
 `artifacts/portable/Backslash-Dev-20261013-142327-974-Release-x64-d6d855bb`
