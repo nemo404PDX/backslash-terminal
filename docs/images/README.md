@@ -1,6 +1,6 @@
 # Backslash screenshots
 
-Save README screenshots in this directory. No screenshots are included yet; add real captures when available.
+README artwork and screenshots live in this directory. The current gallery uses `backslash-hero.png`, `Screenshot-05-wide.png` and `Screenshot-01.png` through `Screenshot-08.png`. The `.afdesign` files retain editable artwork sources.
 
 Suggested captures:
 

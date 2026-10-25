@@ -1,6 +1,7 @@
-<img src="docs/images/icon-exports/1240_600.png" >
+<br/>
+<img src="docs/images/backslash-hero.png" ><br/>
 
-# Backslash Terminal
+## Backslash Terminal
 
 Backslash is a Windows-focused fork of Microsoft Windows Terminal, adding saved terminal layouts, pinned destinations, SSH profile tools and optional CRT styling to its tabs and panes. It builds on the existing C++/Windows codebase and upstream terminal capabilities, including split panes, profiles, color schemes and Sixel output.
 
@@ -55,22 +56,18 @@ The [Windows build guide](backslash/tools/backslash/README.md) covers prerequisi
 #### Profile visual customization examples:
 
 <div style="text-align: center;">
-<br/><img src="docs/images/backslash-window-01.png" alt="" width="620" ><br/>
-<br/><em>A Backslash terminal window running Hermes Agent, customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
+<br/><img src="docs/images/Screenshot-05-wide.png" ><br/>
+<br/><em>A Backslash terminal window customized with bezel size and colors, scanline size and separation, and screen phosphor color.</em>
 </div><br/><br/>
 
 
 <br/>
 
-| <img src="docs/images/backslash-window-02.png"  width="200" > | <img src="docs/images/backslash-window-03.png"  width="200" > | <img src="docs/images/backslash-window-04.png"  width="200" > | <img src="docs/images/backslash-window-05.png"  width="200" > |
-|-----|-----|-----|-----| 
-| <img src="docs/images/backslash-window-06.png"  width="200" > | <img src="docs/images/backslash-window-07.png"  width="200" > |  <img src="docs/images/backslash-window-08.png"  width="200" > |    |
+| <img src="docs/images/Screenshot-01.png"  width="200" > | <img src="docs/images/Screenshot-02.png"  width="200" > | <img src="docs/images/Screenshot-03.png"  width="200" >  | <img src="docs/images/Screenshot-04.png"  width="200" > |
+|-----|-----|-----|----|
+| <img src="docs/images/Screenshot-05.png"  width="200" > | <img src="docs/images/Screenshot-06.png"  width="200" > | <img src="docs/images/Screenshot-07.png"  width="200" > | <img src="docs/images/Screenshot-08.png"  width="200" > |
 
 <br/><br/>
-
->**DEV NOTE**:  Save future screenshots in [`docs/images`](docs/images/README.md). That folder's guide covers suggested captures and removing credentials/private details. Images will be added here after they are supplied and reviewed.
-
-<br/>
 
 ## Attribution and licensing
 
