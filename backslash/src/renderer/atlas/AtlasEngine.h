@@ -69,6 +69,7 @@ namespace Microsoft::Console::Render::Atlas
         void SetAntialiasingMode(D2D1_TEXT_ANTIALIAS_MODE antialiasingMode) noexcept;
         void SetCallback(std::function<void(HANDLE)> pfn) noexcept;
         void EnableTransparentBackground(const bool isTransparent) noexcept;
+        void SetDefaultBackgroundOpacity(float opacity) noexcept;
         [[nodiscard]] HRESULT SetHwnd(HWND hwnd) noexcept;
         void SetPixelShaderPath(std::wstring_view value) noexcept;
         void SetPixelShaderImagePath(std::wstring_view value) noexcept;
@@ -77,6 +78,7 @@ namespace Microsoft::Console::Render::Atlas
         void SetRetroTerminalGlowIntensity(float value) noexcept;
         void SetRetroTerminalScanlineWhite(bool value) noexcept;
         void SetRetroTerminalContrastGuard(bool value) noexcept;
+        void SetRetroTerminalSchemePhosphor(bool value) noexcept;
         void SetRetroTerminalScanlineIntensity(float value) noexcept;
         void SetRetroTerminalScanlineThickness(float value) noexcept;
         void SetRetroTerminalScanlineGap(float value) noexcept;
@@ -173,6 +175,7 @@ namespace Microsoft::Console::Render::Atlas
             LineRendition lineRendition = LineRendition::SingleWidth;
             // UpdateDrawingBrushes()
             u32 backgroundOpaqueMixin = 0xff000000;
+            i32 defaultBackgroundAlpha = -1;
             u32 currentBackground = 0;
             u32 currentForeground = 0;
             u32 currentUnderlineColor = 0;

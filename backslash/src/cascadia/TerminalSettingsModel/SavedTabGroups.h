@@ -106,7 +106,7 @@ namespace Microsoft::Terminal::Backslash
                             if ((kind == "newTab") != (panes == 0)) { throw std::invalid_argument("Each group tab must start with exactly one new-tab step."); }
                             step["profile"] = Guid(Text(step, "profile"));
                             if (!SafeText(Text(step, "source"), 1024)) { throw std::invalid_argument("Invalid profile source."); }
-                            if (step.isMember("folder") && (step["source"] == "Windows.Terminal.SSH" || step["source"] == "Windows.Terminal.Wsl" || !LocalFolder(Text(step, "folder")))) { throw std::invalid_argument("Only bounded, absolute local drive folders can be captured."); }
+                            if (step.isMember("folder") && (step["source"] == "Windows.Terminal.SSH" || step["source"] == "Backslash.Terminal.SSH" || step["source"] == "Windows.Terminal.Wsl" || !LocalFolder(Text(step, "folder")))) { throw std::invalid_argument("Only bounded, absolute local drive folders can be captured."); }
                             if (kind == "split")
                             {
                                 const auto direction = Text(step, "direction");

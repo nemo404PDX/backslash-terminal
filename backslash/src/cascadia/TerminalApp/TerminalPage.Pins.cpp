@@ -250,7 +250,7 @@ namespace winrt::TerminalApp::implementation
             pin.kind = directory->kind; pin.path = directory->path; pin = P::Capture(std::move(pin), directory->origin);
             const auto current = _PinProfile(pin); auto target = _PinTarget(current); if (target.kind == P::Kind::SshWindows) { target.kind = pin.kind; }
             P::Resolve(pin, target, [](const auto&) { return true; });
-            (void)P::PrepareLaunch(pin, current.Commandline(), current.SshShell());
+            (void)P::PrepareLaunch(pin, current.Commandline(), current.SshShell(), current.SshBaseCommandline());
         }
         catch (...) { _PinError(PinFailure()); co_return; }
         const auto store = _pinStore; const auto owner = _pinOwner; std::optional<P::Lease> lease; hstring error;
@@ -306,7 +306,7 @@ namespace winrt::TerminalApp::implementation
         if (!t->Pin || !t->Pin->destination || !t->Pin->lease || t->Pin->busy || !t->Pin->dormant) { co_return; }
         const auto pin = *t->Pin->destination; const auto lease = *t->Pin->lease;
         t->PinBusy(true); hstring error; P::Launch launch;
-        try { auto target = _PinTarget(_PinProfile(pin)); if (target.kind == P::Kind::SshWindows) { target.kind = pin.kind; } P::Resolve(pin, target, [](const auto&) { return true; }); launch = P::PrepareLaunch(pin, _PinProfile(pin).Commandline(), _PinProfile(pin).SshShell()); }
+        try { auto target = _PinTarget(_PinProfile(pin)); if (target.kind == P::Kind::SshWindows) { target.kind = pin.kind; } P::Resolve(pin, target, [](const auto&) { return true; }); launch = P::PrepareLaunch(pin, _PinProfile(pin).Commandline(), _PinProfile(pin).SshShell(), _PinProfile(pin).SshBaseCommandline()); }
         catch (...) { error = PinFailure(); }
         const auto store = _pinStore;
         co_await resume_background();
@@ -323,7 +323,7 @@ namespace winrt::TerminalApp::implementation
         {
             // Revalidate profile identity after asynchronous work. Never substitute defaults.
             const auto profile = _PinProfile(pin); auto target = _PinTarget(profile); if (target.kind == P::Kind::SshWindows) { target.kind = pin.kind; }
-            P::Resolve(pin, target, [](const auto&) { return true; }); launch = P::PrepareLaunch(pin, profile.Commandline(), profile.SshShell());
+            P::Resolve(pin, target, [](const auto&) { return true; }); launch = P::PrepareLaunch(pin, profile.Commandline(), profile.SshShell(), profile.SshBaseCommandline());
             NewTerminalArgs args; args.Profile(to_hstring(pin.profile)); args.StartingDirectory(hstring{ launch.directory }); args.Elevate(false);
             if (!launch.commandline.empty()) { args.Commandline(hstring{ launch.commandline }); }
             const auto pane = _MakePane(args, nullptr);

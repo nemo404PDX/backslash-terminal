@@ -63,15 +63,13 @@ namespace Microsoft::Console::Render::Atlas
 
     constexpr u32 u32ColorPremultiply(u32 rgba)
     {
-        auto rb = rgba & 0x00ff00ff;
-        auto g = rgba & 0x0000ff00;
-        const auto a = rgba & 0xff000000;
-
-        const auto m = rgba >> 24;
-        rb = (rb * m / 0xff) & 0x00ff00ff;
-        g = (g * m / 0xff) & 0x0000ff00;
-
-        return rb | g | a;
+        const auto alpha = rgba >> 24;
+        // Divide channels independently: division of packed RB lets the high
+        // channel's remainder spill into the low channel at fractional alpha.
+        const auto red = ((rgba & 0xff) * alpha) / 255;
+        const auto green = (((rgba >> 8) & 0xff) * alpha) / 255;
+        const auto blue = (((rgba >> 16) & 0xff) * alpha) / 255;
+        return red | (green << 8) | (blue << 16) | (rgba & 0xff000000);
     }
 
     // MSVC STL (version 22000) implements std::clamp<T>(T, T, T) in terms of the generic

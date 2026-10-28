@@ -150,6 +150,10 @@ namespace Microsoft.Terminal.Control
         // not overriding or changing _that_ value. Callers that want the
         // opacity set by the settings should call this instead.
         Single BackgroundOpacity { get; };
+        // Owned image visual only; coordinateRoot defines the shared window image geometry.
+        void SetSharedWindowImage(Windows.UI.Xaml.Controls.Image source, Windows.UI.Xaml.FrameworkElement coordinateRoot, Single opacity);
+        Boolean SchemePhosphorActive { get; };
+        Boolean SharedWindowImageReady { get; };
 
         CursorDisplayState CursorVisibility;
 

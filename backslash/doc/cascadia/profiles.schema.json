@@ -2541,6 +2541,19 @@
       "properties": {
         "backslash.startupWithSavedGroup": { "type": "boolean", "default": false, "description": "Use a saved group only for the initial ordinary app launch. Explicit requests, configured startupActions, transfers and actual previous-session restoration take precedence." },
         "backslash.startupGroup": { "type": "string", "default": "", "description": "Stable saved group GUID for initial startup selection. Missing/invalid groups fall back to one default-profile tab with notice; names are not identifiers." },
+        "backslash.confirmPaneRelaunch": { "type": "boolean", "default": true, "description": "Confirm before explicitly replacing a terminal pane with another profile." },
+        "backslash.transfersLaunchMode": {
+            "type": "string",
+            "enum": ["tab", "sideBySide", "separateWindow"],
+            "default": "tab",
+            "description": "Where a new Transfers view opens. Repeated requests focus the existing view. Side-by-side falls back to a tab when no suitable terminal or enough space is available. Closing the view does not cancel jobs."
+        },
+        "backslash.settingsLaunchMode": {
+            "type": "string",
+            "enum": ["tab", "sideBySide", "separateWindow"],
+            "default": "tab",
+            "description": "Where a new Settings editor opens. Repeated requests focus the existing editor; side-by-side falls back to a tab if no suitable terminal or sufficient space is available."
+        },
         "backslash.showConnectionIdentity": {
           "type": "boolean",
           "default": true,

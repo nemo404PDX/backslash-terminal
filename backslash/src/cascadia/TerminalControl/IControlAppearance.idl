@@ -19,6 +19,7 @@ namespace Microsoft.Terminal.Control
         Single RetroTerminalGlowIntensity { get; };
         Boolean RetroTerminalScanlineWhite { get; };
         Boolean RetroTerminalContrastGuard { get; };
+        Boolean RetroTerminalSchemePhosphor { get; };
         Single RetroTerminalScanlineIntensity { get; };
         Single RetroTerminalScanlineThickness { get; };
         Single RetroTerminalScanlineGap { get; };

@@ -16,6 +16,7 @@
 #include "../TerminalSettingsModel/StartupGroupPolicy.h"
 #include "../TerminalSettingsModel/GroupSavePolicy.h"
 #include "../TerminalSettingsModel/ApplicationState.h"
+#include "../TerminalSettingsModel/HostSshVisibility.h"
 
 using namespace Microsoft::Console;
 using namespace WEX::Logging;
@@ -43,6 +44,7 @@ namespace SettingsModelUnitTests
     class SerializationTests : public JsonTestClass
     {
         TEST_CLASS(SerializationTests);
+        TEST_METHOD(HostSshPreferenceBoundary);
 
         TEST_METHOD(BackslashRetroIntensityModel);
         TEST_METHOD(BackslashScanlineDimensions);
@@ -486,6 +488,24 @@ namespace SettingsModelUnitTests
     }
     void SerializationTests::BackslashPhosphorContrastGuard()
     {
+        const auto schemeParent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        VERIFY_IS_FALSE(schemeParent->RetroTerminalSchemePhosphor());
+        VERIFY_IS_FALSE(schemeParent->ToJson().isMember("experimental.retroTerminalSchemePhosphor"));
+        schemeParent->RetroTerminalSchemePhosphor(true);
+        const auto schemeChild = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
+        schemeChild->AddLeastImportantParent(schemeParent);
+        VERIFY_IS_TRUE(schemeChild->RetroTerminalSchemePhosphor());
+        VERIFY_IS_FALSE(schemeChild->HasRetroTerminalSchemePhosphor());
+        schemeChild->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalSchemePhosphor":false})"));
+        VERIFY_IS_FALSE(schemeChild->RetroTerminalSchemePhosphor());
+        VERIFY_IS_FALSE(schemeChild->ToJson()["experimental.retroTerminalSchemePhosphor"].asBool());
+        const auto schemeCopy = implementation::AppearanceConfig::CopyAppearance(schemeChild.get(), {});
+        VERIFY_ARE_EQUAL(toString(schemeChild->ToJson()), toString(schemeCopy->ToJson()));
+        schemeChild->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalSchemePhosphor":null})"));
+        VERIFY_IS_TRUE(schemeChild->RetroTerminalSchemePhosphor());
+        VERIFY_IS_FALSE(schemeChild->HasRetroTerminalSchemePhosphor());
+        VERIFY_THROWS(schemeChild->LayerJson(VerifyParseSucceeded(R"({"experimental.retroTerminalSchemePhosphor":"orange"})")), std::exception);
+
         const auto parent = winrt::make_self<implementation::AppearanceConfig>(winrt::weak_ref<winrt::Microsoft::Terminal::Settings::Model::Profile>{});
         VERIFY_IS_TRUE(parent->RetroTerminalContrastGuard());
         VERIFY_IS_FALSE(parent->HasRetroTerminalContrastGuard());
@@ -1831,5 +1851,43 @@ namespace SettingsModelUnitTests
         // not be reflected back in settings.json as null *or* as the commandline. The value should be exactly
         // what was written in the settings file.
         VERIFY_ARE_EQUAL(R"(c:\this_icon_had_better_not_exist.tiff)", newResult["profiles"]["list"][0]["icon"].asString());
+    }
+}
+
+namespace SettingsModelUnitTests
+{
+    void SerializationTests::HostSshPreferenceBoundary()
+    {
+        namespace H = Microsoft::Terminal::Backslash::HostSshVisibility;
+        Json::Value input{ Json::objectValue };
+        const auto id = "{11111111-1111-1111-1111-111111111111}";
+        input[id]["hidden"] = false;
+        input[id]["font"]["size"] = 17;
+        input[id]["remoteShell"] = 4;
+        input[id]["remoteCommand"] = "fixture-shell --login";
+        input[id]["commandline"] = "must-not-be-saved";
+        input[id]["environment"]["SECRET"] = "must-not-be-saved";
+        auto result = H::Read(input);
+        VERIFY_IS_FALSE(result[id]["hidden"].asBool());
+        VERIFY_ARE_EQUAL(17, result[id]["font"]["size"].asInt());
+        VERIFY_ARE_EQUAL(4, result[id]["remoteShell"].asInt());
+        VERIFY_IS_FALSE(result[id].isMember("commandline"));
+        VERIFY_IS_FALSE(result[id].isMember("environment"));
+        VERIFY_IS_TRUE(result == H::Read(result));
+        input[id].removeMember("commandline");
+        input[id].removeMember("environment");
+        input[id]["font"]["commandline"] = "rejected";
+        VERIFY_THROWS(H::Read(input), std::invalid_argument);
+        input[id].removeMember("font");
+        input[id]["unfocusedAppearance"]["commandline"] = "rejected";
+        VERIFY_THROWS(H::Read(input), std::invalid_argument);
+        input[id].removeMember("unfocusedAppearance");
+        for (const auto command : { "", "   ", "bad\ncommand", "%unsafe%" })
+        {
+            input[id]["remoteCommand"] = command;
+            VERIFY_THROWS(H::Read(input), std::invalid_argument);
+        }
+        input[id] = true;
+        VERIFY_IS_TRUE(H::Read(input)[id]["hidden"].asBool());
     }
 }

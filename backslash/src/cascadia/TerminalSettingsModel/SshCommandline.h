@@ -62,23 +62,33 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation::SshComman
         return result;
     }
 
-    inline bool Base(std::wstring_view command, std::wstring& exe, std::wstring& host)
+    inline bool Base(std::wstring_view command, std::wstring& exe, std::wstring& host, std::wstring* prefix = nullptr)
     {
         const auto args = Argv(command);
-        if (args.size() != 2 || !ValidHost(args[1]) ||
-            !til::equals_insensitive_ascii(std::filesystem::path{ args[0] }.filename().wstring(), L"ssh.exe"))
+        if (args.size() < 2 || !ValidHost(args.back()) ||
+            (!til::equals_insensitive_ascii(std::filesystem::path{ args[0] }.filename().wstring(), L"ssh.exe") && args[0] != L"%BACKSLASH_SSH_EXE%")) { return false; }
+        if (args.size() != 2)
         {
-            return false;
+            if (args.size() != 22 || args[1] != L"-F" || args[2] != L"none") { return false; }
+            const std::array<std::wstring_view, 9> keys{ L"HostName=", L"User=", L"Port=", L"UserKnownHostsFile=", L"GlobalKnownHostsFile=", L"StrictHostKeyChecking=", L"IdentityFile=", L"IdentityAgent=", L"IdentitiesOnly=" };
+            for (size_t i = 0; i < keys.size(); ++i)
+            {
+                if (args[3 + i * 2] != L"-o" || !args[4 + i * 2].starts_with(keys[i])) { return false; }
+            }
         }
-        exe = args[0];
-        host = args[1];
+        exe = args.front(); host = args.back();
+        if (prefix)
+        {
+            *prefix = Quote(exe);
+            for (size_t i = 1; i + 1 < args.size(); ++i) { *prefix += L" " + Quote(args[i]); }
+        }
         return true;
     }
 
     inline std::optional<std::wstring> Build(std::wstring_view base, int32_t mode, std::wstring_view custom = {})
     {
-        std::wstring exe, host;
-        if (!Base(base, exe, host) || mode < 0 || mode > 4)
+        std::wstring exe, host, prefix;
+        if (!Base(base, exe, host, &prefix) || mode < 0 || mode > 4)
         {
             return std::nullopt;
         }
@@ -86,7 +96,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation::SshComman
         {
             return std::wstring{ base };
         }
-        auto result = Quote(exe) + L" -t -o RemoteCommand=none " + Quote(host);
+        auto result = prefix + L" -t -o RemoteCommand=none " + Quote(host);
         if (mode > 1)
         {
             const auto remote = mode == 2 ? std::wstring_view{ L"bash -l" } :
@@ -110,7 +120,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation::SshComman
             }
         }
         const auto args = Argv(command);
-        if (args.size() == 6)
+        if (args.size() >= 6)
         {
             if (const auto expected = Build(base, 4, args.back()); expected && *expected == command)
             {

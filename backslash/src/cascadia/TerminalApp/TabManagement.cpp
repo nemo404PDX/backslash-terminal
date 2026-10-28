@@ -11,6 +11,8 @@
 #include "pch.h"
 #include "../inc/TerminalTabPolicy.h"
 #include "TerminalPage.h"
+#include "SettingsViewHost.h"
+#include "SettingsPaneContent.h"
 #include "Utils.h"
 #include "../../types/inc/utils.hpp"
 #include "../../inc/til/string.h"
@@ -174,6 +176,11 @@ namespace winrt::TerminalApp::implementation
             }
         });
 
+        newTabImpl->PaneCloseRequested([weakTab, weakThis{ get_weak() }](auto&&, auto&&) {
+            const auto page = weakThis.get(); const auto tab = weakTab.get();
+            if (page && tab) { page->_RequestFocusedPaneClose(*tab, false); }
+        });
+
         // When the tab is closed, remove it from our list of tabs.
         newTabImpl->Closed([weakTab, weakThis{ get_weak() }](auto&& /*s*/, auto&& /*e*/) {
             const auto page = weakThis.get();
@@ -206,13 +213,76 @@ namespace winrt::TerminalApp::implementation
     // - insertPosition: Optional parameter to indicate the position of tab.
     TerminalApp::Tab TerminalPage::_CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition, bool background)
     {
-        if (pane)
+        if (!pane) { return nullptr; }
+        const bool movingSettings = SettingsViewHost::Instance().IsTransferPane(pane);
+        const auto targetLease = movingSettings ? SettingsViewHost::Instance().TransferLease() : 0;
+        winrt::com_ptr<Tab> newTabImpl;
+        try
         {
-            auto newTabImpl = winrt::make_self<Tab>(pane);
+            newTabImpl = winrt::make_self<Tab>(pane);
+            if (movingSettings) { newTabImpl->MarkSettingsTransferPending(); }
             _InitializeTab(newTabImpl, insertPosition, background);
+            if (movingSettings)
+            {
+                const auto weakPage = get_weak(); const auto weakTab = newTabImpl->get_weak();
+                // Queue readiness after attachment. Source stays suspended and owns
+                // the exact live editor until this succeeds, including its save baseline.
+                Dispatcher().RunAsync(Windows::UI::Core::CoreDispatcherPriority::Low, [weakPage, weakTab, pane, targetLease] {
+                    const auto page = weakPage.get(); const auto tab = weakTab.get();
+                    if (!page || !tab || tab->GetRootPane() != pane) { SettingsViewHost::Instance().AbortTransfer(targetLease); return; }
+                    try
+                    {
+                        winrt::Microsoft::Terminal::Settings::Editor::MainPage editor{nullptr};
+                        SettingsPaneContent* settings = nullptr;
+                        pane->WalkTree([&](const auto& leaf) {
+                            const auto content = leaf->GetContent();
+                            if (content && content.GetRoot().template try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+                            {
+                                settings = winrt::get_self<SettingsPaneContent>(content);
+                                editor = settings->SettingsUI(); return true;
+                            }
+                            return false;
+                        });
+                        if (!editor || !editor.Dispatcher().HasThreadAccess() || !editor.XamlRoot()) { throw winrt::hresult_illegal_method_call(); }
+                        page->_BindSettingsHost(*settings);
+                        const auto weakEditor = winrt::make_weak(editor); const auto dispatcher = editor.Dispatcher();
+                        page->_FocusSettingsEditor(editor);
+                        SettingsViewHost::Instance().CommitTransfer(targetLease, [weakPage, weakEditor, dispatcher] {
+                            dispatcher.RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, [weakPage, weakEditor] {
+                                if (const auto owner = weakPage.get()) { if (const auto view = weakEditor.get()) { owner->_FocusSettingsEditor(view); } }
+                            });
+                        });
+                        settings->OwnershipLease(targetLease);
+                        tab->CompleteSettingsTransfer();
+                    }
+                    catch (...)
+                    {
+                        uint32_t visualIndex = 0;
+                        if (page->_tabContent.Children().IndexOf(pane->GetRootElement(), visualIndex)) { page->_tabContent.Children().RemoveAt(visualIndex); }
+                        tab->CompleteSettingsTransfer(); tab->SuspendRootForSettingsTransfer(); tab->CompleteSettingsTransfer();
+                        uint32_t index = 0;
+                        if (page->_tabs.IndexOf(*tab, index)) { page->_RemoveTab(*tab); }
+                        SettingsViewHost::Instance().AbortTransfer(targetLease);
+                    }
+                });
+            }
             return *newTabImpl;
         }
-        return nullptr;
+        catch (...)
+        {
+            if (movingSettings)
+            {
+                if (newTabImpl && newTabImpl->GetRootPane())
+                {
+                    uint32_t visualIndex = 0;
+                    if (_tabContent.Children().IndexOf(pane->GetRootElement(), visualIndex)) { _tabContent.Children().RemoveAt(visualIndex); }
+                    newTabImpl->CompleteSettingsTransfer(); newTabImpl->SuspendRootForSettingsTransfer(); newTabImpl->CompleteSettingsTransfer();
+                    uint32_t index = 0; if (_tabs.IndexOf(*newTabImpl, index)) { _RemoveTab(*newTabImpl); }
+                }
+                SettingsViewHost::Instance().AbortTransfer(targetLease);
+            }
+            throw;
+        }
     }
 
     // Method Description:
@@ -403,8 +473,90 @@ namespace winrt::TerminalApp::implementation
     // - Removes the tab (both TerminalControl and XAML) after prompting for approval
     // Arguments:
     // - tab: the tab to remove
+    safe_void_coroutine TerminalPage::_RequestFocusedPaneClose(winrt::TerminalApp::Tab tab, bool fromTabButton)
+    {
+        const auto lifetime = get_strong();
+        const auto impl = _GetTabImpl(tab);
+        uint32_t index{};
+        if (!_tabs.IndexOf(tab, index) || impl->SettingsTransferPending() || (fromTabButton && !tab.TabViewItem().IsClosable())) { co_return; }
+        const auto root = impl->GetRootPane();
+        if (!root) { co_return; }
+        if (fromTabButton && root->GetLeafPaneCount() == 1)
+        {
+            co_await _HandleCloseTabRequested(tab);
+            co_return;
+        }
+        const auto request = impl->CloseRequest.Begin();
+        if (!request) { co_return; }
+        bool collapsing = false;
+        const auto release = wil::scope_exit([&] { if (!collapsing) { impl->CloseRequest.End(request); } });
+        const auto pane = ::Microsoft::Terminal::Backslash::FocusedCloseLeaf(root);
+        if (!pane) { co_return; }
+        const auto content = pane->GetContent();
+        const auto valid = [&] {
+            uint32_t currentIndex{};
+            return _tabs.IndexOf(tab, currentIndex) && !impl->SettingsTransferPending() &&
+                ::Microsoft::Terminal::Backslash::CloseTargetMatches(impl->GetRootPane(), root, pane, content);
+        };
+        if (const auto settings = content.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+        {
+            _tabView.SelectedItem(tab.TabViewItem());
+            co_await wil::resume_foreground(Dispatcher());
+            if (!valid() || !(co_await settings.ConfirmCloseSettings()) || !valid()) { co_return; }
+        }
+        if (!(co_await _PaneConfirmCloseReadOnly(pane)) || !valid()) { co_return; }
+        // Only the revalidated leaf may lose read-only mode; a replaced target
+        // must not be mutated by a dialog result for its predecessor.
+        if (const auto control = pane->GetTerminalControl(); control && control.ReadOnly()) { control.ToggleReadOnly(); }
+
+        // Pane::Close collapses only this leaf. Transfers view teardown keeps jobs.
+        if (impl->IsZoomed()) { impl->ExitZoom(); impl->Content(root->GetRootElement()); }
+        if (root->GetLeafPaneCount() > 1)
+        {
+            pane->ClosedByParent([weakTab = impl->get_weak(), request] {
+                if (const auto owner = weakTab.get()) { owner->CloseRequest.End(request); }
+            });
+            impl->CloseRequest.TrackCollapse(request, [weakTab = impl->get_weak(), weakPane = std::weak_ptr<Pane>{pane}] {
+                const auto owner = weakTab.get(); const auto closing = weakPane.lock();
+                const auto currentRoot = owner ? owner->GetRootPane() : nullptr;
+                return currentRoot && closing && currentRoot->WalkTree([&](const auto& node) { return node == closing; });
+            });
+            collapsing = true;
+        }
+        try { _HandleClosePaneRequested(pane); }
+        catch (...) { collapsing = false; throw; }
+    }
+
     winrt::Windows::Foundation::IAsyncAction TerminalPage::_HandleCloseTabRequested(winrt::TerminalApp::Tab tab, bool forgetPin)
     {
+        const auto lifetime = get_strong();
+        const auto impl = _GetTabImpl(tab);
+        uint32_t tabIndex{};
+        if (!_tabs.IndexOf(tab, tabIndex) || impl->SettingsTransferPending()) { co_return; }
+        const auto request = impl->CloseRequest.Begin();
+        if (!request) { co_return; }
+        const auto release = wil::scope_exit([&] { impl->CloseRequest.End(request); });
+        const auto root = impl->GetRootPane();
+        std::vector<std::pair<std::shared_ptr<Pane>, IPaneContent>> leaves;
+        if (root) { root->WalkTree([&](const auto& pane) { if (const auto c = pane->GetContent()) { leaves.emplace_back(pane, c); } }); }
+        const auto valid = [&] {
+            uint32_t currentIndex{};
+            if (!_tabs.IndexOf(tab, currentIndex) || impl->SettingsTransferPending() || impl->GetRootPane() != root || static_cast<size_t>(root ? root->GetLeafPaneCount() : 0) != leaves.size()) { return false; }
+            for (const auto& [pane, content] : leaves)
+            {
+                if (!::Microsoft::Terminal::Backslash::CloseTargetMatches(impl->GetRootPane(), root, pane, content)) { return false; }
+            }
+            return true;
+        };
+        for (const auto& [pane, content] : leaves)
+        {
+            if (const auto settings = content.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+            {
+                _tabView.SelectedItem(tab.TabViewItem());
+                co_await wil::resume_foreground(Dispatcher());
+                if (!valid() || !(co_await settings.ConfirmCloseSettings()) || !valid()) { co_return; }
+            }
+        }
         winrt::com_ptr<TerminalPage> strong;
 
         if (tab.ReadOnly())
@@ -422,9 +574,11 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
+        if (!valid()) { co_return; }
         auto t = winrt::get_self<implementation::Tab>(tab);
         if (t->Pin && t->Pin->busy) { _PinError(RS_(L"Pins_Busy")); co_return; }
         if (t->Pin && forgetPin && !(co_await _RemovePinPreference(tab))) { co_return; }
+        if (!valid()) { co_return; }
         if (!t->Pin || !t->Pin->dormant)
         {
             auto actions = t->BuildStartupActions(BuildStartupKind::None);
@@ -437,6 +591,7 @@ namespace winrt::TerminalApp::implementation
     // NOTE: Don't call this directly, but rather `tab.Close()`.
     void TerminalPage::_RemoveTab(const winrt::TerminalApp::Tab& tab)
     {
+        if (_GetTabImpl(tab)->SettingsTransferPending()) { return; }
         uint32_t tabIndex{};
         if (!_tabs.IndexOf(tab, tabIndex))
         {
@@ -692,7 +847,7 @@ namespace winrt::TerminalApp::implementation
     }
 
     // Method Description:
-    // - Disables read-only mode on pane if the user wishes to close it and read-only mode is enabled.
+    // - Confirms read-only close. The caller revalidates identity before changing the target.
     // Arguments:
     // - pane: the pane that is about to be closed.
     // Return Value:
@@ -713,16 +868,7 @@ namespace winrt::TerminalApp::implementation
                 co_return false;
             }
 
-            // Clean read-only mode to prevent additional prompt if closing the pane triggers closing of a hosting tab
-            pane->WalkTree([](const auto& p) {
-                if (const auto control{ p->GetTerminalControl() })
-                {
-                    if (control.ReadOnly())
-                    {
-                        control.ToggleReadOnly();
-                    }
-                }
-            });
+
         }
         co_return true;
     }
@@ -760,22 +906,13 @@ namespace winrt::TerminalApp::implementation
     //   tab's Closed event.
     safe_void_coroutine TerminalPage::_CloseFocusedPane()
     {
-        if (const auto activeTab{ _GetFocusedTabImpl() })
+        if (const auto activeTab = _GetFocusedTabImpl())
         {
-            _UnZoomIfNeeded();
-
-            if (const auto pane{ activeTab->GetActivePane() })
-            {
-                const auto weak = get_weak();
-                if (co_await _PaneConfirmCloseReadOnly(pane))
-                {
-                    if (const auto strong = weak.get())
-                    {
-                        _HandleClosePaneRequested(pane);
-                    }
-                }
-            }
+            // Keyboard/action close uses the same content guards and deliberately
+            // resolves one leaf, even when a parent subtree is selected.
+            _RequestFocusedPaneClose(*activeTab, false);
         }
+        co_return;
     }
 
     // Method Description:
@@ -783,30 +920,80 @@ namespace winrt::TerminalApp::implementation
     // Arguments:
     // - weakTab: weak reference to the tab that the pane belongs to.
     // - paneIds: collection of the IDs of the panes that are marked for removal.
-    void TerminalPage::_ClosePanes(weak_ref<Tab> weakTab, std::vector<uint32_t> paneIds)
+    safe_void_coroutine TerminalPage::_ClosePanes(weak_ref<Tab> weakTab, std::vector<uint32_t> paneIds)
     {
-        if (auto strongTab{ weakTab.get() })
+        namespace B = ::Microsoft::Terminal::Backslash;
+        const auto lifetime = get_strong();
+        const auto tab = weakTab.get();
+        uint32_t index{};
+        if (!tab || !_tabs.IndexOf(*tab, index) || tab->SettingsTransferPending()) { co_return; }
+        const auto request = tab->CloseRequest.Begin();
+        if (!request) { co_return; }
+        const auto release = wil::scope_exit([&] { tab->CloseRequest.End(request); });
+        const auto root = tab->GetRootPane();
+        if (!root) { co_return; }
+        struct Target { uint32_t id; std::shared_ptr<Pane> original; IPaneContent content; };
+        std::vector<Target> targets;
+        std::vector<IPaneContent> expected;
+        root->WalkTree([&](const auto& pane) { if (const auto content = pane->GetContent()) { expected.push_back(content); } });
+        while (!paneIds.empty())
         {
-            // Close all unfocused panes one by one
-            while (!paneIds.empty())
+            const auto id = paneIds.back(); paneIds.pop_back();
+            const auto pane = root->FindPane(id);
+            if (!pane || !pane->GetContent() || pane->ContainsReadOnly()) { co_return; }
+            if (std::any_of(targets.begin(), targets.end(), [&](const auto& target) { return target.id == id; })) { continue; }
+            targets.push_back({id, pane, pane->GetContent()});
+        }
+        // Close other panes must never become an implicit whole-tab close.
+        if (targets.empty() || targets.size() >= expected.size()) { co_return; }
+        const auto validTree = [&] {
+            uint32_t currentIndex{};
+            return _tabs.IndexOf(*tab, currentIndex) && !tab->SettingsTransferPending() &&
+                tab->GetRootPane() == root && B::LeafContentsMatch(root, expected);
+        };
+        const auto validPreflight = [&] {
+            if (!validTree()) { return false; }
+            for (const auto& target : targets)
             {
-                const auto id = paneIds.back();
-                paneIds.pop_back();
-
-                if (const auto pane{ strongTab->GetRootPane()->FindPane(id) })
-                {
-                    pane->ClosedByParent([ids{ std::move(paneIds) }, weakThis{ get_weak() }, weakTab]() {
-                        if (auto strongThis{ weakThis.get() })
-                        {
-                            strongThis->_ClosePanes(weakTab, std::move(ids));
-                        }
-                    });
-
-                    // Close the pane which will eventually trigger the closed by parent event
-                    _HandleClosePaneRequested(pane);
-                    break;
-                }
+                if (!B::CloseTargetMatches(root, root, target.original, target.content) || target.original->ContainsReadOnly()) { return false; }
             }
+            return true;
+        };
+        if (!validPreflight()) { co_return; }
+        // The process has one Settings editor. Close it first immediately after
+        // approval, before animation yields could admit new edits to its draft.
+        const auto isSettings = [](const auto& target) { return bool(target.content.GetRoot().template try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>()); };
+        std::stable_partition(targets.begin(), targets.end(), isSettings);
+        // Preflight every affected editor before doing any destructive work.
+        for (const auto& target : targets)
+        {
+            if (const auto settings = target.content.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+            {
+                _tabView.SelectedItem(tab->TabViewItem());
+                co_await wil::resume_foreground(Dispatcher());
+                if (!validPreflight() || !(co_await settings.ConfirmCloseSettings()) || !validPreflight()) { co_return; }
+            }
+        }
+        const auto dispatcher = Dispatcher();
+        for (const auto& target : targets)
+        {
+            if (!validTree()) { co_return; }
+            // Own tree collapse can promote a survivor into its parent. Resolve
+            // its retained ID again, while requiring the captured content identity.
+            const auto pane = root->FindPane(target.id);
+            if (!pane || pane->GetContent() != target.content || pane->ContainsReadOnly()) { co_return; }
+            _HandleClosePaneRequested(pane);
+            expected.erase(std::find(expected.begin(), expected.end(), target.content));
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds{5};
+            while (B::ContainsPaneNode(root, pane))
+            {
+                if (std::chrono::steady_clock::now() >= deadline) { co_return; }
+                co_await winrt::resume_after(std::chrono::milliseconds{16});
+                co_await wil::resume_foreground(dispatcher);
+                uint32_t currentIndex{};
+                if (!_tabs.IndexOf(*tab, currentIndex) || tab->SettingsTransferPending() || tab->GetRootPane() != root) { co_return; }
+            }
+            if (!validTree()) { co_return; } // External exit/replacement/addition stops the remainder.
         }
     }
 

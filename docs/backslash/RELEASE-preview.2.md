@@ -1,0 +1,9 @@
+# Prepared v0.0.1-preview.2
+
+This is a prepared unsigned Windows x64 portable preview, not a claim that a release page or asset has been published. The preceding published tag is v0.0.1-preview.1 at 05e47f621c1a7d2d818b08c6eaa622dadd18da1e. The user will attach the verified ZIP and SHA256 manually.
+
+Changes include Settings tab/split/window placement and guarded close/lifecycle, focused-pane profile split/relaunch, saved selected SSH imports and production Scan UI correction, scheme-sensitive phosphor/background/scanline rendering, and app accent/layout refinements. The unfinished Transfers foundation is retained internally but its dropdown entry is hidden. Restore that block only in a subsequent development commit, never by amending this release.
+
+Known limits: intermittent blank/transparent Settings pane remains unresolved. Broader DPI/theme/accessibility and Settings/profile/Transfers interaction QA remains pending. Transfers has no engine/protocol/network worker, real cancellation/retry or durable history. Background Sessions, file browsing, previews and TUI integration are future work. Alias SSH records depend on this computer's SSH configuration/authentication; no credentials or keys are packaged. User confirmed Scan/select/Save/reopen persistence, not authentication or Hide behavior.
+
+Preparation build: 0 errors / 134 warnings. Settings: 344 passed, 0 failed, 2 optional skipped (346 total). Synthetic production Scan UI and portable isolation passed. These are pre-commit preparation results; exact-commit build/package evidence must accompany final delivery. The release retains existing upstream notices and unsigned portable identity limitations. No installation, user settings migration, release-page upload or CI enabling is part of preparation.

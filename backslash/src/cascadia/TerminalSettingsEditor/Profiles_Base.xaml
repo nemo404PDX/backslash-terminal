@@ -67,6 +67,11 @@
                 <TextBlock x:Name="SshShellStatus" TextWrapping="Wrap" Margin="0,8,0,0" />
             </StackPanel>
 
+            <StackPanel x:Name="ImportWorkspaceSshPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                <TextBlock x:Uid="Ssh_ImportHelp" TextWrapping="Wrap" />
+                <Button x:Uid="Ssh_ImportButton" Click="ImportWorkspaceSshClick" Margin="0,8,0,0" />
+            </StackPanel>
+            <TextBlock x:Name="HostSshAdvancedHelp" x:Uid="Profile_HostSshAdvancedHelp" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,12" />
             <!--  Commandline  -->
             <local:SettingContainer x:Name="Commandline"
                                     x:Uid="Profile_Commandline"
@@ -77,11 +82,11 @@
                                     Style="{StaticResource ExpanderSettingContainerStyle}"
                                     Visibility="{x:Bind mtu:Converters.InvertedBooleanToVisibility(Profile.IsBaseLayer), Mode=OneWay}">
                 <StackPanel>
-                    <TextBox x:Uid="Profile_CommandlineBox"
+                    <TextBox x:Name="HostSshCommandlineBox" x:Uid="Profile_CommandlineBox"
                              IsSpellCheckEnabled="False"
                              Style="{StaticResource TextBoxSettingStyle}"
                              Text="{x:Bind Profile.Commandline, Mode=TwoWay}" />
-                    <Button x:Uid="Profile_CommandlineBrowse"
+                    <Button x:Name="HostSshCommandlineBrowse" x:Uid="Profile_CommandlineBrowse"
                             Margin="0,8,0,0"
                             Click="Commandline_Click"
                             Style="{StaticResource BrowseButtonStyle}" />

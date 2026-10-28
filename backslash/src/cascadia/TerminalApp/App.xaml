@@ -17,6 +17,69 @@
     <Application.Resources>
 
         <ResourceDictionary>
+            <!-- Backslash UI accent: the Backslash scheme cursor/bright cyan is #14FFCA.
+                 Keep the seven WinUI accent tones together so control states do not
+                 fall back to the host blue. Darker tones keep white selection text
+                 and light-theme accents readable. Terminal schemes remain independent.
+                 High contrast always uses the user-selected system highlight. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SystemAccentColor">#008469</Color>
+                    <Color x:Key="SystemAccentColorDark1">#00614E</Color>
+                    <Color x:Key="SystemAccentColorDark2">#004F40</Color>
+                    <Color x:Key="SystemAccentColorDark3">#003D31</Color>
+                    <Color x:Key="SystemAccentColorLight1">#0DE0BB</Color>
+                    <Color x:Key="SystemAccentColorLight2">#14FFCA</Color>
+                    <Color x:Key="SystemAccentColorLight3">#70FFE0</Color>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <Color x:Key="SystemAccentColor">#008469</Color>
+                    <Color x:Key="SystemAccentColorDark1">#00614E</Color>
+                    <Color x:Key="SystemAccentColorDark2">#004F40</Color>
+                    <Color x:Key="SystemAccentColorDark3">#003D31</Color>
+                    <Color x:Key="SystemAccentColorLight1">#0DE0BB</Color>
+                    <Color x:Key="SystemAccentColorLight2">#14FFCA</Color>
+                    <Color x:Key="SystemAccentColorLight3">#70FFE0</Color>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <StaticResource x:Key="SystemAccentColor" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorDark3" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="SystemColorHighlightColor" />
+                    <StaticResource x:Key="SystemAccentColorLight3" ResourceKey="SystemColorHighlightColor" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <DataTemplate x:Key="TransfersViewTemplate">
+                <Grid x:Name="BackslashTransfersView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="16" RowSpacing="12">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" /><RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <!-- Keep the header/chrome area available for future controls. -->
+                    <Grid x:Name="TransfersHeader" MinHeight="40" ColumnSpacing="12">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBlock x:Name="Heading" FontSize="24" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.HeadingLevel="Level1" />
+                    </Grid>
+                    <Border x:Name="FiltersCard" Grid.Row="1" Padding="16"
+                            Background="{ThemeResource ExpanderHeaderBackground}"
+                            BorderBrush="{ThemeResource ExpanderHeaderBorderBrush}" BorderThickness="1"
+                            CornerRadius="{ThemeResource ControlCornerRadius}">
+                        <Grid x:Name="FiltersLayout" ColumnSpacing="12" RowSpacing="12">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBox x:Name="Search" Grid.ColumnSpan="2" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                            <ComboBox x:Name="StatusFilter" Grid.Row="1" Grid.ColumnSpan="2" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Row="2">
+                        <ListView x:Name="Jobs" SelectionMode="None" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch" />
+                        <TextBlock x:Name="Empty" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+                    </Grid>
+                    <TextBlock x:Name="BackendNotice" Grid.Row="3" TextWrapping="Wrap" />
+                </Grid>
+            </DataTemplate>
             <ResourceDictionary.MergedDictionaries>
                 <!--  Include the MUX Controls resources  -->
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls"

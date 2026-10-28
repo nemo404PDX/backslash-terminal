@@ -5,6 +5,8 @@
 #include "MTSMSettings.h"
 #include "PinnedDestinations.h"
 #include "SavedTabGroups.h"
+#include "WorkspaceSsh.h"
+#include "HostSshVisibility.h"
 #include <functional>
 #include <map>
 #include <string_view>
@@ -97,7 +99,7 @@ namespace Microsoft::Terminal::Backslash::SetupTransfer
 
     inline void ValidateSettings(const Json::Value& settings)
     {
-        std::set<std::string> keys{ "$schema", "$help", "profiles", "defaultProfile", "actions", "keybindings", "schemes", "themes", "backslash.savedTabGroups" };
+        std::set<std::string> keys{ "$schema", "$help", "profiles", "defaultProfile", "actions", "keybindings", "schemes", "themes", "backslash.savedTabGroups", "backslash.sshConnections", HostSshVisibility::Key };
 #define SETUP_KEY(type, name, key, ...) keys.emplace(key);
         MTSM_GLOBAL_SETTINGS(SETUP_KEY)
 #undef SETUP_KEY
@@ -117,6 +119,16 @@ namespace Microsoft::Terminal::Backslash::SetupTransfer
             if (std::any_of(names.begin(), names.end(), [&](const auto& prior) { return SavedTabGroups::SameName(prior, name); })) { throw std::invalid_argument("Setup contains duplicate profile names. Rename them before exporting/importing."); }
             names.push_back(name);
         }
+        if (settings.isMember(HostSshVisibility::Key))
+        {
+            const auto normalized = HostSshVisibility::Read(settings[HostSshVisibility::Key]);
+            for (const auto& id : settings[HostSshVisibility::Key].getMemberNames())
+            {
+                const auto& original = settings[HostSshVisibility::Key][id];
+                if (original.isObject() && original != normalized[SavedTabGroups::Guid(id)]) { throw std::invalid_argument("Host SSH preferences contain unsupported fields."); }
+            }
+        }
+        if (settings.isMember("backslash.sshConnections")) { WorkspaceSsh::ReadRecords(settings["backslash.sshConnections"]); }
         if (settings.isMember("backslash.savedTabGroups")) { SavedTabGroups::ReadValue(settings["backslash.savedTabGroups"]); }
         for (const auto* key : { "actions", "keybindings", "schemes", "themes" })
         {
@@ -249,7 +261,23 @@ namespace Microsoft::Terminal::Backslash::SetupTransfer
         plan.pins = currentPins;
         for (const auto& key : document.settings.getMemberNames())
         {
-            if (key != "profiles" && key != "backslash.savedTabGroups" && key != "$schema" && key != "$help" && key != "schemes" && key != "themes") { plan.settings[key] = document.settings[key]; }
+            if (key != "profiles" && key != "backslash.savedTabGroups" && key != "backslash.sshConnections" && key != "$schema" && key != "$help" && key != "schemes" && key != "themes") { plan.settings[key] = document.settings[key]; }
+        }
+        if (document.settings.isMember("backslash.sshConnections"))
+        {
+            auto records = plan.settings.isMember("backslash.sshConnections") ? WorkspaceSsh::ReadRecords(plan.settings["backslash.sshConnections"]) : std::vector<WorkspaceSsh::Record>{};
+            for (const auto& incoming : WorkspaceSsh::ReadRecords(document.settings["backslash.sshConnections"]))
+            {
+                const auto found = std::find_if(records.begin(), records.end(), [&](const auto& record) { return WorkspaceSsh::Lower(record.alias) == WorkspaceSsh::Lower(incoming.alias); });
+                if (found == records.end()) { records.push_back(incoming); }
+                else if (WorkspaceSsh::Lower(found->host) != WorkspaceSsh::Lower(incoming.host) || found->user != incoming.user || found->port != incoming.port || found->hostAlias != incoming.hostAlias || WorkspaceSsh::Lower(found->profile) != WorkspaceSsh::Lower(incoming.profile))
+                {
+                    plan.conflicts.push_back("Workspace SSH alias '" + incoming.alias + "' has different connection details. Nothing will be overwritten; resolve the alias conflict first.");
+                }
+            }
+            if (records.size() > 512) { throw std::invalid_argument("Too many workspace SSH records."); }
+            Json::Value values{ Json::arrayValue }; for (const auto& record : records) { values.append(WorkspaceSsh::Value(record)); }
+            plan.settings["backslash.sshConnections"] = std::move(values);
         }
         // Definitions referenced by unrelated retained profiles must survive.
         // Schemes/themes use names as their existing stable identity.

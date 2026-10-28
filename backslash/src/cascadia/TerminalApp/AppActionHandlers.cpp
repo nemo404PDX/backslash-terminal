@@ -206,7 +206,9 @@ namespace winrt::TerminalApp::implementation
                 const auto activePaneId = activePane->Id();
                 activeTab->GetRootPane()->WalkTree([&](auto&& p) {
                     const auto id = p->Id();
-                    if (id.has_value() && id != activePaneId && !p->ContainsReadOnly())
+                    // A selected parent represents its whole subtree, not a missing leaf ID.
+                    const bool kept = ::Microsoft::Terminal::Backslash::ContainsPaneNode(activePane, p);
+                    if (id.has_value() && id != activePaneId && !kept && !p->ContainsReadOnly())
                     {
                         unfocusedPaneIds.push_back(id.value());
                     }

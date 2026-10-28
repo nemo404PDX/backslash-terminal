@@ -1,0 +1,26 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+// Hidden owned XAML layout regression; production cleanup bodies are injected by the runner.
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#undef GetCurrentTime
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.UI.Xaml.h>
+#include <winrt/Windows.UI.Xaml.Controls.h>
+#include <winrt/Windows.UI.Xaml.Hosting.h>
+#include <windows.ui.xaml.hosting.desktopwindowxamlsource.h>
+#include <iostream>
+using namespace winrt;namespace W=winrt::Windows;using namespace W::UI::Xaml;
+void Pump(unsigned ms){auto end=GetTickCount64()+ms;do{MSG m;while(PeekMessageW(&m,nullptr,0,0,PM_REMOVE)){TranslateMessage(&m);DispatchMessageW(&m);}MsgWaitForMultipleObjects(0,nullptr,FALSE,5,QS_ALLINPUT);}while(GetTickCount64()<end);}
+int wmain()try{std::cout.setf(std::ios::unitbuf);init_apartment(apartment_type::single_threaded);auto manager=Hosting::WindowsXamlManager::InitializeForCurrentThread();unsigned unhandled=0;auto app=Application::Current();event_token errorToken{};if(app)errorToken=app.UnhandledException([&](auto const&,UnhandledExceptionEventArgs const&e){++unhandled;std::wcout<<L"Unhandled="<<e.Message().c_str()<<L"\n";e.Handled(true);});auto hwnd=CreateWindowExW(0,L"STATIC",L"Owned hidden empty-clear layout probe",WS_OVERLAPPEDWINDOW,-32000,-32000,128,64,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);if(!hwnd)throw_last_error();Hosting::DesktopWindowXamlSource island;auto native=island.as<IDesktopWindowXamlSourceNative>();check_hresult(native->AttachToWindow(hwnd));HWND child{};check_hresult(native->get_WindowHandle(&child));SetWindowPos(child,nullptr,0,0,64,32,SWP_NOACTIVATE|SWP_NOZORDER);
+ Controls::Grid root,layer,output,source,_windowImageBackdrop;root.Width(64);root.Height(32);for(auto grid:{layer,output,source,_windowImageBackdrop})root.Children().Append(grid);layer.Children().Append(Controls::Grid{});_windowImageBackdrop.Children().Append(Controls::Grid{});island.Content(root);std::wstring _schemePaddingSignature=L"old";unsigned events=0,caught=0;
+ const auto cleanupPadding=[&](){
+ /* EXTRACT_PADDING */
+ };
+ const auto cleanupBackdrop=[&](){
+ /* EXTRACT_BACKDROP */
+ };
+ auto token=root.LayoutUpdated([&](auto const&,auto const&){++events;if(events>20)throw hresult_error{E_ABORT,L"Unexpected repeated layout callbacks"};cleanupPadding();cleanupBackdrop();Hosting::ElementCompositionPreview::SetElementChildVisual(output,nullptr);source.RenderTransform(nullptr);});try{root.Measure({64,32});root.Arrange({0,0,64,32});for(unsigned i=0;i<10;++i){root.UpdateLayout();Pump(20);}}catch(hresult_error const&e){++caught;std::cout<<"caughtHRESULT="<<std::hex<<static_cast<unsigned>(e.code())<<std::dec<<"\n";}root.LayoutUpdated(token);std::cout<<"callbacks="<<events<<" paddingChildren="<<layer.Children().Size()<<" backdropChildren="<<_windowImageBackdrop.Children().Size()<<" signatureEmpty="<<_schemePaddingSignature.empty()<<" caught="<<caught<<" unhandled="<<unhandled<<"\n";if(caught||unhandled||events>20||!_schemePaddingSignature.empty()||_windowImageBackdrop.Children().Size()!=0)throw hresult_error{E_FAIL,L"Layout cleanup regression"};std::cout<<"PASS: source-extracted disabled-padding and backdrop guards settle layout with repeated null composition/transform cleanup.\n"; if(IsWindowVisible(hwnd))throw hresult_error{E_FAIL,L"Test window must remain hidden"};std::cout<<"visible=0\n";island.Close();DestroyWindow(hwnd);if(app)app.UnhandledException(errorToken);manager.Close();return unhandled?2:0;}catch(hresult_error const&e){std::wcerr<<e.message().c_str();return 2;}
+

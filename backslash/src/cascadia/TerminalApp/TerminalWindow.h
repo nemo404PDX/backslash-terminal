@@ -8,6 +8,7 @@
 #include "WindowProperties.g.h"
 
 #include "Remoting.h"
+#include "../inc/StartupGroupActivation.h"
 #include "TerminalPage.h"
 
 #include <cppwinrt_utils.h>
@@ -175,7 +176,9 @@ namespace winrt::TerminalApp::implementation
         winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection _startupConnection{ nullptr };
         bool _hasCommandLineArguments{ false };
         bool _gotSettingsStartupActions{ false };
+        bool _startupGroupReopen = false;
         bool _initialAppLaunch{ false };
+        ::Microsoft::Terminal::Backslash::StartupGroupActivation::InitialPayload _startupPayload;
         HWND _startupOwnerHwnd{ nullptr };
         bool _StartupGroupEligible();
         void _PrepareStartupGroup();

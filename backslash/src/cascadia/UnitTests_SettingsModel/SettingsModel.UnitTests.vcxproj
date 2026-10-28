@@ -43,6 +43,11 @@
     <ClCompile Include="CuratedDefaultsTests.cpp" />
     <ClCompile Include="BadgeTests.cpp" />
     <ClCompile Include="ProfileSourceTests.cpp" />
+    <ClCompile Include="WorkspaceSshTests.cpp" />
+    <ClCompile Include="StartupGroupReopenTests.cpp" />
+    <ClCompile Include="SettingsPlacementTests.cpp" />
+    <ClCompile Include="TransfersTests.cpp" />
+    <ClCompile Include="PaneProfileTests.cpp" />
     <ClCompile Include="PinnedDestinationTests.cpp" />
     <ClCompile Include="PinnedStoreTests.cpp" />
     <ClCompile Include="PinnedLaunchTests.cpp" />

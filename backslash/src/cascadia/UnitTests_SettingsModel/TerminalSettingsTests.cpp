@@ -175,8 +175,12 @@ namespace SettingsModelUnitTests
         VERIFY_ARE_EQUAL(0.6f, profile.DefaultAppearance().RetroTerminalScanlineIntensity());
         VERIFY_ARE_EQUAL(0.0f, profile.UnfocusedAppearance().RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.0f, profile.UnfocusedAppearance().RetroTerminalScanlineIntensity());
+        profile.DefaultAppearance().RetroTerminalSchemePhosphor(true);
+        profile.UnfocusedAppearance().RetroTerminalSchemePhosphor(false);
         const auto result = TerminalSettings::CreateWithProfile(*settings, profile);
         VERIFY_ARE_EQUAL(0.0f, result.DefaultSettings()->RetroTerminalGlowIntensity());
+        VERIFY_IS_TRUE(result.DefaultSettings()->RetroTerminalSchemePhosphor());
+        VERIFY_IS_FALSE(result.UnfocusedSettings()->RetroTerminalSchemePhosphor());
         VERIFY_ARE_EQUAL(0.6f, result.DefaultSettings()->RetroTerminalScanlineIntensity());
         VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalGlowIntensity());
         VERIFY_ARE_EQUAL(0.0f, result.UnfocusedSettings()->RetroTerminalScanlineIntensity());

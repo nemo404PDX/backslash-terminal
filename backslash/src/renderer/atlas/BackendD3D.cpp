@@ -257,6 +257,17 @@ void BackendD3D::ReleaseResources() noexcept
     _generation = {};
 }
 
+namespace Microsoft::Console::Render::Atlas
+{
+    void CreateImagePhosphorShaders(ID3D11Device*, ID3D11VertexShader**, ID3D11PixelShader**);
+}
+
+void Microsoft::Console::Render::Atlas::CreateImagePhosphorShaders(ID3D11Device* device, ID3D11VertexShader** vertex, ID3D11PixelShader** pixel)
+{
+    THROW_IF_FAILED(device->CreateVertexShader(custom_shader_vs, sizeof(custom_shader_vs), nullptr, vertex));
+    THROW_IF_FAILED(device->CreatePixelShader(custom_shader_ps, sizeof(custom_shader_ps), nullptr, pixel));
+}
+
 void BackendD3D::Render(RenderingPayload& p)
 {
     if (_generation != p.s.generation())
@@ -355,7 +366,7 @@ void BackendD3D::_handleSettingsUpdate(const RenderingPayload& p)
     }
 
     _phosphorContrastScale = 0;
-    if (mode == PostProcessMode::Retro && p.s->retroTerminalContrastGuard && p.s->retroTerminalTintIntensity > 0)
+    if (mode == PostProcessMode::Retro && !p.s->retroTerminalSchemePhosphor && p.s->retroTerminalContrastGuard && p.s->retroTerminalTintIntensity > 0)
     {
         const auto linear = [](float v) { return v <= 0.04045f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f); };
         const auto c = p.s->retroTerminalTintColor;
@@ -682,7 +693,9 @@ void BackendD3D::_recreateConstBuffer(const RenderingPayload& p) const
     }
     {
         PSConstBuffer data{};
-        data.backgroundColor = colorFromU32Premultiply<f32x4>(p.s->misc->backgroundColor);
+        // Match the cell bitmap's byte premultiplication exactly, including
+        // low-alpha default backgrounds at the right/bottom padding boundary.
+        data.backgroundColor = colorFromU32<f32x4>(u32ColorPremultiply(p.s->misc->backgroundColor));
         data.backgroundCellSize = { static_cast<f32>(p.s->font->cellSize.x), static_cast<f32>(p.s->font->cellSize.y) };
         data.backgroundCellCount = { static_cast<f32>(p.s->viewportCellCount.x), static_cast<f32>(p.s->viewportCellCount.y) };
         DWrite_GetGammaRatios(_gamma, data.gammaRatios);
@@ -2486,7 +2499,7 @@ void BackendD3D::_executeCustomShader(RenderingPayload& p)
                     static_cast<f32>((p.s->retroTerminalTintColor >> 16) & 255) / 255.0f,
                     p.s->retroTerminalTintIntensity,
                 },
-                .scanlineColorAndPadding = { p.s->retroTerminalScanlineWhite ? 1.0f : 0.0f, _phosphorContrastScale > 0 ? 1.0f : 0.0f, 0, 0 },
+                .scanlineColorAndPadding = { p.s->retroTerminalScanlineWhite ? 1.0f : 0.0f, _phosphorContrastScale > 0 ? 1.0f : 0.0f, p.s->retroTerminalSchemePhosphor ? 1.0f : 0.0f, 0 },
             };
             D3D11_MAPPED_SUBRESOURCE mapped{};
             THROW_IF_FAILED(p.deviceContext->Map(_retroShaderConstantBuffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));

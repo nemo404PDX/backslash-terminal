@@ -1,5 +1,7 @@
 # Backslash portable identity implementation and evidence
 
+For the published preview versus later uncommitted features, see [release and development status](DEVELOPMENT-STATUS.md). A normal local portable folder is a first-class use case: keep the whole distribution and adjacent `settings` together indefinitely; USB is optional. Split App/Data roots, workspace identity/discovery, unplug continuity and conflict-safe reconnection are future architecture, not current `.portable` behavior. The dated first-slice icon/executable statements below are historical.
+
 Current Dev builds use `Backslash.exe`, complete Backslash Dev artwork, and the generated About/CLI build identity described in [BUILD-IDENTITY.md](../../backslash/tools/backslash/BUILD-IDENTITY.md). The dated first-slice record below preserves earlier artifact names and metadata.
 
 Implemented 2026-10-13 in the selected checkout. This records the first implementation slice of the historical [identity proposal](APP-IDENTITY.md); it does not make the retained upstream package identity installable as Backslash.

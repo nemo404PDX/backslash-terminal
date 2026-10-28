@@ -56,6 +56,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model
 
             return parentDirectoryForSettingsFile;
         }();
+        THROW_IF_WIN32_BOOL_FALSE(SetEnvironmentVariableW(L"BACKSLASH_SETTINGS_DIR", baseSettingsPath.generic_wstring().c_str()));
         return baseSettingsPath;
     }
 
@@ -82,6 +83,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model
 
             return parentDirectoryForSettingsFile;
         }();
+        THROW_IF_WIN32_BOOL_FALSE(SetEnvironmentVariableW(L"BACKSLASH_SETTINGS_DIR", baseSettingsPath.generic_wstring().c_str()));
         return baseSettingsPath;
     }
 }

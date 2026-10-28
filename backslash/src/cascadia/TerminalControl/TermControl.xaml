@@ -1249,8 +1249,14 @@
             <local:VisualBellLight x:Name="BellLight" />
         </Grid.Lights>
 
-        <Image x:Name="BackgroundImage"
-               AutomationProperties.AccessibilityView="Raw" />
+        <Grid x:Name="PhosphorPaddingLayer" IsHitTestVisible="False"
+              AutomationProperties.AccessibilityView="Raw" />
+        <Grid x:Name="PhosphorImageSource" IsHitTestVisible="False">
+            <Image x:Name="BackgroundImage"
+                   AutomationProperties.AccessibilityView="Raw" />
+        </Grid>
+        <Grid x:Name="PhosphorImageLayer" IsHitTestVisible="False"
+              AutomationProperties.AccessibilityView="Raw" />
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />

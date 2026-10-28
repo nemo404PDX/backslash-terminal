@@ -1,12 +1,20 @@
 # Phased roadmap
 
+## Current position (2026-10-26)
+
+The original phase sequence below is historical planning, not a current execution checklist. A published unsigned portable preview exists at `v0.0.1-preview.1`; later SSH import, resident startup, Settings placement/close and rendering/accent changes remain uncommitted. See [current status](DEVELOPMENT-STATUS.md) for verification and open issues.
+
+Next bounded work is validation and review of current development, including visual Settings/contrast/focus/width checks and the unresolved intermittent blank-tab report. App/Data relocation and safe reconnection, SFTP UI/engine selection, optional tool management, WebView/MCP views and CRT open/close animations remain future designs. No transfer architecture is selected. The recommended research prototype is one native local+SFTP workspace. Optional native and TUI frontends over a shared backend/live worker are a newer proposed direction, with a conditional WebView hosting spike; see [file transfer](FILE-TRANSFER-DESIGN.md).
+
+## Historical phase sequence
+
 [Project entry point](README.md) · [Feature scope](FEATURES.md)
 
 This is a proposed implementation sequence. Source/documentation preparation and an unchanged upstream source-copy build are completed; see [build evidence](BUILD-BASELINE.md). Future changed-source builds/implementation and launch/install actions require their own authorization. Each phase should be a small reviewable vertical slice, with focused tests and no claim that the full roadmap is delivered.
 
 ## Phase 0 — prepared source and decisions
 
-Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. Blocked: approved concept image local materialization (see [brand record](../../backslash/branding/concepts/README.md)).
+Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. That checkpoint's concept-materialization blocker was later resolved by user-supplied local assets; current Dev builds use supplied artwork. See the [brand record](../../backslash/branding/concepts/README.md) for the historical sequence.
 
 Next agent: read provenance and this doc; verify instructions; choose one next slice with the user. Resolve identity strings before editing them. Maintain a decision record for schema, controls and scope decisions. Do not initialize Git or add a remote on the user's behalf.
 
@@ -92,3 +100,9 @@ These are documentation-only future items, outside the current full setup export
 
 - [ ] [Appearance recipes: named starting looks](APPEARANCE-RECIPES-DESIGN.md): coherent editable looks to avoid starting from scratch; baseline defaults with explicit profile overrides in either direction. Keep recipe scope distinct from full setup transfer.
 - [ ] [Optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md): portable-compatible, explicit machine-local opt-in, distinct from Open in Terminal; cover moved executable paths, same/new-location updates, multiple copies, repair and owned unregister. No registry changes in this pass.
+
+## Transfers follow-up after the documentation sync
+
+The native [Transfers management foundation](TRANSFERS-FOUNDATION.md) is implemented in uncommitted development: dropdown entry, combined search/status filter, independent tab/split/window preference, repeated-view focus and own-view close backed by process-owned records. It has no transfer backend or real production jobs; native interaction QA is pending. See [current candidate and evidence](DEVELOPMENT-STATUS.md).
+
+The consolidated [file-transfer delivery slices](FILE-TRANSFER-DESIGN.md#accepted-direction-and-delivery-slices-2026-10-26) prioritize local/remote identity and navigation, conflict review and safe interrupted/replacement behavior before visual extras. Later slices add completion actions and an independently placed image Preview (new window by default, next/previous navigation), with PDF rendering later. Shared native/TUI libraries are distinct from a common live worker. Records-only history clearing, undecided retention and failed/interrupted cleanup policy remain explicit design work. Separate Background sessions and Help are future scope, not automatic detection of arbitrary shell work. This targeted follow-up builds on the prior 17-file documentation sync; it does not relabel the broader roadmap as completed.

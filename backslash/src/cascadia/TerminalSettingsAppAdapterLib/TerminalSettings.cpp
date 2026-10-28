@@ -273,6 +273,7 @@ namespace winrt::Microsoft::Terminal::Settings
         _RetroTerminalGlowIntensity = appearance.RetroTerminalGlowIntensity();
         _RetroTerminalScanlineWhite = appearance.RetroTerminalScanlineWhite();
         _RetroTerminalContrastGuard = appearance.RetroTerminalContrastGuard();
+        _RetroTerminalSchemePhosphor = appearance.RetroTerminalSchemePhosphor();
         _RetroTerminalScanlineIntensity = appearance.RetroTerminalScanlineIntensity();
         _RetroTerminalScanlineThickness = appearance.RetroTerminalScanlineThickness();
         _RetroTerminalScanlineGap = appearance.RetroTerminalScanlineGap();
@@ -398,7 +399,7 @@ namespace winrt::Microsoft::Terminal::Settings
         }
         const auto generatedName = profile.GeneratedConnectionProfileName();
         std::wstring_view shell;
-        if (!identity.empty() && profile.Source() == L"Windows.Terminal.SSH" && Commandline() == profile.Commandline())
+        if (!identity.empty() && (profile.Source() == L"Windows.Terminal.SSH" || profile.Source() == L"Backslash.Terminal.SSH") && Commandline() == profile.Commandline())
         {
             if (profile.SshShell() == 2) { shell = L"Bash"; }
             else if (profile.SshShell() == 3) { shell = L"PowerShell 7"; }

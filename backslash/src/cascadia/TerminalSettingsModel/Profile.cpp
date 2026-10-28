@@ -103,6 +103,8 @@ winrt::com_ptr<Profile> Profile::CopySettings() const
     const auto fontInfo = FontConfig::CopyFontInfo(winrt::get_self<FontConfig>(_FontInfo), weakProfile);
     const auto defaultAppearance = AppearanceConfig::CopyAppearance(winrt::get_self<AppearanceConfig>(_DefaultAppearance), weakProfile);
 
+    profile->_SessionOnly = _SessionOnly;
+    profile->_SessionBaseline = _SessionBaseline;
     profile->_Deleted = _Deleted;
     profile->_Orphaned = _Orphaned;
     profile->_Updates = _Updates;
@@ -601,7 +603,7 @@ void Profile::LogSettingChanges(std::set<std::string>& changes, const std::strin
 // Connection labels are configured launch identities, not a probed remote hostname.
 const Profile* Profile::_generatedConnectionParent() const
 {
-    if (Source() != L"Windows.Terminal.SSH" && Source() != L"Windows.Terminal.Wsl") { return nullptr; }
+    if (Source() != L"Windows.Terminal.SSH" && Source() != L"Backslash.Terminal.SSH" && Source() != L"Windows.Terminal.Wsl") { return nullptr; }
     if (Origin() == OriginTag::Generated) { return this; }
     for (const auto& parent : _parents)
     {
@@ -620,7 +622,7 @@ winrt::hstring Profile::ConnectionIdentity(const hstring& launchCommandline) con
 {
     if (const auto parent = _generatedConnectionParent())
     {
-        if (Source() == L"Windows.Terminal.SSH")
+        if ((Source() == L"Windows.Terminal.SSH" || Source() == L"Backslash.Terminal.SSH"))
         {
             std::wstring exe, host, custom;
             if (SshCommandline::Base(parent->Commandline(), exe, host) && SshCommandline::Recognize(parent->Commandline(), launchCommandline, custom) >= 0) { return hstring{ std::wstring{ L"SSH " } + host }; }
@@ -633,7 +635,7 @@ winrt::hstring Profile::ConnectionIdentity(const hstring& launchCommandline) con
 // The original generated parent supplies the target, never the editable display name.
 const Profile* Profile::_sshParent() const
 {
-    if (Source() == L"Windows.Terminal.SSH")
+    if ((Source() == L"Windows.Terminal.SSH" || Source() == L"Backslash.Terminal.SSH"))
     {
         for (const auto& parent : _parents)
         {
@@ -690,4 +692,9 @@ bool Profile::SetSshShell(int32_t mode, const hstring& customCommand)
         return true;
     }
     return false;
+}
+
+winrt::hstring Profile::SshBaseCommandline() const
+{
+    const auto parent = _sshParent(); return parent ? parent->Commandline() : winrt::hstring{};
 }

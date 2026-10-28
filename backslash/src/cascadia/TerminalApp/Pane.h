@@ -72,6 +72,7 @@ public:
          const bool lastFocused = false);
 
     std::shared_ptr<Pane> GetActivePane();
+    std::shared_ptr<Pane> GetLastFocusedLeaf();
     winrt::Microsoft::Terminal::Control::TermControl GetLastFocusedTerminalControl();
     winrt::TerminalApp::IPaneContent GetLastFocusedContent();
     winrt::Microsoft::Terminal::Control::TermControl GetTerminalControl() const;
@@ -91,6 +92,8 @@ public:
     }
 
     winrt::Windows::UI::Xaml::Controls::Grid GetRootElement();
+    winrt::TerminalApp::IPaneContent TakeRelaunchContent();
+    winrt::TerminalApp::IPaneContent ExchangeRelaunchContent(winrt::TerminalApp::IPaneContent content);
     winrt::TerminalApp::IPaneContent GetContent() const noexcept { return _IsLeaf() ? _content : nullptr; }
 
     bool WasLastFocused() const noexcept;

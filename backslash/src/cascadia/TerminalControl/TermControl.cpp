@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "TermControl.h"
 #include "../inc/RetroBezelGeometry.h"
+#include <winrt/Windows.UI.Xaml.Hosting.h>
 
 #include <DefaultSettings.h>
 #include <inputpaneinterop.h>
@@ -294,6 +295,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             if (const auto self = weakThis.get(); self && !self->_IsClosing() && !self->_detached)
             {
                 get_self<ControlCore>(self->_core)->SetRenderingVisible(visible);
+                self->_imageRenderingVisible = visible;
+                self->_refreshPhosphorImage();
             }
         };
         // A split reparents an existing control within the same layout transaction.
@@ -313,6 +316,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _revokers.renderingLoaded = Loaded(winrt::auto_revoke, renderingTreeChanged);
         _revokers.renderingUnloaded = Unloaded(winrt::auto_revoke, renderingTreeChanged);
         updateRendering(IsLoaded());
+        _phosphorImageLayout = LayoutUpdated(winrt::auto_revoke, [weakThis{ get_weak() }](auto&&, auto&&) {
+            if (const auto self = weakThis.get()) { self->_refreshPhosphorImage(); }
+        });
+        _phosphorImageOpened = BackgroundImage().ImageOpened(winrt::auto_revoke, [weakThis{ get_weak() }](auto&&, auto&&) {
+            if (const auto self = weakThis.get()) { self->_phosphorImageResetPending = true; self->_refreshPhosphorImage(); }
+        });
 
         // If high contrast mode was changed, update the appearance appropriately.
         _core.SetHighContrastMode(_GetAccessibilitySettings().HighContrast());
@@ -921,6 +930,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             return;
         }
 
+        _core.ApplyAppearance(_focused);
+        _imageAppearance = newAppearance;
         _SetBackgroundImage(newAppearance);
 
         // Update our control settings
@@ -935,8 +946,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         Windows::UI::Xaml::Media::SolidColorBrush cursorColorBrush{ til::color{ newAppearance.CursorColor() } };
         SelectionStartMarker().Fill(cursorColorBrush);
         SelectionEndMarker().Fill(cursorColorBrush);
-
-        _core.ApplyAppearance(_focused);
     }
 
     // Method Description:
@@ -966,6 +975,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void TermControl::ToggleShaderEffects()
     {
         _core.ToggleShaderEffects();
+        _refreshPhosphorImage();
+        _changeBackgroundColor(til::color{ _core.BackgroundColor() });
     }
 
     // Method Description:
@@ -1049,6 +1060,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (newAppearance.BackgroundImage().empty() || _core.Settings().UseBackgroundImageForWindow())
         {
             BackgroundImage().Source(nullptr);
+            _refreshPhosphorImage();
             return;
         }
 
@@ -1061,6 +1073,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         {
             LOG_CAUGHT_EXCEPTION();
             BackgroundImage().Source(nullptr);
+            _refreshPhosphorImage();
             return;
         }
 
@@ -1086,6 +1099,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         BackgroundImage().Opacity(newAppearance.BackgroundImageOpacity());
         BackgroundImage().HorizontalAlignment(newAppearance.BackgroundImageHorizontalAlignment());
         BackgroundImage().VerticalAlignment(newAppearance.BackgroundImageVerticalAlignment());
+        _refreshPhosphorImage();
     }
 
     // Method Description:
@@ -1100,10 +1114,211 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // - <none>
     // Return Value:
     // - <none>
+    bool TermControl::SchemePhosphorActive() const
+    {
+        return get_self<ControlCore>(_core)->SchemePhosphorActive();
+    }
+
+    bool TermControl::SharedWindowImageReady() const noexcept
+    {
+        return _phosphorImagePresentation && _phosphorImagePresentation->Ready();
+    }
+
+    void TermControl::SetSharedWindowImage(const Controls::Image& source, const FrameworkElement& coordinateRoot, float opacity)
+    {
+        if (source != _sharedWindowImage.get())
+        {
+            _sharedPhosphorImageOpened.revoke();
+            if (source)
+            {
+                _sharedPhosphorImageOpened = source.ImageOpened(winrt::auto_revoke, [weak{ get_weak() }](auto&&, auto&&) {
+                    if (const auto self = weak.get()) { self->_phosphorImageResetPending = true; self->_refreshPhosphorImage(); }
+                });
+            }
+            _phosphorImageResetPending = true;
+        }
+        _sharedWindowImage = source ? winrt::make_weak(source) : winrt::weak_ref<Controls::Image>{};
+        _sharedWindowImageRoot = coordinateRoot ? winrt::make_weak(coordinateRoot) : winrt::weak_ref<FrameworkElement>{};
+        _sharedWindowImageOpacity = opacity;
+        _refreshPhosphorImage();
+    }
+
+    void TermControl::_closePhosphorImage(bool restoreSource)
+    {
+        if (_phosphorImagePresentation) { _phosphorImagePresentation->Close(); }
+        _phosphorImagePresentation.reset();
+        _phosphorImageSource.reset();
+        _phosphorImageContent = nullptr;
+        _phosphorImageResetPending = false;
+        if (const auto layer = PhosphorImageLayer()) { Hosting::ElementCompositionPreview::SetElementChildVisual(layer, nullptr); }
+        if (const auto source = PhosphorImageSource(); source && restoreSource) { source.RenderTransform(nullptr); }
+    }
+
+    void TermControl::_refreshPhosphorImage()
+    {
+        if (_refreshingPhosphorImage || _IsClosing() || _detached) { return; }
+        _updateSchemePadding();
+        _refreshingPhosphorImage = true;
+        const auto reset = wil::scope_exit([&] {
+            _refreshingPhosphorImage = false;
+            try
+            {
+                const bool ready = SharedWindowImageReady();
+                // Keep the original visible during startup/failure. The mapped
+                // surface and its original source switch in the same UI turn.
+                if (const auto branch = PhosphorImageSource())
+                {
+                    if (ready && !(_sharedWindowImage.get() && _sharedWindowImageRoot.get() && _core.Settings().UseBackgroundImageForWindow()))
+                    {
+                        Media::TranslateTransform hidden;
+                        hidden.X(-std::max(ActualWidth(), BackgroundImage().ActualWidth()) - 64);
+                        if (const auto prior = branch.RenderTransform().try_as<Media::TranslateTransform>(); !prior || prior.X() != hidden.X()) { branch.RenderTransform(hidden); }
+                    }
+                    else { branch.RenderTransform(nullptr); }
+                }
+                if (_phosphorImageReady != ready)
+                {
+                    _phosphorImageReady = ready;
+                    PropertyChanged.raise(*this, Data::PropertyChangedEventArgs{ L"BackgroundBrush" });
+                }
+            }
+            CATCH_LOG();
+        });
+        try
+        {
+            auto image = _sharedWindowImage.get();
+            const auto commonRoot = _sharedWindowImageRoot.get();
+            const bool shared = image && commonRoot && _core.Settings().UseBackgroundImageForWindow();
+            const bool mapped = SchemePhosphorActive();
+            if (!shared) { image = BackgroundImage(); }
+            if ((!shared && (!mapped || !image.Source())) || !image)
+            {
+                _closePhosphorImage();
+                return;
+            }
+            const auto visual = Hosting::ElementCompositionPreview::GetElementVisual(image);
+            const auto actual = image.ActualSize();
+            if (actual.x <= 0 || actual.y <= 0) { return; }
+            // An initially offscreen XAML image can have valid layout dimensions
+            // but a zero-size handoff visual. Prime only that owned visual.
+            const bool resized = visual.Size().x != actual.x || visual.Size().y != actual.y;
+            if (resized) { visual.Size(actual); }
+            const auto source = ::Microsoft::Terminal::Backslash::PhosphorImageSource::Acquire(visual);
+            if (source != _phosphorImageSource)
+            {
+                if (_phosphorImagePresentation) { _phosphorImagePresentation->Close(); }
+                _phosphorImageSource = source;
+                _phosphorImagePresentation = source->CreatePresentation(visual.Compositor());
+                _phosphorImagePresentation->SetChanged([weak{ get_weak() }] {
+                    if (const auto self = weak.get()) { self->_refreshPhosphorImage(); }
+                });
+                Hosting::ElementCompositionPreview::SetElementChildVisual(PhosphorImageLayer(), _phosphorImagePresentation->Visual());
+            }
+            const auto bitmap = image.Source().try_as<Media::Imaging::BitmapImage>();
+            // Until decode metadata is ready retain event-driven capture; once
+            // known, static pictures capture once rather than work every frame.
+            source->Continuous(!bitmap || bitmap.PixelWidth() <= 0 || bitmap.IsAnimatedBitmap());
+            const bool replaced = _phosphorImageContent != image.Source();
+            _phosphorImageContent = image.Source();
+            // Cached static pixels also depend on same-size layout changes.
+            const auto layoutSignature = static_cast<uint32_t>(image.Stretch()) |
+                (static_cast<uint32_t>(image.HorizontalAlignment()) << 8) |
+                (static_cast<uint32_t>(image.VerticalAlignment()) << 16);
+            const bool relaid = layoutSignature != _phosphorImageLayoutSignature;
+            _phosphorImageLayoutSignature = layoutSignature;
+            const bool discard = replaced || resized || relaid || _phosphorImageResetPending;
+            _phosphorImageResetPending = false;
+            source->Refresh(discard);
+            const auto pixels = source->PixelSize();
+            const auto sourceWidth = image.ActualWidth();
+            const auto sourceHeight = image.ActualHeight();
+            bool visible = _imageRenderingVisible && _imageWindowVisible && IsLoaded() && !_detached && Visibility() == Visibility::Visible;
+            for (DependencyObject node{ RootGrid() }; visible && node; node = Media::VisualTreeHelper::GetParent(node))
+            {
+                if (const auto element = node.try_as<UIElement>(); element && (element.Visibility() != Visibility::Visible || element.Opacity() <= 0)) { visible = false; }
+            }
+            if (pixels.Width <= 0 || pixels.Height <= 0 || sourceWidth <= 0 || sourceHeight <= 0)
+            {
+                _phosphorImagePresentation->Configure({}, {}, {}, {}, 0, 0, false);
+                return;
+            }
+            const auto scaleX = pixels.Width / sourceWidth;
+            const auto scaleY = pixels.Height / sourceHeight;
+            const auto appearance = _imageAppearance ? _imageAppearance : _core.FocusedAppearance();
+            const auto tint = til::color{ appearance.RetroTerminalTintColor() };
+            Windows::Foundation::Rect crop{};
+            Windows::Foundation::Size outputDips{};
+            if (shared)
+            {
+                const auto bounds = TransformToVisual(commonRoot).TransformBounds({0, 0, static_cast<float>(ActualWidth()), static_cast<float>(ActualHeight())});
+                // Image.ActualSize excludes letterbox space and can exceed the
+                // host for UniformToFill. Its layout offset remains relative to
+                // the common host even while that host is moved offscreen.
+                const auto imageOffset = image.ActualOffset();
+                crop = {(bounds.X - imageOffset.x) * static_cast<float>(scaleX), (bounds.Y - imageOffset.y) * static_cast<float>(scaleY), bounds.Width * static_cast<float>(scaleX), bounds.Height * static_cast<float>(scaleY)};
+                outputDips = {static_cast<float>(ActualWidth()), static_cast<float>(ActualHeight())};
+                _phosphorImagePresentation->Visual().Offset({0,0,0});
+            }
+            else
+            {
+                crop = {0,0,static_cast<float>(pixels.Width),static_cast<float>(pixels.Height)};
+                outputDips = {static_cast<float>(sourceWidth),static_cast<float>(sourceHeight)};
+                const auto offset = image.ActualOffset();
+                _phosphorImagePresentation->Visual().Offset({offset.x,offset.y,0});
+            }
+            const Windows::Foundation::Size outputPixels{std::max(1.0f, std::round(crop.Width)),std::max(1.0f, std::round(crop.Height))};
+            const Windows::Foundation::Rect aperture{0,0,static_cast<float>(ActualWidth()),static_cast<float>(ActualHeight())};
+            const auto priorClip = PhosphorImageLayer().Clip().try_as<Media::RectangleGeometry>();
+            if (!priorClip || priorClip.Rect() != aperture)
+            {
+                Media::RectangleGeometry clip;
+                clip.Rect(aperture);
+                PhosphorImageLayer().Clip(clip);
+            }
+            _phosphorImagePresentation->Configure(crop, outputPixels, outputDips, static_cast<Windows::UI::Color>(tint), mapped ? appearance.RetroTerminalTintIntensity() : 0,
+                shared ? _sharedWindowImageOpacity : appearance.BackgroundImageOpacity(), visible);
+        }
+        CATCH_LOG();
+    }
+
+    void TermControl::_updateSchemePadding()
+    {
+        const auto layer = PhosphorPaddingLayer();
+        if (!layer) { return; }
+        if (!get_self<ControlCore>(_core)->RendererOwnsSchemeBackground())
+        {
+            // LayoutUpdated also runs while this feature is disabled. Clearing
+            // an empty XAML collection invalidates layout again and can cause
+            // 0x88000FA8 (layout cycle) during ordinary application startup.
+            if (layer.Children().Size() > 0) { layer.Children().Clear(); }
+            _schemePaddingSignature.clear(); return;
+        }
+        const auto color = get_self<ControlCore>(_core)->MapSchemePhosphorColor(til::color{_core.BackgroundColor()});
+        if (!_schemePaddingBrush) { _schemePaddingBrush = Media::SolidColorBrush{}; }
+        _schemePaddingBrush.Color(color); _schemePaddingBrush.Opacity(_core.Opacity());
+        const float width = static_cast<float>(RootGrid().ActualWidth()), height = static_cast<float>(RootGrid().ActualHeight());
+        if (width <= 0 || height <= 0) { return; }
+        const auto bounds = SwapChainPanel().TransformToVisual(RootGrid()).TransformBounds({0,0,static_cast<float>(SwapChainPanel().ActualWidth()),static_cast<float>(SwapChainPanel().ActualHeight())});
+        const float left = std::clamp(bounds.X,0.0f,width), top = std::clamp(bounds.Y,0.0f,height);
+        const float right = std::clamp(bounds.X+bounds.Width,left,width), bottom = std::clamp(bounds.Y+bounds.Height,top,height);
+        const auto signature = std::to_wstring(width)+L","+std::to_wstring(height)+L","+std::to_wstring(left)+L","+std::to_wstring(top)+L","+std::to_wstring(right)+L","+std::to_wstring(bottom);
+        if (signature == _schemePaddingSignature) { return; }
+        layer.Children().Clear();
+        for (const Windows::Foundation::Rect region : {Windows::Foundation::Rect{0,0,width,top},Windows::Foundation::Rect{0,bottom,width,height-bottom},Windows::Foundation::Rect{0,top,left,bottom-top},Windows::Foundation::Rect{right,top,width-right,bottom-top}})
+        {
+            if (region.Width <= 0 || region.Height <= 0) { continue; }
+            Controls::Grid tile; tile.Width(width); tile.Height(height); tile.Background(_schemePaddingBrush);
+            Media::RectangleGeometry clip; clip.Rect(region); tile.Clip(clip); layer.Children().Append(tile);
+        }
+        _schemePaddingSignature = signature;
+    }
+
     void TermControl::_InitializeBackgroundBrush()
     {
         auto settings{ _core.Settings() };
-        auto bgColor = til::color{ _core.FocusedAppearance().DefaultBackground() };
+        const auto sourceColor = til::color{ _core.FocusedAppearance().DefaultBackground() };
+        auto bgColor = get_self<ControlCore>(_core)->MapSchemePhosphorColor(sourceColor);
+        if (get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() && !_core.UseAcrylic()) { bgColor = Windows::UI::Colors::Transparent(); }
 
         auto transparentBg = settings.UseBackgroundImageForWindow();
         if (transparentBg)
@@ -1135,7 +1350,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             acrylic.TintColor(bgColor);
 
             // Apply brush settings
-            acrylic.TintOpacity(_core.Opacity());
+            // Scheme color/alpha/scanlines are already in Atlas. Keep the
+            // acrylic blur/noise/fallback material beneath it, with no second tint.
+            acrylic.TintOpacity(get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() ? 0.0 : _core.Opacity());
 
             // Apply brush to control if it's not already there
             if (RootGrid().Background() != acrylic)
@@ -1152,7 +1369,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             RootGrid().Background(solidColor);
         }
 
-        BackgroundBrush(RootGrid().Background());
+        _updateSchemePadding();
+        _publishBackgroundBrush(sourceColor);
     }
 
     // Method Description:
@@ -1183,7 +1401,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // - bg: the new color to use as the background color.
     void TermControl::_changeBackgroundColor(til::color bg)
     {
-        auto transparent_bg = _core.Settings().UseBackgroundImageForWindow();
+        const auto sourceColor = bg;
+        bg = get_self<ControlCore>(_core)->MapSchemePhosphorColor(bg);
+        auto transparent_bg = _core.Settings().UseBackgroundImageForWindow() || (get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() && !_core.UseAcrylic());
         if (transparent_bg)
         {
             bg = Windows::UI::Colors::Transparent();
@@ -1199,7 +1419,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             solidColor.Color(bg);
         }
 
-        BackgroundBrush(RootGrid().Background());
+        _updateSchemePadding();
+        _publishBackgroundBrush(sourceColor);
 
         // Don't use the normal BackgroundBrush() Observable Property setter
         // here. (e.g. `BackgroundBrush()`). The one from the macro will
@@ -1210,10 +1431,38 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // up.
         //
         // Firing it manually makes sure it does.
-        _BackgroundBrush = RootGrid().Background();
         PropertyChanged.raise(*this, Data::PropertyChangedEventArgs{ L"BackgroundBrush" });
 
-        _isBackgroundLight = _isColorLight(bg);
+        _isBackgroundLight = _isColorLight(get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() ? get_self<ControlCore>(_core)->MapSchemePhosphorColor(sourceColor) : bg);
+    }
+
+    void TermControl::_publishBackgroundBrush(til::color sourceColor)
+    {
+        const auto actual = RootGrid().Background();
+        if (_core.Settings().UseBackgroundImageForWindow() || (!get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() && get_self<ControlCore>(_core)->MapSchemePhosphorColor(sourceColor) == sourceColor))
+        {
+            BackgroundBrush(actual);
+        }
+        else if (const auto solid = actual.try_as<Media::SolidColorBrush>())
+        {
+            // Tab/titlebar themes consume BackgroundBrush too. Expose the source
+            // scheme there while the terminal itself uses the mapped backdrop.
+            Media::SolidColorBrush exposed{ sourceColor };
+            exposed.Opacity(solid.Opacity());
+            BackgroundBrush(exposed);
+        }
+        else if (const auto acrylic = actual.try_as<Media::AcrylicBrush>())
+        {
+            Media::AcrylicBrush exposed{};
+            exposed.BackgroundSource(acrylic.BackgroundSource());
+            exposed.AlwaysUseFallback(acrylic.AlwaysUseFallback());
+            exposed.TintOpacity(get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() ? _core.Opacity() : acrylic.TintOpacity());
+            exposed.TintLuminosityOpacity(acrylic.TintLuminosityOpacity());
+            exposed.TintColor(sourceColor);
+            exposed.FallbackColor(sourceColor);
+            exposed.Opacity(acrylic.Opacity());
+            BackgroundBrush(exposed);
+        }
     }
 
     bool TermControl::_isColorLight(til::color bg) noexcept
@@ -1247,8 +1496,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 _InitializeBackgroundBrush();
                 return;
             }
-            changed = acrylic.TintOpacity() != opacity;
-            acrylic.TintOpacity(opacity);
+            const auto tintOpacity = get_self<ControlCore>(_core)->RendererOwnsSchemeBackground() ? 0.0 : opacity;
+            changed = acrylic.TintOpacity() != tintOpacity;
+            acrylic.TintOpacity(tintOpacity);
         }
         else if (auto solidColor = RootGrid().Background().try_as<Media::SolidColorBrush>())
         {
@@ -1260,10 +1510,24 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             changed = solidColor.Opacity() != opacity;
             solidColor.Opacity(opacity);
         }
+        _updateSchemePadding();
+        // The renderer-owned acrylic underlay stays at zero tint opacity.
+        // Its published source-color brush still follows the requested opacity,
+        // so include that brush in change detection and notify theme consumers.
+        if (BackgroundBrush() != RootGrid().Background())
+        {
+            if (const auto exposed = BackgroundBrush().try_as<Media::AcrylicBrush>()) { changed = changed || exposed.TintOpacity() != opacity; }
+            else if (const auto exposed = BackgroundBrush().try_as<Media::SolidColorBrush>()) { changed = changed || exposed.Opacity() != opacity; }
+        }
         // Send a BG brush changed event, so you can mouse wheel the
         // transparency of the titlebar too.
         if (changed)
         {
+            if (BackgroundBrush() != RootGrid().Background())
+            {
+                if (const auto acrylic = BackgroundBrush().try_as<Media::AcrylicBrush>()) { acrylic.TintOpacity(opacity); }
+                else if (const auto solid = BackgroundBrush().try_as<Media::SolidColorBrush>()) { solid.Opacity(opacity); }
+            }
             PropertyChanged.raise(*this, Data::PropertyChangedEventArgs{ L"BackgroundBrush" });
         }
     }
@@ -2676,6 +2940,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void TermControl::Close()
     {
+        _sharedPhosphorImageOpened.revoke();
+        _phosphorImageOpened.revoke();
+        _phosphorImageLayout.revoke();
+        _closePhosphorImage(false);
         if (!_IsClosing())
         {
             _closing = true;
@@ -2711,6 +2979,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
     void TermControl::Detach()
     {
+        _sharedPhosphorImageOpened.revoke();
+        _phosphorImageOpened.revoke();
+        _phosphorImageLayout.revoke();
+        _closePhosphorImage(false);
         _revokers = {};
 
         Control::ControlInteractivity old{ nullptr };
@@ -2998,6 +3270,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void TermControl::WindowVisibilityChanged(const bool showOrHide)
     {
         _core.WindowVisibilityChanged(showOrHide);
+        _imageWindowVisible = showOrHide;
+        _refreshPhosphorImage();
     }
 
     // Method Description:

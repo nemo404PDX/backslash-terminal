@@ -17,20 +17,27 @@ Author(s):
 #pragma once
 
 #include "IDynamicProfileGenerator.h"
+#include "WorkspaceSsh.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Model
 {
     class SshHostGenerator final : public IDynamicProfileGenerator
     {
     public:
+        explicit SshHostGenerator(bool explicitScan = false) : _explicitScan{explicitScan} {}
         std::wstring_view GetNamespace() const noexcept override;
         std::wstring_view GetDisplayName() const noexcept override;
         std::wstring_view GetIcon() const noexcept override;
         void GenerateProfiles(std::vector<winrt::com_ptr<implementation::Profile>>& profiles) const override;
 
+        static bool HostDiscoveryEnabled();
+        static void HostDiscoveryEnabled(bool enabled);
+        static ::Microsoft::Terminal::Backslash::WorkspaceSsh::Review ReviewImport(const std::string& alias);
+        static bool FindSshExe(std::wstring& path) { return _tryFindSshExePath(path); }
         static void GenerateForHosts(std::wstring_view sshExePath, const std::vector<std::wstring>& hosts, std::vector<winrt::com_ptr<implementation::Profile>>& profiles);
 
     private:
+        bool _explicitScan = false;
         static const std::wregex _configKeyValueRegex;
 
         static bool _tryFindSshExePath(std::wstring& sshExePath) noexcept;

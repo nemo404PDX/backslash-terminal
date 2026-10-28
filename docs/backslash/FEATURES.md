@@ -2,7 +2,7 @@
 
 [Project entry point](README.md) · [Roadmap](ROADMAP.md)
 
-All Backslash additions below are requested or proposed, not implemented.
+This document retains requested product scope; implementation is partial. Saved groups, Pins, configurable CRT/bezel controls and SSH tools have implementation records. Later uncommitted work includes portable SSH import, resident saved-group reopening, Settings placement/close controls, brand accents and the native Transfers management foundation. File browsing, actual transfer protocols, previews and Background sessions remain future slices; see the consolidated [transfer design](FILE-TRANSFER-DESIGN.md). Use [release and development status](DEVELOPMENT-STATUS.md) for the published boundary, actual implementation, verification and remaining gates. Requested acceptance directions below are not a claim that every feature is complete.
 
 ## Requested: named saved workspaces
 
@@ -28,7 +28,7 @@ Images must be terminal output content, not only backgrounds. Reuse Sixel suppor
 
 ## Requested: CRT Appearance controls
 
-Add a configurable profile Appearance section with sliders/fields, live preview, saved controls, presets and fast reset/comparison. Include intentional glitch/effects, old-screen overlay/frame treatment, and actual terminal-view curvature/warping alongside background image/transparency. Upstream already implements sampled glow and DPI scanlines, plus production custom shader hooks; the new product work is configurable saved controls, preview/presets and quality/performance behavior, with curvature/history/overlay extensions separately validated. None of these Backslash controls is implemented. See [CRT design](CRT-APPEARANCE.md) and [sample mapping](BASELINE.md).
+Add a configurable profile Appearance section with sliders/fields, live preview, saved controls, presets and fast reset/comparison. Include intentional glitch/effects, old-screen overlay/frame treatment, and actual terminal-view curvature/warping alongside background image/transparency. Upstream already implements sampled glow and DPI scanlines, plus production custom shader hooks; the new product work is configurable saved controls, preview/presets and quality/performance behavior, with curvature/history/overlay extensions separately validated. Saved CRT glow, tint, scanline and bezel controls are implemented in documented slices; scheme-preserving phosphor, picture/opacity handling and Black/White scanline choice are later uncommitted development. Curvature, broader effects and animations remain separate future scope. See [CRT design](CRT-APPEARANCE.md) and [sample mapping](BASELINE.md).
 
 ## Requested: curated terminal fonts
 
@@ -45,4 +45,3 @@ Reuse an existing terminal editor initially; do not assume a new built-in editor
 ## Open choices
 
 Workspace storage/versioning, SSH config interoperability, editor/preview integration, pin/group UX, graphics protocol expansion and persistent session architecture need explicit decisions. Accessibility, identity and compatibility should be checked in each small feature slice.
-

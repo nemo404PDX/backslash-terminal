@@ -1,5 +1,7 @@
 # CRT rendering plan and performance audit
 
+Current later development includes [scheme-preserving phosphor and picture/opacity handling](PHOSPHOR-SCHEME-TONES.md) and [Black/White scanline color](SCANLINE-COLOR.md). These are separate from the [application UI accent](UI-ACCENT.md). Read [release/development status](DEVELOPMENT-STATUS.md) before treating dated artifacts or requested effects as shipped; CRT open/close animations remain future work.
+
 Historical color values are independently frozen in the [dc027cae phosphor reference](PHOSPHOR-COLOR-REFERENCE-dc027cae.md); the [960a9f9 audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md) compares accepted and later packaged shaders.
 
 [Project entry point](README.md) | [Implemented CRT controls](CRT-APPEARANCE.md) | [Bezel design](BEZEL-DESIGN.md)

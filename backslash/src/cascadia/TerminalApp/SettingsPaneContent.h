@@ -11,6 +11,12 @@ namespace winrt::TerminalApp::implementation
     {
     public:
         SettingsPaneContent(winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings settings);
+        ~SettingsPaneContent();
+        uint64_t OwnershipLease() const noexcept { return _ownershipLease; }
+        winrt::Microsoft::Terminal::Settings::Editor::MainPage::OpenJson_revoker OpenJsonRevoker;
+        winrt::Microsoft::Terminal::Settings::Editor::MainPage::ShowLoadWarningsDialog_revoker WarningsRevoker;
+        winrt::Windows::UI::Xaml::UIElement::KeyDown_revoker KeyDownRevoker;
+        void OwnershipLease(uint64_t lease) noexcept { _ownershipLease = lease; }
 
         void UpdateSettings(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& settings);
 
@@ -33,6 +39,7 @@ namespace winrt::TerminalApp::implementation
         // See BasicPaneEvents for most generic event definitions
 
     private:
+        uint64_t _ownershipLease = 0;
         winrt::Microsoft::Terminal::Settings::Editor::MainPage _sui{ nullptr };
         winrt::Windows::UI::Xaml::ElementTheme _requestedTheme;
     };

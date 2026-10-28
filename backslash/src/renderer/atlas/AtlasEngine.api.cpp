@@ -384,6 +384,18 @@ void AtlasEngine::EnableTransparentBackground(const bool isTransparent) noexcept
     }
 }
 
+// Negative restores the legacy default-background/XAML division.
+void AtlasEngine::SetDefaultBackgroundOpacity(float opacity) noexcept
+{
+    const auto alpha = opacity < 0 || !std::isfinite(opacity) ? -1 : static_cast<i32>(std::lround(std::clamp(opacity, 0.0f, 1.0f) * 255));
+    if (_api.defaultBackgroundAlpha != alpha)
+    {
+        _api.defaultBackgroundAlpha = alpha;
+        // Every alpha change affects cached cell colors and the clear/padding.
+        std::ignore = InvalidateAll();
+    }
+}
+
 [[nodiscard]] HRESULT AtlasEngine::SetHwnd(const HWND hwnd) noexcept
 {
     if (_api.s->target->hwnd != hwnd)
@@ -430,6 +442,14 @@ void AtlasEngine::SetRetroTerminalGlowIntensity(float value) noexcept
     if (_api.s->retroTerminalGlowIntensity != value)
     {
         _api.s.write()->retroTerminalGlowIntensity = value;
+    }
+}
+
+void AtlasEngine::SetRetroTerminalSchemePhosphor(bool value) noexcept
+{
+    if (_api.s->retroTerminalSchemePhosphor != value)
+    {
+        _api.s.write()->retroTerminalSchemePhosphor = value;
     }
 }
 

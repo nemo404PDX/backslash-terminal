@@ -324,7 +324,7 @@ CATCH_RETURN()
 
         _api.selectionSpans = til::point_span_subspan_within_rect(info.selectionSpans, dr);
 
-        const bool protectSelection = _api.s->retroTerminalContrastGuard && _api.s->retroTerminalTintIntensity > 0 &&
+        const bool protectSelection = !_api.s->retroTerminalSchemePhosphor && _api.s->retroTerminalContrastGuard && _api.s->retroTerminalTintIntensity > 0 &&
             _api.s->misc->useRetroTerminalEffect && _api.s->misc->customPixelShaderPath.empty();
         u32 newSelectionColor{ static_cast<COLORREF>(info.selectionBackground) | 0xff000000 };
         // Keep a visible selection cue after monochrome mapping: dark glyphs on
@@ -670,6 +670,13 @@ try
     fg |= 0xff000000;
     ul |= 0xff000000;
     bg |= _api.backgroundOpaqueMixin;
+    if (_api.defaultBackgroundAlpha >= 0 && textAttributes.BackgroundIsDefault() &&
+        !(textAttributes.IsReverseVideo() ^ renderSettings.GetRenderMode(RenderSettings::Mode::ScreenReversed)) && !textAttributes.IsInvisible())
+    {
+        // Keep this straight RGBA here. _fillColorBitmap and the backend's
+        // clear-color conversion each premultiply their respective copy once.
+        bg = (bg & 0x00ffffff) | (static_cast<u32>(_api.defaultBackgroundAlpha) << 24);
+    }
 
     if (!isSettingDefaultBrushes)
     {

@@ -100,6 +100,8 @@ namespace SettingsModelUnitTests
     void SetupTransferTests::BackslashPhosphorContrastGuard()
     {
         auto input = Settings();
+        input["profiles"]["defaults"]["experimental.retroTerminalSchemePhosphor"] = true;
+        input["profiles"]["list"][0]["experimental.retroTerminalSchemePhosphor"] = false;
         input["profiles"]["defaults"]["experimental.retroTerminalContrastGuard"] = true;
         input["profiles"]["list"][0]["experimental.retroTerminalContrastGuard"] = false;
         input["profiles"]["list"][0]["unfocusedAppearance"]["experimental.retroTerminalContrastGuard"] = true;
@@ -108,8 +110,11 @@ namespace SettingsModelUnitTests
         using namespace winrt::Microsoft::Terminal::Settings::Model;
         const auto model = winrt::make_self<implementation::CascadiaSettings>(S::JsonText(plan.settings));
         VERIFY_IS_TRUE(model->ProfileDefaults().DefaultAppearance().RetroTerminalContrastGuard());
+        VERIFY_IS_TRUE(model->ProfileDefaults().DefaultAppearance().RetroTerminalSchemePhosphor());
         const auto profile = model->FindProfile(::Microsoft::Console::Utils::GuidFromString(winrt::to_hstring(A).c_str()));
         VERIFY_IS_FALSE(profile.DefaultAppearance().RetroTerminalContrastGuard());
+        VERIFY_IS_FALSE(profile.DefaultAppearance().RetroTerminalSchemePhosphor());
+        VERIFY_IS_TRUE(profile.DefaultAppearance().HasRetroTerminalSchemePhosphor());
         VERIFY_IS_TRUE(profile.DefaultAppearance().HasRetroTerminalContrastGuard());
         VERIFY_IS_TRUE(profile.UnfocusedAppearance().RetroTerminalContrastGuard());
         VERIFY_IS_TRUE(profile.UnfocusedAppearance().HasRetroTerminalContrastGuard());

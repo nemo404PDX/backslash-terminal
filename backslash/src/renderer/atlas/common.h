@@ -411,6 +411,7 @@ namespace Microsoft::Console::Render::Atlas
         f32 retroTerminalGlowIntensity = 0.15f;
         bool retroTerminalScanlineWhite = false;
         bool retroTerminalContrastGuard = true;
+        bool retroTerminalSchemePhosphor = false;
         f32 retroTerminalScanlineIntensity = 0.10f;
         f32 retroTerminalScanlineThickness = 4.0f;
         f32 retroTerminalScanlineGap = 4.0f;

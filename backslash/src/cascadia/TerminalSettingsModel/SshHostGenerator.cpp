@@ -8,6 +8,8 @@
 
 #include "DynamicProfileUtils.h"
 #include "SshCommandline.h"
+#include "FileUtils.h"
+#include <atomic>
 
 static constexpr std::wstring_view SshHostGeneratorNamespace{ L"Windows.Terminal.SSH" };
 
@@ -135,6 +137,7 @@ std::wstring_view SshHostGenerator::GetIcon() const noexcept
 // - <A list of SSH host profiles.>
 void SshHostGenerator::GenerateProfiles(std::vector<winrt::com_ptr<implementation::Profile>>& profiles) const
 {
+    if (!_explicitScan && !HostDiscoveryEnabled()) { return; }
     std::wstring sshExePath;
     if (_tryFindSshExePath(sshExePath))
     {
@@ -143,7 +146,13 @@ void SshHostGenerator::GenerateProfiles(std::vector<winrt::com_ptr<implementatio
         _getHostNamesFromConfigFile(SSH_SYSTEM_CONFIG_PATH, hostNames);
         _getHostNamesFromConfigFile(SSH_USER_CONFIG_PATH, hostNames);
 
+        const auto start = profiles.size();
         GenerateForHosts(sshExePath, hostNames, profiles);
+        for (auto& profile : std::span{ profiles }.subspan(start))
+        {
+            profile->SessionOnly(true);
+            profile->Name(L"This computer: " + profile->Name());
+        }
     }
 }
 
@@ -178,4 +187,33 @@ void SshHostGenerator::GenerateForHosts(std::wstring_view sshExePath, const std:
             profiles.emplace_back(std::move(profile));
         }
     }
+}
+
+namespace
+{
+    std::atomic<bool>& HostDiscovery()
+    {
+        static std::atomic<bool> enabled{ false };
+        return enabled;
+    }
+}
+bool SshHostGenerator::HostDiscoveryEnabled() { return HostDiscovery().load(); }
+void SshHostGenerator::HostDiscoveryEnabled(bool enabled) { HostDiscovery().store(enabled); }
+::Microsoft::Terminal::Backslash::WorkspaceSsh::Review SshHostGenerator::ReviewImport(const std::string& alias)
+{
+    const auto read = [](std::wstring_view name) {
+        const auto path = wil::ExpandEnvironmentStringsW<std::wstring>(name.data());
+        std::error_code error;
+        if (!std::filesystem::exists(path, error))
+        {
+            if (error) { throw std::runtime_error("SSH configuration could not be read."); }
+            return std::string{};
+        }
+        if (std::filesystem::file_size(path) > 1024 * 1024) { throw std::runtime_error("SSH configuration exceeds the 1 MiB import limit."); }
+        std::ifstream file{ std::filesystem::path{ path }, std::ios::binary };
+        if (!file) { throw std::runtime_error("SSH configuration could not be read."); }
+        return std::string{ std::istreambuf_iterator<char>{ file }, {} };
+    };
+    const auto user = read(SSH_USER_CONFIG_PATH), system = read(SSH_SYSTEM_CONFIG_PATH);
+    return ::Microsoft::Terminal::Backslash::WorkspaceSsh::Preview(alias, user, system, winrt::to_string(wil::ExpandEnvironmentStringsW<std::wstring>(L"%USERNAME%")));
 }

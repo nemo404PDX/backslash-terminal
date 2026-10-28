@@ -29,6 +29,7 @@
     X(float, RetroTerminalGlowIntensity, 0.15f) \
     X(bool, RetroTerminalScanlineWhite, false) \
     X(bool, RetroTerminalContrastGuard, true) \
+    X(bool, RetroTerminalSchemePhosphor, false) \
     X(float, RetroTerminalScanlineIntensity, 0.10f) \
     X(float, RetroTerminalScanlineThickness, 4.0f) \
     X(float, RetroTerminalScanlineGap, 4.0f) \

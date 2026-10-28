@@ -16,6 +16,8 @@
 #include "VisualStudioGenerator.h"
 #include "WslDistroGenerator.h"
 #include "SshHostGenerator.h"
+#include "HostSshVisibility.h"
+#include "DynamicProfileUtils.h"
 
 #include "ApplicationState.h"
 #include "DefaultTerminal.h"
@@ -179,7 +181,7 @@ std::vector<winrt::com_ptr<Profile>> SettingsLoader::GenerateProfilesFor(const I
 
 winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSettings::ScanSshProfiles()
 {
-    return ScanSshProfiles(SshHostGenerator{});
+    return ScanSshProfiles(SshHostGenerator{true});
 }
 
 winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSettings::ScanSshProfiles(const IDynamicProfileGenerator& generator)
@@ -192,13 +194,40 @@ winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSet
             // Reuse disabledProfileSources and policy filtering, but never layer/reload settings
             // or touch ApplicationState. Unsaved edits remain in the caller's clone.
             SettingsLoader loader{ Json::writeString(Json::StreamWriterBuilder{}, ToJson()), "{}" };
-            _sshScanCandidates = loader.GenerateProfilesFor(generator);
+            if (loader.IsProfileSourceEnabled(L"Backslash.Terminal.SSH")) { _sshScanCandidates = loader.GenerateProfilesFor(generator); }
         }
     }
+    namespace W = ::Microsoft::Terminal::Backslash::WorkspaceSsh;
+    auto collection = ToJson()["backslash.sshConnections"];
+    if (collection.isNull()) { collection = Json::Value{Json::arrayValue}; }
+    const auto records = W::ReadRecords(collection);
+    const auto preferences = _globals->HostSshProfileVisibility();
+    std::set<std::string> seen;
+    std::erase_if(_sshScanCandidates, [&](const auto& candidate) {
+        std::wstring exe, alias;
+        if (!SshCommandline::Base(candidate->Commandline(), exe, alias) || !seen.insert(W::Lower(winrt::to_string(alias))).second) { return true; }
+        // Includes hidden, legacy and compatibility-adopted profiles. A scan must
+        // never resurrect a duplicate just because it isn't in the launch menu.
+        if (const auto owned = FindProfile(candidate->Guid()); owned && !owned.Deleted()) { return true; }
+        return std::any_of(records.begin(), records.end(), [&](const auto& r) { return W::Lower(r.alias) == W::Lower(winrt::to_string(alias)); });
+    });
     std::vector<Model::Profile> candidates;
-    for (const auto& candidate : _sshScanCandidates)
+    for (auto& candidate : _sshScanCandidates)
     {
-        // Return copies: callers cannot change the generated launch target cached for restore.
+        candidate = CreateChild(candidate);
+        candidate->Source(L"Windows.Terminal.SSH" );
+        candidate->AddMostImportantParent(_baseLayerProfile);
+        candidate->_FinalizeInheritance();
+        const auto id = winrt::to_string(::Microsoft::Console::Utils::GuidToString(candidate->Guid()));
+        if (preferences.isMember(id))
+        {
+            candidate->LayerJson(::Microsoft::Terminal::Backslash::HostSshVisibility::Preferences(preferences[id]));
+            if (preferences[id].isMember("remoteShell"))
+            {
+                if (!candidate->SetSshShell(preferences[id]["remoteShell"].asInt(), winrt::to_hstring(preferences[id].get("remoteCommand", "").asString())))
+                { throw std::invalid_argument("Invalid saved SSH shell preference."); }
+            }
+        }
         candidates.emplace_back(*candidate->CopySettings());
     }
     return winrt::single_threaded_vector(std::move(candidates)).GetView();
@@ -206,59 +235,182 @@ winrt::Windows::Foundation::Collections::IVectorView<Model::Profile> CascadiaSet
 
 Model::Profile CascadiaSettings::RestoreSshProfile(const winrt::guid& guid)
 {
+    // Import only a selected candidate into this Settings draft. Disk and the
+    // running application's model are untouched until the ordinary atomic Save.
+    SettingsLoader policy{Json::writeString(Json::StreamWriterBuilder{}, ToJson()), "{}"};
+    if (!policy.IsProfileSourceEnabled(L"Windows.Terminal.SSH") || !policy.IsProfileSourceEnabled(L"Backslash.Terminal.SSH")) { throw std::invalid_argument("SSH connections are disabled by settings or policy. Nothing was imported."); }
     const auto found = std::find_if(_sshScanCandidates.begin(), _sshScanCandidates.end(), [&](const auto& p) { return p->Guid() == guid; });
-    if (found == _sshScanCandidates.end())
+    if (found == _sshScanCandidates.end()) { return nullptr; }
+    namespace W = ::Microsoft::Terminal::Backslash::WorkspaceSsh;
+    std::wstring exe, alias;
+    if (!SshCommandline::Base((*found)->SshBaseCommandline(), exe, alias) || !W::Atom(winrt::to_string(alias)))
+    { throw std::invalid_argument("This SSH alias cannot be saved. Use a simple alias or create a profile manually."); }
+    auto value = ToJson()["backslash.sshConnections"];
+    if (value.isNull()) { value = Json::Value{Json::arrayValue}; }
+    const auto records = W::ReadRecords(value);
+    for (const auto& r : records)
     {
-        return nullptr;
+        if (W::Lower(r.alias) == W::Lower(winrt::to_string(alias))) { return nullptr; }
     }
-    const auto& candidate = *found;
-    auto existing = FindProfile(guid);
-    if (existing && existing.Source() != candidate->Source())
-    {
-        return nullptr; // Never replace an unrelated profile that happens to share the GUID.
-    }
-    winrt::com_ptr<Profile> restored;
-    uint32_t index = 0;
-    if (existing && !existing.Deleted())
-    {
-        restored.copy_from(winrt::get_self<Profile>(existing));
-        restored->ClearParents();
-        restored->AddLeastImportantParent(candidate);
-    }
-    else
-    {
-        restored = CreateChild(candidate); // A deleted profile returns with generated defaults.
-        if (existing && _allProfiles.IndexOf(existing, index))
-        {
-            _allProfiles.RemoveAt(index);
-        }
-        else
-        {
-            index = _allProfiles.Size();
-        }
-    }
-    restored->AddMostImportantParent(_baseLayerProfile);
-    restored->_FinalizeInheritance();
-    restored->Deleted(false);
-    restored->Orphaned(false);
-    restored->Hidden(false);
-    if (!existing || existing.Deleted())
-    {
-        _allProfiles.InsertAt(index, *restored);
-    }
-    // Refresh collections without duplicate GUIDs, including a stale deleted active entry.
-    for (uint32_t i = _activeProfiles.Size(); i > 0; --i)
-    {
-        if (_activeProfiles.GetAt(i - 1).Guid() == guid)
-        {
-            _activeProfiles.RemoveAt(i - 1);
-        }
-    }
-    _activeProfiles.Append(*restored);
-    _resolveDefaultProfile();
+    if (const auto owned = FindProfile(guid); owned && !owned.Deleted()) { return nullptr; }
+    const W::Record record{winrt::to_string(alias), {}, {}, 22, true};
+    value.append(W::Value(record));
+    (void)W::ReadRecords(value); // Capacity and complete schema before mutation.
+    const auto name = winrt::to_hstring("Workspace SSH - " + record.alias);
+    auto generated = CreateDynamicProfile(name);
+    if (FindProfile(generated->Guid())) { throw std::invalid_argument("An existing profile uses this SSH identity. Nothing was changed."); }
+    generated->Origin(OriginTag::Generated); generated->Source(winrt::hstring{W::Source});
+    generated->Name(winrt::to_hstring("SSH - " + record.alias + " (this computer)"));
+    generated->Commandline(winrt::hstring{W::BaseCommand(record, L"%BACKSLASH_SSH_EXE%")});
+    generated->Icon(MediaResource::FromString(winrt::hstring{L"\xE977"}));
+    auto child = CreateChild(generated);
+    child->Source(winrt::hstring{W::Source});
+    child->AddMostImportantParent(_baseLayerProfile); child->_FinalizeInheritance();
+    child->LayerJson(::Microsoft::Terminal::Backslash::HostSshVisibility::Preferences((*found)->ToJson()));
+    const auto shell = (*found)->SshShell();
+    if (shell >= 0 && !child->SetSshShell(shell, (*found)->SshCustomCommand())) { throw std::invalid_argument("Invalid SSH shell preference."); }
+    _globals->WorkspaceSshConnectionsJson(winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, value)));
+    _allProfiles.Append(*child);
+    if (!child->Hidden()) { _activeProfiles.Append(*child); }
     _resolveNewTabMenuProfiles();
-    _validateMediaResources();
-    return *restored;
+    return *child;
+}
+
+namespace
+{
+    using winrt::Microsoft::Terminal::Settings::Model::SshHostGenerator;
+    using winrt::Microsoft::Terminal::Settings::Model::OriginTag;
+    std::vector<::Microsoft::Terminal::Backslash::WorkspaceSsh::Record> WorkspaceRecords(const winrt::hstring& json)
+    {
+        Json::Value value; const auto text = winrt::to_string(json); Json::CharReaderBuilder builder;
+        builder["rejectDupKeys"] = true; builder["failIfExtra"] = true;
+        const std::unique_ptr<Json::CharReader> reader{ builder.newCharReader() }; std::string errors;
+        if (text.size() > 1024 * 1024 || !reader->parse(text.data(), text.data() + text.size(), &value, &errors)) { throw std::invalid_argument("Invalid workspace SSH configuration."); }
+        return ::Microsoft::Terminal::Backslash::WorkspaceSsh::ReadRecords(value);
+    }
+    void GenerateWorkspaceSshProfiles(std::vector<winrt::com_ptr<Profile>>& profiles, const winrt::hstring& json, bool disabled)
+    {
+        if (disabled) { return; }
+        const auto records = WorkspaceRecords(json);
+        if (records.empty()) { return; }
+        namespace W = ::Microsoft::Terminal::Backslash::WorkspaceSsh;
+        std::wstring exe;
+        // A workspace connection remains visible if OpenSSH is absent; launching
+        // then reports the missing Windows client instead of dropping the record.
+        if (!SshHostGenerator::FindSshExe(exe)) { exe = L"%SystemRoot%\\System32\\OpenSSH\\ssh.exe"; }
+        const auto resolvedExe = wil::ExpandEnvironmentStringsW<std::wstring>(exe.c_str());
+        THROW_IF_WIN32_BOOL_FALSE(SetEnvironmentVariableW(L"BACKSLASH_SSH_EXE", resolvedExe.c_str()));
+        for (const auto& record : records)
+        {
+            const auto name = winrt::to_hstring("Workspace SSH - " + record.alias);
+            auto profile = CreateDynamicProfile(name);
+            if (!record.profile.empty())
+            {
+                const winrt::guid id{winrt::to_hstring(record.profile)};
+                if (id != CreateDynamicProfile(winrt::to_hstring("SSH - " + record.alias))->Guid()) { throw std::invalid_argument("Saved SSH alias has an unrelated profile identity."); }
+                profile->Guid(id);
+            }
+            profile->Origin(OriginTag::Generated); profile->Source(record.profile.empty() ? winrt::hstring{W::Source} : winrt::hstring{L"Windows.Terminal.SSH"});
+            profile->Name(record.hostAlias ? winrt::to_hstring("SSH - " + record.alias + " (this computer)") : name); profile->Commandline(winrt::hstring{ W::BaseCommand(record, L"%BACKSLASH_SSH_EXE%") });
+            profile->Icon(MediaResource::FromString(winrt::hstring{ L"\xE977" })); profiles.push_back(std::move(profile));
+        }
+    }
+}
+
+bool CascadiaSettings::HostSshDiscoveryEnabled() { return SshHostGenerator::HostDiscoveryEnabled(); }
+void CascadiaSettings::HostSshDiscoveryEnabled(bool enabled) { SshHostGenerator::HostDiscoveryEnabled(enabled); }
+winrt::hstring CascadiaSettings::_ReviewSshImport(const winrt::guid& guid, const ::Microsoft::Terminal::Backslash::WorkspaceSsh::Review& review)
+{
+    _sshImportRecord.reset(); _sshImportGuid = {}; _sshImportBaseline = {};
+    const auto profile = FindProfile(guid);
+    if (!HostSshDiscoveryEnabled() || !profile || profile.Source() != L"Windows.Terminal.SSH" || !profile.HasSshShellSelector()) { return L"Enable this computer's connections and select a discovered SSH profile first."; }
+    if (profile.SshShell() < 0 || profile.SshShell() > 3) { return L"Custom or advanced SSH command lines cannot be imported safely. Keep this connection on this computer or configure the workspace connection explicitly; no options were discarded."; }
+    // DisabledProfileSources/policy still govern the cached host profile and import.
+    SettingsLoader policy{ winrt::to_string(ExplicitSettingsJson()), "{}" };
+    if (!policy.IsProfileSourceEnabled(L"Windows.Terminal.SSH") || !policy.IsProfileSourceEnabled(L"Backslash.Terminal.SSH")) { return L"SSH discovery or workspace connections are disabled by settings or policy."; }
+    if (!review.record) { return winrt::to_hstring(review.Description()); }
+    const auto existingRecords = WorkspaceRecords(_globals->WorkspaceSshConnectionsJson());
+    for (const auto& existing : existingRecords)
+    {
+        if (::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(existing.alias) == ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(review.record->alias))
+        {
+            return ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(existing.host) == ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(review.record->host) && existing.user == review.record->user && existing.port == review.record->port ? L"This connection is already in the workspace. Nothing will be added." : L"A workspace connection already uses this alias with different connection details. Nothing will be overwritten. Resolve the alias conflict before importing.";
+        }
+    }
+    const auto proposedName = winrt::to_hstring("Workspace SSH - " + review.record->alias);
+    for (const auto& entry : _allProfiles)
+    {
+        if (til::equals_insensitive_ascii(std::wstring_view{ entry.Name() }, std::wstring_view{ proposedName })) { return L"A profile already uses this workspace SSH name. Rename that profile before importing; nothing was changed."; }
+    }
+    if (FindProfile(CreateDynamicProfile(proposedName)->Guid())) { return L"A profile already uses this workspace connection identity. Nothing will be overwritten."; }
+    if (existingRecords.size() >= 512) { return L"The workspace already has 512 SSH connections. Remove a connection before importing another; nothing was changed."; }
+    _sshImportRecord = review.record; _sshImportGuid = guid; _sshImportBaseline = ExplicitSettingsJson() + L"\n" + winrt::to_hstring(profile.SshShell());
+    const std::array<std::string_view, 4> shells{ "SSH/server default", "Server default with terminal", "Bash", "PowerShell 7" };
+    return winrt::to_hstring(review.Description() + "\nRemote shell retained: " + std::string{ shells[profile.SshShell()] } + ".");
+}
+winrt::hstring CascadiaSettings::PreviewSshImport(const winrt::guid& guid)
+{
+    _sshImportRecord.reset();
+    // An off/disabled source must not even read host configuration on preview.
+    if (!HostSshDiscoveryEnabled()) { return L"Enable this computer's SSH connections before importing."; }
+    SettingsLoader policy{ winrt::to_string(ExplicitSettingsJson()), "{}" };
+    if (!policy.IsProfileSourceEnabled(L"Windows.Terminal.SSH") || !policy.IsProfileSourceEnabled(L"Backslash.Terminal.SSH")) { return L"SSH discovery or workspace connections are disabled by settings or policy."; }
+
+    const auto profile = FindProfile(guid); std::wstring exe, alias;
+    if (!profile || profile.Source() != L"Windows.Terminal.SSH" || !SshCommandline::Base(profile.SshBaseCommandline(), exe, alias)) { return L"Select a supported discovered SSH profile."; }
+    if (profile.SshShell() < 0 || profile.SshShell() > 3) { return L"Custom or advanced SSH command lines cannot be imported safely. No host configuration was read and no options were discarded."; }
+    return _ReviewSshImport(guid, SshHostGenerator::ReviewImport(winrt::to_string(alias)));
+}
+winrt::hstring CascadiaSettings::PreviewSshImport(const winrt::guid& guid, std::string_view userConfig, std::string_view systemConfig, std::string defaultUser)
+{
+    const auto profile = FindProfile(guid); std::wstring exe, alias;
+    _sshImportRecord.reset();
+    if (!profile || !SshCommandline::Base(profile.SshBaseCommandline(), exe, alias)) { return L"Select a supported discovered SSH profile."; }
+    return _ReviewSshImport(guid, ::Microsoft::Terminal::Backslash::WorkspaceSsh::Preview(winrt::to_string(alias), userConfig, systemConfig, std::move(defaultUser)));
+}
+Model::Profile CascadiaSettings::ImportSshProfile(const winrt::guid& guid)
+{
+    const auto source = FindProfile(guid); const auto shell = source ? source.SshShell() : -1;
+    if (!_sshImportRecord || guid != _sshImportGuid || !HostSshDiscoveryEnabled() || shell < 0 || shell > 3 || _sshImportBaseline != ExplicitSettingsJson() + L"\n" + winrt::to_hstring(shell)) { throw std::invalid_argument("The import review expired. Review the connection again; nothing was changed."); }
+    auto records = WorkspaceRecords(_globals->WorkspaceSshConnectionsJson());
+    Json::Value value{ Json::arrayValue }; for (const auto& r : records) { value.append(::Microsoft::Terminal::Backslash::WorkspaceSsh::Value(r)); }
+    value.append(::Microsoft::Terminal::Backslash::WorkspaceSsh::Value(*_sshImportRecord));
+    (void)::Microsoft::Terminal::Backslash::WorkspaceSsh::ReadRecords(value); // Validate the complete prospective collection before any draft mutation.
+    // Construct before modifying the draft; restore uses a separate workspace GUID/source.
+    std::vector<winrt::com_ptr<Profile>> generated;
+    Json::Value single{ Json::arrayValue }; single.append(::Microsoft::Terminal::Backslash::WorkspaceSsh::Value(*_sshImportRecord));
+    GenerateWorkspaceSshProfiles(generated, winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, single)), false);
+    const auto candidate = generated.front();
+    if (FindProfile(candidate->Guid())) { throw std::invalid_argument("A profile already uses this workspace connection identity. Nothing was overwritten."); }
+    auto child = CreateChild(candidate); child->AddMostImportantParent(_baseLayerProfile); child->_FinalizeInheritance();
+    const auto legacy = winrt::get_self<Profile>(source);
+    auto overrides = legacy->ToJson();
+    // Identity/launch belong to the reviewed endpoint; all other explicit
+    // fields (including visibility, appearance and environment) are retained.
+    for (const auto* key : {"guid", "source", "updates", "commandline"}) { overrides.removeMember(key); }
+    if (overrides["name"] == legacy->SessionBaseline()["name"]) { overrides.removeMember("name"); }
+    child->LayerJson(overrides);
+    if (!child->SetSshShell(shell, {})) { throw std::invalid_argument("The imported shell could not be preserved. Nothing was changed."); }
+    _globals->WorkspaceSshConnectionsJson(winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, value)));
+    _allProfiles.Append(*child);
+    if (!child->Hidden()) { _activeProfiles.Append(*child); }
+    legacy->SessionBaseline(legacy->ToJson());
+    _sshImportRecord.reset();
+    _resolveNewTabMenuProfiles(); return *child;
+}
+
+void SettingsLoader::GenerateWorkspaceProfiles()
+{
+    const auto records = WorkspaceRecords(userSettings.globals->WorkspaceSshConnectionsJson());
+    std::erase_if(inboxSettings.profiles, [&](const auto& profile) {
+        if (!profile->IsTransientHostSsh()) { return false; }
+        std::wstring exe, alias;
+        if (!SshCommandline::Base(profile->Commandline(), exe, alias)) { return false; }
+        return std::any_of(records.begin(), records.end(), [&](const auto& record) {
+            return ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(record.alias) == ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(winrt::to_string(alias));
+        });
+    });
+    GenerateWorkspaceSshProfiles(inboxSettings.profiles, userSettings.globals->WorkspaceSshConnectionsJson(), _ignoredNamespaces.contains(L"Windows.Terminal.SSH") || _ignoredNamespaces.contains(L"Backslash.Terminal.SSH"));
 }
 
 // Generate dynamic profiles and add them to the list of "inbox" profiles
@@ -283,7 +435,8 @@ void SettingsLoader::GenerateProfiles()
     generateProfiles(VisualStudioGenerator{});
     if constexpr (Feature_DynamicSSHProfiles::IsEnabled())
     {
-        sshProfilesGenerated = generateProfiles(SshHostGenerator{});
+        // Host configuration is read only by an explicit Settings scan. Never on startup/reload.
+        GenerateWorkspaceProfiles();
     }
 }
 
@@ -325,7 +478,7 @@ void SettingsLoader::GenerateExtensionPackagesFromProfileGenerators()
     generateExtensionPackages(VisualStudioGenerator{});
     if constexpr (Feature_DynamicSSHProfiles::IsEnabled())
     {
-        generateExtensionPackages(SshHostGenerator{});
+        if (!_ignoredNamespaces.contains(L"Windows.Terminal.SSH")) { generateExtensionPackages(SshHostGenerator{}); }
     }
 }
 
@@ -425,6 +578,7 @@ void SettingsLoader::FinalizeLayering()
     // Layer default profile defaults -> user profile defaults
     userSettings.baseLayerProfile->AddLeastImportantParent(inboxSettings.baseLayerProfile);
     userSettings.baseLayerProfile->_FinalizeInheritance();
+    const auto hostVisibility = userSettings.globals->HostSshProfileVisibility();
     // Layer user profile defaults -> user profiles
     for (const auto& profile : userSettings.profiles)
     {
@@ -432,6 +586,19 @@ void SettingsLoader::FinalizeLayering()
 
         // This completes the parenting process that was started in _addUserProfileParent().
         profile->_FinalizeInheritance();
+        if (profile->SessionOnly() && profile->Source() == L"Windows.Terminal.SSH")
+        {
+            const auto id = winrt::to_string(::Microsoft::Console::Utils::GuidToString(profile->Guid()));
+            if (hostVisibility.isMember(id))
+            {
+                const auto& preferences = hostVisibility[id];
+                profile->LayerJson(::Microsoft::Terminal::Backslash::HostSshVisibility::Preferences(preferences));
+                if (preferences.isMember("remoteShell"))
+                {
+                    if (!profile->SetSshShell(preferences["remoteShell"].asInt(), winrt::to_hstring(preferences.get("remoteCommand", "").asString()))) { throw std::invalid_argument("Saved remote SSH shell cannot be applied to this discovered connection."); }
+                }
+            }
+        }
         if (profile->Origin() == OriginTag::None)
         {
             // If you add more fields here, make sure to do the same in
@@ -440,6 +607,7 @@ void SettingsLoader::FinalizeLayering()
             profile->Name(profile->Name());
             profile->Hidden(profile->Hidden());
         }
+        if (profile->IsTransientHostSsh()) { profile->SessionBaseline(profile->ToJson()); }
     }
 }
 
@@ -464,6 +632,7 @@ bool SettingsLoader::DisableDeletedProfiles(ApplicationState& state)
 
     for (const auto& profile : _getNonUserOriginProfiles())
     {
+        if (profile->SessionOnly() || profile->Source() == L"Backslash.Terminal.SSH") { continue; }
         if (generatedProfileIds.emplace(profile->Guid()).second)
         {
             newGeneratedProfiles = true;
@@ -1036,6 +1205,7 @@ void SettingsLoader::_addUserProfileParent(const winrt::com_ptr<implementation::
         // If you add more fields here, make sure to do the same in
         // implementation::CreateChild().
         auto child = winrt::make_self<Profile>();
+        child->SessionOnly(profile->SessionOnly());
         child->AddLeastImportantParent(profile);
         child->Guid(profile->Guid());
 
@@ -1595,6 +1765,7 @@ bool CascadiaSettings::WriteSettingsToDisk(const std::function<void(std::string_
 
     try
     {
+        _validateTransientHostEdits();
         writer(Json::writeString(wbuilder, ToJson()));
         // A host added by Scan while the app is open may not have been seen at startup.
         // Mark only successfully saved SSH entries; never erase unrelated seen GUIDs.
@@ -1602,7 +1773,7 @@ bool CascadiaSettings::WriteSettingsToDisk(const std::function<void(std::string_
         bool changed = false;
         for (const auto& profile : _allProfiles)
         {
-            if (profile.Source() == L"Windows.Terminal.SSH" && !profile.Deleted() && !profile.Orphaned())
+            if (profile.Source() == L"Windows.Terminal.SSH" && !winrt::get_self<Profile>(profile)->SessionOnly() && !profile.Deleted() && !profile.Orphaned())
             {
                 changed |= seen.emplace(profile.Guid()).second;
             }
@@ -1679,7 +1850,7 @@ bool CascadiaSettings::EqualsForGroupSave(const winrt::Microsoft::Terminal::Sett
     return before == after;
 }
 
-Json::Value CascadiaSettings::ToJson(bool preserveExplicit) const
+Json::Value CascadiaSettings::ToJson(bool preserveExplicit, bool materializeSshOwnership) const
 {
     // top-level json object
     auto json{ _globals->ToJson(preserveExplicit) };
@@ -1699,14 +1870,64 @@ Json::Value CascadiaSettings::ToJson(bool preserveExplicit) const
     // "profiles" will always be serialized as an object
     Json::Value profiles{ Json::ValueType::objectValue };
     profiles[JsonKey(DefaultSettingsKey)] = _baseLayerProfile ? _baseLayerProfile->ToJson() : Json::ValueType::objectValue;
+    auto hostVisibility = _globals->HostSshProfileVisibility();
+    auto sshConnections = json.get("backslash.sshConnections", Json::Value{Json::arrayValue});
+    if (sshConnections.isNull()) { sshConnections = Json::Value{Json::arrayValue}; }
     Json::Value profilesList{ Json::ValueType::arrayValue };
     for (const auto& entry : _allProfiles)
     {
-        if (!entry.Deleted())
+        const auto transient = winrt::get_self<Profile>(entry);
+        if (materializeSshOwnership && !entry.Deleted() && transient->IsTransientHostSsh() && transient->ToJson() != transient->SessionBaseline())
+        {
+            // Compatibility: Save adopts an edited discovery (including Hide) into the existing collection.
+            // Keep its GUID and every explicit override; materialize only the
+            // generated launch fields so profile defaults remain inherited.
+            auto owned = transient->ToJson();
+            owned["source"] = winrt::to_string(entry.Source());
+            owned["name"] = winrt::to_string(entry.Name());
+            owned["commandline"] = winrt::to_string(entry.Commandline());
+            std::wstring exe, alias;
+            bool imported = false;
+            if (SshCommandline::Base(transient->SshBaseCommandline(), exe, alias))
+            {
+                const auto& collection = sshConnections;
+                if (collection.isArray())
+                {
+                    for (const auto& r : ::Microsoft::Terminal::Backslash::WorkspaceSsh::ReadRecords(collection))
+                    {
+                        imported |= ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(r.alias) == ::Microsoft::Terminal::Backslash::WorkspaceSsh::Lower(winrt::to_string(alias));
+                    }
+                }
+            }
+            if (imported)
+            {
+                throw std::invalid_argument("The edited SSH profile '" + winrt::to_string(alias) + "' conflicts with an already saved connection. Edit the saved connection or discard the conflicting draft. Nothing was saved.");
+            }
+            {
+                namespace W = ::Microsoft::Terminal::Backslash::WorkspaceSsh;
+                if (!W::Atom(winrt::to_string(alias))) { throw std::invalid_argument("The edited SSH profile has an unsupported alias. Create a profile manually; nothing was saved."); }
+                const W::Record adopted{winrt::to_string(alias), {}, {}, 22, true, winrt::to_string(winrt::to_hstring(entry.Guid()))};
+                sshConnections.append(W::Value(adopted));
+                if (const auto shell = transient->SshShell(); shell >= 0)
+                {
+                    const auto rebuilt = SshCommandline::Build(W::BaseCommand(adopted, L"%BACKSLASH_SSH_EXE%"), shell, transient->SshCustomCommand());
+                    if (!rebuilt) { throw std::invalid_argument("Invalid SSH shell selection. Nothing was saved."); }
+                    owned["commandline"] = winrt::to_string(*rebuilt);
+                }
+                (void)W::ReadRecords(sshConnections);
+                profilesList.append(std::move(owned));
+            }
+        }
+        if (!entry.Deleted() && !winrt::get_self<Profile>(entry)->SessionOnly())
         {
             const auto prof{ winrt::get_self<Profile>(entry) };
             profilesList.append(prof->ToJson());
         }
+    }
+    if (!sshConnections.empty() || json.isMember("backslash.sshConnections")) { json["backslash.sshConnections"] = std::move(sshConnections); }
+    if (!hostVisibility.empty() || json.isMember(::Microsoft::Terminal::Backslash::HostSshVisibility::Key))
+    {
+        json[::Microsoft::Terminal::Backslash::HostSshVisibility::Key] = ::Microsoft::Terminal::Backslash::HostSshVisibility::Read(hostVisibility);
     }
     profiles[JsonKey(ProfilesListKey)] = profilesList;
     json[JsonKey(ProfilesKey)] = profiles;
@@ -1988,4 +2209,10 @@ void CascadiaSettings::LogSettingChanges(bool isJsonLoad) const
                               TelemetryPrivacyDataTag(PDT_ProductAndServiceUsage));
         }
     }
+}
+
+void CascadiaSettings::_validateTransientHostEdits() const
+{
+    // Edited discoveries are serialized as owned SSH records by ToJson. No import
+    // prerequisite is imposed on explicit command/environment overrides.
 }

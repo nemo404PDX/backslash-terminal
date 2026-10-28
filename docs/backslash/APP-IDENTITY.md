@@ -1,5 +1,7 @@
 # Backslash application identity and coexistence plan
 
+This is a historical identity plan. Current portable Backslash Dev executable/artwork identity and a published preview exist; installed-package identity and signing remain separate. See [portable implementation](PORTABLE-IMPLEMENTATION.md) and [release/development status](DEVELOPMENT-STATUS.md). Later App/Data relocation and tool discovery remain design work.
+
 [Project entry point](README.md) · [Roadmap](ROADMAP.md) · [Provenance](UPSTREAM-SOURCE.md) · [Brand concept](../../backslash/branding/concepts/README.md)
 
 Status: **docs-only proposal**, based on inspection of stable v1.25.2733.0, commit dc8ae365847d41f62d1ebca93815bb00959bc12f. No application identifiers, resources, manifest, source, keys, certificates or registration were changed by this task. A separate build task may run against the unchanged implementation; this document does not report or authorize its actions.
@@ -70,4 +72,3 @@ Package registration, enabling Developer Mode, certificate trust, alias installa
 7. For packaged work only after approval: verify unique identity, real certificate/publisher, helper/alias/COM alignment, side-by-side install/update/uninstall and explicit settings retention/import behavior.
 
 Retain before/after path and registration observations for future authorized tests. Static source inspection cannot certify coexistence or installability; no test was executed in this documentation task.
-

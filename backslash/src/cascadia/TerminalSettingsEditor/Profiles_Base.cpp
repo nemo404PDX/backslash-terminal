@@ -80,6 +80,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // Programmatic refresh/navigation must never apply a choice or clear an override.
         _updatingSshSelection = true;
         const auto model = winrt::get_self<ProfileViewModel>(_Profile)->ModelProfile();
+        ImportWorkspaceSshPanel().Visibility(model.Source() == L"Windows.Terminal.SSH" && Model::CascadiaSettings::HostSshDiscoveryEnabled() ? Visibility::Visible : Visibility::Collapsed);
+        HostSshCommandlineBox().IsEnabled(true);
+        HostSshCommandlineBrowse().IsEnabled(true);
+        HostSshAdvancedHelp().Visibility(Visibility::Collapsed);
         const auto mode = model.SshShell();
         SshShellPanel().Visibility(model.HasSshShellSelector() ? Visibility::Visible : Visibility::Collapsed);
         SshShellChoice().SelectedIndex(mode);
@@ -224,5 +228,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         {
             _Profile.StartingDirectory(folder);
         }
+    }
+}
+
+namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
+{
+    void Profiles_Base::ImportWorkspaceSshClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (const auto root = _weakWindowRoot.get()) { root.ImportSshConnection(_Profile.Guid()); }
     }
 }

@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "SettingsPaneContent.h"
+#include "SettingsViewHost.h"
 #include "Utils.h"
 
 using namespace winrt::Windows::Foundation;
@@ -22,6 +23,8 @@ namespace winrt::TerminalApp::implementation
         _requestedTheme = settings.GlobalSettings().CurrentTheme().RequestedTheme();
     }
 
+    SettingsPaneContent::~SettingsPaneContent() { SettingsViewHost::Instance().Release(_ownershipLease); }
+
     void SettingsPaneContent::UpdateSettings(const CascadiaSettings& settings)
     {
         ASSERT_UI_THREAD();
@@ -36,7 +39,7 @@ namespace winrt::TerminalApp::implementation
     }
     winrt::Windows::Foundation::Size SettingsPaneContent::MinimumSize()
     {
-        return { 1, 1 };
+        return { 480, 360 };
     }
     void SettingsPaneContent::Focus(winrt::Windows::UI::Xaml::FocusState reason)
     {
@@ -47,6 +50,8 @@ namespace winrt::TerminalApp::implementation
     }
     void SettingsPaneContent::Close()
     {
+        SettingsViewHost::Instance().Release(_ownershipLease);
+        _ownershipLease = 0;
     }
 
     INewContentArgs SettingsPaneContent::GetNewTerminalArgs(const BuildStartupKind /*kind*/) const

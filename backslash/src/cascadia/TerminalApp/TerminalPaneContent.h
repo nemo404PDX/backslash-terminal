@@ -36,6 +36,7 @@ namespace winrt::TerminalApp::implementation
 
         void UpdateSettings(const winrt::Microsoft::Terminal::Settings::Model::CascadiaSettings& settings);
 
+        void PreserveRelaunchFailure() noexcept { _preserveRelaunchFailure = true; }
         void MarkAsDefterm();
         void SetFullscreen(bool fullscreen);
 
@@ -65,6 +66,7 @@ namespace winrt::TerminalApp::implementation
         winrt::Microsoft::Terminal::Settings::Model::Profile _profile{ nullptr };
         std::shared_ptr<TerminalSettingsCache> _cache{};
         bool _isDefTermSession{ false };
+        bool _preserveRelaunchFailure{ false };
         bool _fullscreen{ false };
         ::Microsoft::Terminal::Backslash::RetroBezel _bezel;
         void _updateBezel();

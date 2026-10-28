@@ -33,7 +33,7 @@ namespace Microsoft::Terminal::Backslash::Pins
         return L"pwsh -NoLogo -NoExit -EncodedCommand " + encoded;
     }
 
-    inline Launch PrepareLaunch(const Destination& candidate, std::wstring_view currentCommandline, int32_t sshShell = -1)
+    inline Launch PrepareLaunch(const Destination& candidate, std::wstring_view currentCommandline, int32_t sshShell = -1, std::wstring_view sshBase = {})
     {
         const auto pin = Validate(candidate);
         namespace S = winrt::Microsoft::Terminal::Settings::Model::implementation::SshCommandline;
@@ -49,13 +49,13 @@ namespace Microsoft::Terminal::Backslash::Pins
             if (args.size() != 3 || !til::equals_insensitive_ascii(args[0], system + L"\\wsl.exe") || args[1] != L"-d" || args[2] != std::wstring_view{ winrt::to_hstring(pin.host) }) { throw std::invalid_argument("This WSL launcher cannot safely reopen the pinned distribution/path."); }
             return { {}, std::wstring{ winrt::to_hstring(pin.path) } }; // Existing ConPTY WSL --cd handling.
         }
-        if (sshShell != 3 || args.size() != 6 || args[4] != std::wstring_view{ winrt::to_hstring(pin.host) })
+        std::wstring base{ sshBase };
+        if (base.empty() && args.size() == 6) { base = S::Quote(args[0]) + L" " + S::Quote(args[4]); }
+        std::wstring exe, host, ignored;
+        if (sshShell != 3 || !S::Base(base, exe, host) || host != std::wstring_view{ winrt::to_hstring(pin.host) } || S::Recognize(base, currentCommandline, ignored) != 3)
         {
-            throw std::invalid_argument("Fixed SSH paths currently require a generated SSH profile with PowerShell 7 selected and a reported remote directory.");
+            throw std::invalid_argument("Fixed SSH paths require a supported SSH profile with PowerShell 7 selected. Advanced commands are preserved.");
         }
-        const auto base = S::Quote(args[0]) + L" " + S::Quote(args[4]);
-        std::wstring ignored;
-        if (S::Recognize(base, currentCommandline, ignored) != 3) { throw std::invalid_argument("The advanced SSH command is preserved and cannot be repointed by a pin."); }
         const auto command = S::Build(base, 4, EncodedLocation(pin.path));
         if (!command || command->size() > 32760) { throw std::invalid_argument("The pinned SSH launch command is too long."); }
         return { *command, {} }; // Never use a remote directory as the local ssh.exe cwd.

@@ -189,6 +189,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_appearance.SourceProfile(), RetroBezelCenterFullscreen);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineWhite);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalContrastGuard);
+        OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalSchemePhosphor);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalEffect);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineIntensity);
         OBSERVABLE_PROJECTED_SETTING(_appearance, RetroTerminalScanlineThickness);

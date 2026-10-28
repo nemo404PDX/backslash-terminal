@@ -20,7 +20,7 @@ cbuffer RetroShaderSettings : register(b1)
     float scanlineThickness;
     float scanlineGap;
     float4 tintColorAndIntensity;
-    float4 scanlineColorAndPadding; // x: white bands; y: semantic contrast protection
+    float4 scanlineColorAndPadding; // x: white bands; y: legacy contrast protection; z: scheme phosphor
 };
 
 #define SCANLINE_FACTOR scanlineIntensity
@@ -42,6 +42,7 @@ float4 Blur(Texture2D input, float2 tex_coord, float sigma)
     float texelHeight = 1.0f / height;
 
     float4 color = { 0, 0, 0, 0 };
+    float totalWeight = 0;
 
     float sampleCount = 13;
 
@@ -53,11 +54,13 @@ float4 Blur(Texture2D input, float2 tex_coord, float sigma)
         for (float y = 0; y < sampleCount; y++)
         {
             samplePos.y = tex_coord.y + (y - sampleCount / 2.0f) * texelHeight;
-            color += input.Sample(samplerState, samplePos) * Gaussian2D(x - sampleCount / 2.0f, y - sampleCount / 2.0f, sigma);
+            float weight = Gaussian2D(x - sampleCount / 2.0f, y - sampleCount / 2.0f, sigma);
+            color += input.Sample(samplerState, samplePos) * weight;
+            totalWeight += weight;
         }
     }
 
-    return color;
+    return scanlineColorAndPadding.z > 0.5f ? color / totalWeight : color;
 }
 
 // Integrate the periodic dark mask over a physical pixel. This preserves the
@@ -150,6 +153,10 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
             lit *= min(1, limit / max(light, 1e-8f));
             color = float4(LinearToSrgb(lit) * alpha, alpha);
         }
+        else if (scanlineColorAndPadding.z > 0.5f)
+        {
+            color = color + bloom - color * bloom;
+        }
         else
         {
             color += bloom;
@@ -157,7 +164,22 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
     }
     [branch] if (scanlineIntensity > 0.0f && scanlineColorAndPadding.x < 0.5f)
     {
-        color = Scanline(color, pos);
+        if (scanlineColorAndPadding.z > 0.5f)
+        {
+            color.rgb *= SquareWave(pos.y);
+        }
+        else
+        {
+            color = Scanline(color, pos);
+        }
+    }
+
+    // Scheme mode maps the light bands with the content, so full strength
+    // stays in the selected phosphor hue. Coverage alpha remains unchanged.
+    bool schemeBands = scanlineColorAndPadding.z > 0.5f && tintColorAndIntensity.a > 0.0f;
+    [branch] if (schemeBands && scanlineIntensity > 0.0f && scanlineColorAndPadding.x >= 0.5f)
+    {
+        color.rgb = lerp(color.rgb, color.aaa, 1.0f - SquareWave(pos.y));
     }
 
     [branch] if (tintColorAndIntensity.a > 0.0f)
@@ -167,7 +189,7 @@ float4 main(float4 pos : SV_POSITION, float2 tex : TEXCOORD) : SV_TARGET
 
     // Light bands follow tint so they remain white without recoloring the gaps.
     // Preserve coverage alpha: a transparent terminal hole stays transparent.
-    [branch] if (scanlineIntensity > 0.0f && scanlineColorAndPadding.x >= 0.5f)
+    [branch] if (!schemeBands && scanlineIntensity > 0.0f && scanlineColorAndPadding.x >= 0.5f)
     {
         color.rgb = lerp(color.rgb, color.aaa, 1.0f - SquareWave(pos.y));
     }

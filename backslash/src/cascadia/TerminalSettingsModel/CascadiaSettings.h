@@ -25,6 +25,7 @@ Author(s):
 
 #include "GlobalAppSettings.h"
 #include "SettingsWriteState.h"
+#include "WorkspaceSsh.h"
 #include "Profile.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Model
@@ -91,6 +92,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         std::vector<winrt::com_ptr<implementation::Profile>> GenerateProfilesFor(const IDynamicProfileGenerator& generator);
         bool IsProfileSourceEnabled(const winrt::hstring& source) const noexcept { return !_ignoredNamespaces.contains(source); }
         void GenerateProfiles();
+        void GenerateWorkspaceProfiles();
         void GenerateExtensionPackagesFromProfileGenerators();
         void ApplyRuntimeInitialSettings();
         void MergeInboxIntoUserSettings();
@@ -196,10 +198,22 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         // Native test seam; the preview path must not invoke this resolver.
         Model::CascadiaSettings ValidateSetupImport(const winrt::hstring& userJSON, const Model::MediaResourceResolver& mediaResourceResolver) const;
         void RebaseAfterGroupAppend(const Model::CascadiaSettings& before, const Model::CascadiaSettings& after);
-        Json::Value ToJson(bool preserveExplicit = false) const;
+        Json::Value ToJson(bool preserveExplicit = false, bool materializeSshOwnership = true) const;
         winrt::hstring ExplicitSettingsJson() const;
+        winrt::hstring DraftComparisonJson() const;
+        void _validateTransientHostEdits() const;
         bool EqualsForGroupSave(const Model::CascadiaSettings& other, bool ignoreGroups) const;
         Model::Profile ProfileDefaults() const;
+        static bool HostSshDiscoveryEnabled();
+        static void HostSshDiscoveryEnabled(bool enabled);
+        winrt::hstring PreviewSshImport(const winrt::guid& guid);
+        winrt::hstring PreviewSshImport(const winrt::guid& guid, std::string_view userConfig, std::string_view systemConfig, std::string defaultUser);
+        bool CanImportSshProfile() const noexcept { return _sshImportRecord.has_value(); }
+        Model::Profile ImportSshProfile(const winrt::guid& guid);
+        winrt::hstring _ReviewSshImport(const winrt::guid& guid, const ::Microsoft::Terminal::Backslash::WorkspaceSsh::Review& review);
+        std::optional<::Microsoft::Terminal::Backslash::WorkspaceSsh::Record> _sshImportRecord;
+        winrt::guid _sshImportGuid{};
+        winrt::hstring _sshImportBaseline;
         Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles();
         Windows::Foundation::Collections::IVectorView<Model::Profile> ScanSshProfiles(const IDynamicProfileGenerator& generator);
         Model::Profile RestoreSshProfile(const winrt::guid& guid);

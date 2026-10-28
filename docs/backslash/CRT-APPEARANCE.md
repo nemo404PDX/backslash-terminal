@@ -1,5 +1,7 @@
 # Configurable CRT Appearance
 
+Current later development includes [scheme-preserving phosphor and picture/opacity handling](PHOSPHOR-SCHEME-TONES.md) and [Black/White scanline color](SCANLINE-COLOR.md). These are separate from the [application UI accent](UI-ACCENT.md). Read [release/development status](DEVELOPMENT-STATUS.md) before treating dated artifacts or requested effects as shipped; CRT open/close animations remain future work.
+
 Current requested fallbacks are recorded in [Curated defaults](CURATED-DEFAULTS.md); earlier build evidence and the frozen color references keep their historical values.
 
 Frozen older-commit backup: [phosphor colors, formats and output math](PHOSPHOR-COLOR-REFERENCE-dc027cae.md). See also the [cross-build regression audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md).

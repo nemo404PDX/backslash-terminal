@@ -1082,6 +1082,16 @@ TermControl Pane::GetLastFocusedTerminalControl()
     return GetTerminalControl();
 }
 
+// Close requests must not inherit GetLastFocusedContent's first-child fallback.
+// A parent selection can resolve only through retained, still-attached history.
+std::shared_ptr<Pane> Pane::GetLastFocusedLeaf()
+{
+    if (_IsLeaf()) { return shared_from_this(); }
+    const auto child = _parentChildPath.lock();
+    if (!child || (child != _firstChild && child != _secondChild)) { return nullptr; }
+    return child->GetLastFocusedLeaf();
+}
+
 IPaneContent Pane::GetLastFocusedContent()
 {
     if (!_IsLeaf())
@@ -1735,6 +1745,32 @@ void Pane::_SetupChildCloseHandlers()
 
 // With this method you take ownership of the control from this Pane.
 // Assign it to another Pane with _setPaneContent() or Close() it.
+IPaneContent Pane::TakeRelaunchContent()
+{
+    if (!_IsLeaf()) { throw winrt::hresult_invalid_argument(); }
+    _gotFocusRevoker.revoke(); _lostFocusRevoker.revoke();
+    _borderFirst.Child(nullptr);
+    return _takePaneContent();
+}
+
+IPaneContent Pane::ExchangeRelaunchContent(IPaneContent content)
+{
+    if (!_IsLeaf() || !content) { throw winrt::hresult_invalid_argument(); }
+    const auto visual = content.GetRoot();
+    // Prepare subscriptions first. Keep old content alive until attachment succeeds.
+    auto close = content.CloseRequested(winrt::auto_revoke, [this](auto&&, auto&&) { Close(); });
+    auto focus = visual.GotFocus(winrt::auto_revoke, {this, &Pane::_ContentGotFocusHandler});
+    auto blur = visual.LostFocus(winrt::auto_revoke, {this, &Pane::_ContentLostFocusHandler});
+    const auto previousVisual = _borderFirst.Child();
+    try { _borderFirst.Child(visual); }
+    catch (...) { _borderFirst.Child(previousVisual); throw; }
+    auto old = _takePaneContent();
+    _content = std::move(content);
+    _closeRequestedRevoker = std::move(close);
+    _gotFocusRevoker = std::move(focus); _lostFocusRevoker = std::move(blur);
+    return old;
+}
+
 IPaneContent Pane::_takePaneContent()
 {
     _closeRequestedRevoker.revoke();

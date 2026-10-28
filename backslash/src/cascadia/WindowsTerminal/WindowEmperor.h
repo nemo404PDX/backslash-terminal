@@ -82,6 +82,7 @@ private:
     bool _needsPersistenceCleanup = false;
     SafeDispatcherTimer _persistStateTimer;
     std::optional<bool> _currentSystemThemeIsDark;
+    std::size_t _pendingWindowCreations = 0;
     int32_t _windowCount = 0;
     int32_t _messageBoxCount = 0;
 

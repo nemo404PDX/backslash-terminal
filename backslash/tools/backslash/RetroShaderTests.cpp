@@ -3,6 +3,7 @@
 // Standalone WARP checks for the production built-in retro shader. No app registration.
 #define NOMINMAX
 #include <d3d11.h>
+#include "../../src/cascadia/inc/PhosphorColor.h"
 #include <d3dcompiler.h>
 #include <wrl/client.h>
 #include <array>
@@ -94,10 +95,10 @@ try
     ID3D11Buffer* buffers[]{b0.Get(),b1.Get()};
     context->PSSetConstantBuffers(0,2,buffers);
     std::filesystem::path capture;
-    auto render=[&](float glow,float scanline,float thickness=1.0f,float gap=1.0f,float dpiScale=1.0f,float tint=0.0f,std::array<float,3> phosphor={0,1,65.0f/255.0f},float white=0) {
+    auto render=[&](float glow,float scanline,float thickness=1.0f,float gap=1.0f,float dpiScale=1.0f,float tint=0.0f,std::array<float,3> phosphor={0,1,65.0f/255.0f},float white=0,float scheme=0) {
         const float settings[8]{0,dpiScale,size,size,0,0,0,1};
         context->UpdateSubresource(b0.Get(),0,nullptr,settings,0,0);
-        const float values[12]{glow,scanline,thickness,gap,phosphor[0],phosphor[1],phosphor[2],tint,white,0,0,0};
+        const float values[12]{glow,scanline,thickness,gap,phosphor[0],phosphor[1],phosphor[2],tint,white,0,scheme,0};
         context->UpdateSubresource(b1.Get(),0,nullptr,values,0,0);
         context->OMSetRenderTargets(1,rtv.GetAddressOf(),nullptr);
         context->Draw(4,0);
@@ -201,6 +202,8 @@ try
                 for(const auto strength:std::array<float,4>{0,0.25f,0.5f,1}) {
                     const auto actual=sample(render(0,0,1,1,1,strength,phosphor),16);
                     const auto expected=oracle(pixel,strength,phosphor);
+                    const auto backdrop=Microsoft::Terminal::Backslash::MapPhosphorRgb(rgb,phosphor,strength);
+                    for (UINT c=0;c<3;++c) if (std::abs(backdrop[c]*alpha-expected[c])>.00001f) throw std::runtime_error("Backdrop transfer disagrees with independent double-precision oracle");
                     for(UINT c=0;c<4;++c) {
                         if(!std::isfinite(actual[c]) || std::abs(actual[c]-expected[c])>0.00001f || (strength==0 && actual[c]!=pixel[c]) || (c==3 && actual[c]!=pixel[c])) { throw std::runtime_error("Tint pixel/oracle, exact zero identity, or alpha mismatch"); }
                     }
@@ -286,6 +289,69 @@ try
             }
         }
     }
+    // Scheme mode must share exactly the same ramp with its solid backdrop.
+    unsigned schemeCases = 0;
+    for (const auto pixel : std::array<std::array<float,4>,7>{{{0,0,0,1},{.267f,.267f,.267f,1},{.8f,.8f,.8f,1},{1,0,0,1},{0,.58f,0,1},{.1f,.02f,.2f,.4f},{0,0,0,0}}}) {
+        setInput(pixel);
+        for (float strength : {0.0f,.5f,1.0f}) {
+            const std::array<float,3> orange{1,136.0f/255,0};
+            for (float lines : {0.0f,.1f,1.0f}) {
+                const auto result = render(0,lines,1,1,1,strength,orange,1,1);
+                for (UINT y=0;y<size;++y) {
+                    auto expectedSource=pixel;
+                    const auto mask=static_cast<float>(coverage(y+.5,1,1,1))*lines;
+                    // At zero tint scheme mode leaves the legacy white-band behavior.
+                    if (strength>0) for (UINT c=0;c<3;++c) expectedSource[c]+=(pixel[3]-pixel[c])*mask;
+                    auto expected=oracle(expectedSource,strength,orange);
+                    if (strength==0) for (UINT c=0;c<3;++c) expected[c]+=(pixel[3]-expected[c])*mask;
+                    const auto actual=sample(result,y);
+                    for (UINT c=0;c<4;++c) if (std::abs(actual[c]-expected[c])>.00002f) throw std::runtime_error("Scheme bands/ramp/alpha oracle mismatch");
+                }
+                ++schemeCases;
+            }
+            if (pixel[3]>0) {
+                const auto cpu=Microsoft::Terminal::Backslash::MapPhosphorRgb({pixel[0]/pixel[3],pixel[1]/pixel[3],pixel[2]/pixel[3]},orange,strength);
+                const auto gpu=sample(render(0,0,1,1,1,strength,orange,0,1),16);
+                for (UINT c=0;c<3;++c) if (std::abs(cpu[c]*pixel[3]-gpu[c])>.00002f) throw std::runtime_error("Solid backdrop/production shader mismatch");
+            }
+        }
+    }
+    std::printf("PASS: %u scheme phosphor/white-band/alpha cases and CPU backdrop equivalence\n",schemeCases);
+    const std::array<float,3> collisionOrange{1,136.0f/255,0};
+    const auto greenAtRedY=static_cast<float>(encoded(.2126/.7152));
+    const auto redMapped=Microsoft::Terminal::Backslash::MapPhosphorRgb({1,0,0},collisionOrange,1);
+    const auto greenMapped=Microsoft::Terminal::Backslash::MapPhosphorRgb({0,greenAtRedY,0},collisionOrange,1);
+    for (UINT c=0;c<3;++c) Near(redMapped[c],greenMapped[c],"Equal-luminance hue collision remains explicit in scheme mapping");
+    unsigned schemeSweepCases=0;
+    for (float alpha : {0.0f,.01f,.5f,.99f,1.0f}) {
+        const std::array<float,4> pixel{.8f*alpha,.8f*alpha,.8f*alpha,alpha};
+        setInput(pixel);
+        for(float glowStrength : {0.0f,.15f,.25f,.5f,.75f,.9f,1.0f})
+        for(float intensity : {0.0f,.25f,.5f,.75f,.9f,1.0f})
+        for(float whiteChoice : {0.0f,1.0f})
+        for(float tintStrength : {0.0f,.5f,1.0f})
+        for(float dpi : {1.0f,1.25f,2.0f})
+        for(auto geometry : std::array<std::array<float,2>,3>{{{4,4},{.5f,3},{8,0}}}) {
+            const std::array<float,3> orange{1,136.0f/255,0};
+            const auto actual=render(glowStrength,intensity,geometry[0],geometry[1],dpi,tintStrength,orange,whiteChoice,1);
+            // Interior samples exclude the intentional transparent border sampler.
+            for(UINT y=8;y<size-8;++y) {
+                auto processed=pixel;
+                // For a uniform source the normalized finite blur is exactly source.
+                for(UINT c=0;c<4;++c) processed[c]+=pixel[c]*glowStrength-processed[c]*pixel[c]*glowStrength;
+                const auto mask=static_cast<float>(coverage(y+.5,geometry[0],geometry[1],dpi))*intensity;
+                if(whiteChoice>0) for(UINT c=0;c<3;++c) processed[c]+=(processed[3]-processed[c])*mask;
+                else for(UINT c=0;c<3;++c) processed[c]*=1-mask;
+                const auto expected=oracle(processed,tintStrength,orange);
+                const auto observed=sample(actual,y);
+                for(UINT c=0;c<4;++c) {
+                    if(!std::isfinite(observed[c]) || std::abs(observed[c]-expected[c])>.00003f || observed[c]<-.000001f || observed[c]>observed[3]+.00001f) throw std::runtime_error("Scheme normalized bloom/screen/scanline intensity sweep mismatch");
+                }
+            }
+            ++schemeSweepCases;
+        }
+    }
+    std::printf("PASS: %u scheme rendered sweeps at 0/25/50/75/90/100 percent, opacity0/1/50/99/100, glow, geometry and DPI\n",schemeSweepCases);
     setInput({0,0,0,1});
     const auto whiteBlack=render(0,0.1f,1,1,1,0,{1,0,1},1);
     Near(whiteBlack[0],0,"White scanline leaves true-black gap unchanged");

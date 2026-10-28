@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include "../inc/PhosphorColor.h"
 #include "ControlCore.h"
 
 // MidiAudio
@@ -461,6 +462,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _renderEngine->SetRetroTerminalGlowIntensity(_settings.RetroTerminalGlowIntensity());
             _renderEngine->SetRetroTerminalScanlineWhite(_settings.RetroTerminalScanlineWhite());
             _renderEngine->SetRetroTerminalContrastGuard(_settings.RetroTerminalContrastGuard());
+            _renderEngine->SetRetroTerminalSchemePhosphor(_settings.RetroTerminalSchemePhosphor());
             _renderEngine->SetRetroTerminalScanlineIntensity(_settings.RetroTerminalScanlineIntensity());
             _renderEngine->SetRetroTerminalScanlineThickness(_settings.RetroTerminalScanlineThickness());
             _renderEngine->SetRetroTerminalScanlineGap(_settings.RetroTerminalScanlineGap());
@@ -477,7 +479,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
             // GH#5098: Inform the engine of the opacity of the default text background.
             // GH#11315: Always do this, even if they don't have acrylic on.
-            _renderEngine->EnableTransparentBackground(_isBackgroundTransparent());
+            _updateRendererBackground();
 
             _initializedTerminal.store(true, std::memory_order_relaxed);
         } // scope for TerminalLock
@@ -828,12 +830,62 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         if (_renderEngine)
         {
             const auto lock = _terminal->LockForWriting();
-            _renderEngine->EnableTransparentBackground(_isBackgroundTransparent());
+            _updateRendererBackground();
             _renderer->NotifyPaintFrame();
         }
 
         auto eventArgs = winrt::make_self<TransparencyChangedEventArgs>(newOpacity);
         TransparencyChanged.raise(*this, *eventArgs);
+    }
+
+    bool ControlCore::SchemePhosphorActive() const
+    {
+        const auto lock = _terminal->LockForReading();
+        const IControlAppearance appearance{ _phosphorAppearance ? _phosphorAppearance : _settings };
+        const bool enabled = _renderEngine ? _renderEngine->GetRetroTerminalEffect() : appearance.RetroTerminalEffect();
+        const bool custom = _renderEngine ? !_renderEngine->GetPixelShaderPath().empty() : !appearance.PixelShaderPath().empty();
+        return enabled && !custom && appearance.RetroTerminalSchemePhosphor() && appearance.RetroTerminalTintIntensity() > 0;
+    }
+
+    bool ControlCore::RendererOwnsSchemeBackground() const
+    {
+        // Pictures retain their own layer. Acrylic remains an external blur
+        // underlay; its owned color/tint is supplied once by this renderer.
+        const IControlAppearance appearance{ _phosphorAppearance ? _phosphorAppearance : _settings };
+        return SchemePhosphorActive() && appearance.BackgroundImage().empty() && !_settings.UseBackgroundImageForWindow();
+    }
+
+    void ControlCore::_updateRendererBackground()
+    {
+        const bool owned = RendererOwnsSchemeBackground();
+        // Keep grayscale/alpha composition stable at 100% as well as 99%.
+        _renderEngine->EnableTransparentBackground(owned || _isBackgroundTransparent());
+        _renderEngine->SetDefaultBackgroundOpacity(owned ? Opacity() : -1.0f);
+    }
+
+    til::color ControlCore::MapSchemePhosphorColor(til::color value) const
+    {
+        const auto lock = _terminal->LockForReading();
+        const IControlAppearance appearance{ _phosphorAppearance ? _phosphorAppearance : _settings };
+        const bool enabled = _renderEngine ? _renderEngine->GetRetroTerminalEffect() : appearance.RetroTerminalEffect();
+        const bool custom = _renderEngine ? !_renderEngine->GetPixelShaderPath().empty() : !appearance.PixelShaderPath().empty();
+        if (!enabled || custom || !appearance.RetroTerminalSchemePhosphor())
+        {
+            return value;
+        }
+        const til::color endpoint{ appearance.RetroTerminalTintColor() };
+        std::array<float, 3> source{ value.r / 255.0f, value.g / 255.0f, value.b / 255.0f };
+        // Match normalized shader bloom for an opaque uniform field. Preserve
+        // brush alpha/opacity separately, and quantize only after tint mapping.
+        const auto glow = appearance.RetroTerminalGlowIntensity();
+        for (auto& channel : source) { channel += glow * channel * (1.0f - channel); }
+        const auto mapped = ::Microsoft::Terminal::Backslash::MapPhosphorRgb(
+            source,
+            { endpoint.r / 255.0f, endpoint.g / 255.0f, endpoint.b / 255.0f }, appearance.RetroTerminalTintIntensity());
+        value.r = static_cast<uint8_t>(std::lround(mapped[0] * 255));
+        value.g = static_cast<uint8_t>(std::lround(mapped[1] * 255));
+        value.b = static_cast<uint8_t>(std::lround(mapped[2] * 255));
+        return value;
     }
 
     void ControlCore::ToggleShaderEffects()
@@ -853,6 +905,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         {
             _renderEngine->SetPixelShaderPath(_renderEngine->GetPixelShaderPath().empty() ? std::wstring_view{ path } : std::wstring_view{});
         }
+        _updateRendererBackground();
         // Always redraw after toggling effects. This way even if the control
         // does not have focus it will update immediately.
         _renderer->TriggerRedrawAll();
@@ -986,7 +1039,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _renderEngine->SetDisablePartialInvalidation(_settings.DisablePartialInvalidation());
         _renderEngine->SetSoftwareRendering(_settings.SoftwareRendering());
         // Inform the renderer of our opacity
-        _renderEngine->EnableTransparentBackground(_isBackgroundTransparent());
+        _updateRendererBackground();
         _renderFailures = 0; // We may have changed the engine; reset the failure counter.
 
         // Trigger a redraw to repaint the window background and tab colors.
@@ -1007,6 +1060,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     {
         const auto lock = _terminal->LockForWriting();
         const IControlAppearance newAppearance{ focused ? _settings : _unfocusedAppearance };
+        _phosphorAppearance = newAppearance;
         // Update the terminal core with its new Core settings
         _terminal->UpdateAppearance(newAppearance);
         if ((focused || !_hasUnfocusedAppearance) && _focusedColorSchemeOverride)
@@ -1022,6 +1076,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             _renderEngine->SetRetroTerminalGlowIntensity(newAppearance.RetroTerminalGlowIntensity());
             _renderEngine->SetRetroTerminalScanlineWhite(newAppearance.RetroTerminalScanlineWhite());
             _renderEngine->SetRetroTerminalContrastGuard(newAppearance.RetroTerminalContrastGuard());
+            _renderEngine->SetRetroTerminalSchemePhosphor(newAppearance.RetroTerminalSchemePhosphor());
             _renderEngine->SetRetroTerminalScanlineIntensity(newAppearance.RetroTerminalScanlineIntensity());
             _renderEngine->SetRetroTerminalScanlineThickness(newAppearance.RetroTerminalScanlineThickness());
             _renderEngine->SetRetroTerminalScanlineGap(newAppearance.RetroTerminalScanlineGap());
@@ -1047,7 +1102,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
             // Update the renderer as well. It might need to fall back from
             // cleartype -> grayscale if the BG is transparent / acrylic.
-            _renderEngine->EnableTransparentBackground(_isBackgroundTransparent());
+            _updateRendererBackground();
             _renderer->NotifyPaintFrame();
 
             auto eventArgs = winrt::make_self<TransparencyChangedEventArgs>(Opacity());

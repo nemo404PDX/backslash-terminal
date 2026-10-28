@@ -1,24 +1,40 @@
 /*++
+
 Copyright (c) Microsoft Corporation
+
 Licensed under the MIT license.
 
+
 Module Name:
+
 - MTSMSettings.h
 
+
 Abstract:
+
 - Contains most of the settings within Terminal Settings Model (global, profile, font, appearance)
+
 - To add a new setting to any one of those classes, simply add it to the respective list below, following the macro format
 
+
 Author(s):
+
 - Pankaj Bhojwani - October 2021
 
+
 --*/
+
 #pragma once
 
+
 // Macro format (defaultArgs are optional):
+
 // (type, name, jsonKey, defaultArgs)
 
+
 #define MTSM_GLOBAL_SETTINGS(X)                                                                                                                                                                       \
+    X(Model::SettingsLaunchMode, TransfersLaunchMode, "backslash.transfersLaunchMode", Model::SettingsLaunchMode::Tab) \
+    X(Model::SettingsLaunchMode, SettingsLaunchMode, "backslash.settingsLaunchMode", Model::SettingsLaunchMode::Tab) \
     X(bool, StartupWithSavedGroup, "backslash.startupWithSavedGroup", false) \
     X(hstring, StartupGroup, "backslash.startupGroup", L"") \
     X(bool, ShowConnectionIdentity, "backslash.showConnectionIdentity", true) \
@@ -41,6 +57,7 @@ Author(s):
     X(bool, AlwaysShowTabs, "alwaysShowTabs", true)                                                                                                                                                   \
     X(Model::NewTabPosition, NewTabPosition, "newTabPosition", Model::NewTabPosition::AfterLastTab)                                                                                                   \
     X(bool, ShowTitleInTitlebar, "showTerminalTitleInTitlebar", true)                                                                                                                                 \
+    X(bool, ConfirmPaneRelaunch, "backslash.confirmPaneRelaunch", true) \
     X(bool, ConfirmCloseAllTabs, "warning.confirmCloseAllTabs", true)                                                                                                                                 \
     X(Model::ThemePair, Theme, "theme")                                                                                                                                                               \
     X(hstring, Language, "language")                                                                                                                                                                  \
@@ -76,12 +93,19 @@ Author(s):
     X(hstring, SearchWebDefaultQueryUrl, "searchWebDefaultQueryUrl", L"https://www.bing.com/search?q=%22%s%22")                                                                                       \
     X(bool, ShowTabsFullscreen, "showTabsFullscreen", false)
 
+
 // Also add these settings to:
+
 // * Profile.idl
+
 // * TerminalSettings.h
+
 // * TerminalSettings.cpp: TerminalSettings::_ApplyProfileSettings
+
 // * IControlSettings.idl or ICoreSettings.idl
+
 // * ControlProperties.h
+
 #define MTSM_PROFILE_SETTINGS(X)                                                                                                                               \
     X(bool, RetroBezelEnabled, "experimental.retroBezelEnabled", false) \
     X(Model::RetroBezelSize, RetroBezelSize, "experimental.retroBezelSize", Model::RetroBezelSize::Medium) \
@@ -126,14 +150,23 @@ Author(s):
     X(bool, AllowKeypadMode, "compatibility.allowDECNKM", false)                                                                                               \
     X(Microsoft::Terminal::Control::PathTranslationStyle, PathTranslationStyle, "pathTranslationStyle", Microsoft::Terminal::Control::PathTranslationStyle::None)
 
+
 // Intentionally omitted Profile settings:
+
 // * Name
+
 // * Updates
+
 // * Guid
+
 // * Hidden
+
 // * Source
+
 // * Padding: needs special FromJson parsing
+
 // * TabColor: is an optional setting, so needs to be set with INHERITABLE_NULLABLE_SETTING
+
 
 #define MTSM_FONT_SETTINGS(X)                                                          \
     X(hstring, FontFace, "face", DEFAULT_FONT_FACE)                                    \
@@ -146,6 +179,7 @@ Author(s):
     X(winrt::hstring, CellWidth, "cellWidth")                                          \
     X(winrt::hstring, CellHeight, "cellHeight")
 
+
 #define MTSM_APPEARANCE_SETTINGS(X)                                                                                                                                \
     X(Core::CursorStyle, CursorShape, "cursorShape", Core::CursorStyle::FilledBox)                                                                                       \
     X(uint32_t, CursorHeight, "cursorHeight", DEFAULT_CURSOR_HEIGHT)                                                                                               \
@@ -153,6 +187,7 @@ Author(s):
     X(winrt::Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode, "backgroundImageStretchMode", winrt::Windows::UI::Xaml::Media::Stretch::UniformToFill) \
     X(bool, RetroTerminalScanlineWhite, "experimental.retroTerminalScanlineWhite", false) \
     X(bool, RetroTerminalContrastGuard, "experimental.retroTerminalContrastGuard", true) \
+    X(bool, RetroTerminalSchemePhosphor, "experimental.retroTerminalSchemePhosphor", false) \
     X(bool, RetroTerminalEffect, "experimental.retroTerminalEffect", false)                                                                                        \
     X(IMediaResource, PixelShaderPath, "experimental.pixelShaderPath", implementation::MediaResource::Empty())                                                     \
     X(IMediaResource, PixelShaderImagePath, "experimental.pixelShaderImagePath", implementation::MediaResource::Empty())                                           \
@@ -162,15 +197,20 @@ Author(s):
     X(Core::AdjustTextMode, AdjustIndistinguishableColors, "adjustIndistinguishableColors", Core::AdjustTextMode::Automatic)                                       \
     X(bool, UseAcrylic, "useAcrylic", false)
 
+
 // Intentionally omitted Appearance settings:
+
 // * ForegroundKey, BackgroundKey, SelectionBackgroundKey, CursorColorKey: all optional colors
+
 // * Opacity: needs special parsing
+
 
 #define MTSM_THEME_SETTINGS(X)                                                                   \
     X(winrt::Microsoft::Terminal::Settings::Model::WindowTheme, Window, "window", nullptr)       \
     X(winrt::Microsoft::Terminal::Settings::Model::SettingsTheme, Settings, "settings", nullptr) \
     X(winrt::Microsoft::Terminal::Settings::Model::TabRowTheme, TabRow, "tabRow", nullptr)       \
     X(winrt::Microsoft::Terminal::Settings::Model::TabTheme, Tab, "tab", nullptr)
+
 
 #define MTSM_THEME_WINDOW_SETTINGS(X)                                                                                              \
     X(winrt::Windows::UI::Xaml::ElementTheme, RequestedTheme, "applicationTheme", winrt::Windows::UI::Xaml::ElementTheme::Default) \
@@ -179,12 +219,15 @@ Author(s):
     X(bool, RainbowFrame, "experimental.rainbowFrame", false)                                                                      \
     X(bool, UseMica, "useMica", false)
 
+
 #define MTSM_THEME_SETTINGS_SETTINGS(X) \
     X(winrt::Windows::UI::Xaml::ElementTheme, RequestedTheme, "theme", winrt::Windows::UI::Xaml::ElementTheme::Default)
+
 
 #define MTSM_THEME_TABROW_SETTINGS(X)                                                             \
     X(winrt::Microsoft::Terminal::Settings::Model::ThemeColor, Background, "background", nullptr) \
     X(winrt::Microsoft::Terminal::Settings::Model::ThemeColor, UnfocusedBackground, "unfocusedBackground", nullptr)
+
 
 #define MTSM_THEME_TAB_SETTINGS(X)                                                                                                                     \
     X(winrt::Microsoft::Terminal::Settings::Model::ThemeColor, Background, "background", nullptr)                                                      \
@@ -192,16 +235,21 @@ Author(s):
     X(winrt::Microsoft::Terminal::Settings::Model::IconStyle, IconStyle, "iconStyle", winrt::Microsoft::Terminal::Settings::Model::IconStyle::Default) \
     X(winrt::Microsoft::Terminal::Settings::Model::TabCloseButtonVisibility, ShowCloseButton, "showCloseButton", winrt::Microsoft::Terminal::Settings::Model::TabCloseButtonVisibility::Always)
 
+
 // Kept separate from the telemetry-producing appearance macro.
+
 #define MTSM_RETRO_INTENSITY_SETTINGS(X) \
     X(float, RetroTerminalGlowIntensity, "experimental.retroTerminalGlowIntensity", 0.15f) \
     X(float, RetroTerminalScanlineIntensity, "experimental.retroTerminalScanlineIntensity", 0.10f) \
     X(float, RetroTerminalTintIntensity, "experimental.retroTerminalTintIntensity", 0.0f)
 
+
 #define MTSM_RETRO_COLOR_SETTINGS(X) \
     X(winrt::Microsoft::Terminal::Core::Color, RetroTerminalTintColor, "experimental.retroTerminalTintColor", (winrt::Microsoft::Terminal::Core::Color{ 0, 255, 65, 255 }))
 
+
 // Independent finite DIP ranges; kept outside appearance telemetry like CRT intensities.
+
 #define MTSM_RETRO_DIMENSION_SETTINGS(X) \
     X(float, RetroTerminalScanlineThickness, "experimental.retroTerminalScanlineThickness", 4.0f, 0.5f, 8.0f) \
     X(float, RetroTerminalScanlineGap, "experimental.retroTerminalScanlineGap", 4.0f, 0.0f, 16.0f)

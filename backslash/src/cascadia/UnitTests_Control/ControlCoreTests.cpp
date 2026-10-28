@@ -518,11 +518,18 @@ namespace ControlUnitTests
                 BackendD3D backend{ payload };
 
 
-                auto draw = [&](bool guard, bool effect, float glow, bool transparent, bool blackSelection = false, bool cursorOnLight = false) {
+                auto draw = [&](bool guard, bool effect, float glow, bool transparent, bool blackSelection = false, bool cursorOnLight = false, bool scheme = false, float defaultOpacity = -1.0f) {
                     engine.SetRetroTerminalContrastGuard(guard);engine.SetRetroTerminalEffect(effect);engine.SetRetroTerminalGlowIntensity(glow);
+                    engine.SetRetroTerminalSchemePhosphor(scheme);
+                    engine.SetDefaultBackgroundOpacity(defaultOpacity);
                     engine.EnableTransparentBackground(transparent);
                     VERIFY_SUCCEEDED(engine.InvalidateAll());VERIFY_SUCCEEDED(engine.StartPaint());
-                    const auto bg=transparent?0u:0xff000000u;
+                    auto bg=transparent?0u:0xff000000u;
+                    if (defaultOpacity >= 0)
+                    {
+                        VERIFY_SUCCEEDED(engine.UpdateDrawingBrushes(TextAttribute{},core->_terminal->GetRenderSettings(),gsl::make_not_null(core->_terminal.get()),false,true));
+                        bg = u32ColorPremultiply(engine._api.s->misc->backgroundColor);
+                    }
                     std::fill(payload.backgroundBitmap.begin(),payload.backgroundBitmap.end(),bg);payload.colorBitmapGenerations[0].bump();
                     const std::array<til::point_span,1> selection{til::point_span{{0,5},{12,5}}};
                     ::Microsoft::Console::Render::RenderFrameInfo info{};info.selectionSpans=selection;info.selectionBackground=blackSelection?til::color{0,0,0}:til::color{255,0,0};VERIFY_SUCCEEDED(engine.PrepareRenderInfo(info));
@@ -575,13 +582,19 @@ namespace ControlUnitTests
                 auto linear=[](double v){return v<=0.04045?v/12.92:std::pow((v+0.055)/1.055,2.4);};
                 auto luminance=[&](uint32_t v){return .2126*linear(((v>>16)&255)/255.0)+.7152*linear(((v>>8)&255)/255.0)+.0722*linear((v&255)/255.0);};
                 const auto cell=engine._api.s->font->cellSize;
+                const auto evidenceDir=std::filesystem::temp_directory_path()/(L"Backslash-Phosphor-Scheme-WARP-"+std::to_wstring(GetCurrentProcessId())+L"-"+std::to_wstring(GetTickCount64()));
                 const auto save=[&](const wchar_t* name,const std::vector<uint32_t>& pixels){
-                    const auto dir=std::filesystem::temp_directory_path()/L"Backslash-Phosphor-Contrast-WARP";std::filesystem::create_directories(dir);
+                    const auto& dir=evidenceDir;std::filesystem::create_directories(dir);
                     std::ofstream stream(dir/name,std::ios::binary);stream<<"P6\n"<<desc.Width<<" "<<desc.Height<<"\n255\n";
                     for(auto pixel:pixels){const char rgb[]{static_cast<char>(pixel>>16),static_cast<char>(pixel>>8),static_cast<char>(pixel)};stream.write(rgb,3);}
                     VERIFY_IS_TRUE(stream.good());
                 };
                 const auto legacy=draw(false,true,0,false),guarded=draw(true,true,0,false),glow=draw(true,true,.15f,false);
+                const auto scheme=draw(true,true,0,false,false,false,true);
+                VERIFY_IS_TRUE(scheme==legacy,L"Scheme mode bypasses legacy foreground/background/selection/cursor endpoint forcing exactly");
+                VERIFY_IS_TRUE(scheme!=guarded,L"Scheme mode retains source tones discarded by legacy contrast protection");
+                VERIFY_IS_TRUE(draw(true,true,0,true,false,false,true)==draw(false,true,0,true),L"Scheme mode preserves transparent and antialiased coverage");
+                VERIFY_IS_TRUE(draw(true,false,0,false,false,false,true)==draw(false,false,0,false),L"Effects off remains exact identity in scheme mode");
                 save(L"legacy-magenta.ppm",legacy);save(L"guarded-magenta.ppm",guarded);save(L"guarded-glow-magenta.ppm",glow);
                 const auto fullGlow=draw(true,true,1,false);save(L"guarded-full-glow-magenta.ppm",fullGlow);
                 for(int row=0;row<6;++row){
@@ -610,6 +623,112 @@ namespace ControlUnitTests
                 engine.SetRetroTerminalTintColor(RGB(0,255,65));engine.SetRetroTerminalScanlineWhite(true);engine.SetRetroTerminalScanlineIntensity(.1f);
                 const auto whiteScanlines=draw(true,true,.15f,false);save(L"guarded-green-white-scanlines.ppm",whiteScanlines);
                 VERIFY_IS_TRUE(whiteScanlines!=glow,L"Actual green phosphor plus White scanline combination renders");
+                // Real Atlas cell/background upload and postprocess opacity sweep.
+                // The target stays alpha-capable for the entire mode, including 1.
+                auto& renderSettings = core->_terminal->GetRenderSettings();
+                renderSettings.SetColorAlias(ColorAlias::DefaultBackground,TextColor::DEFAULT_BACKGROUND,RGB(128,128,128));
+                engine.SetRetroTerminalTintColor(RGB(255,136,0));
+                bool channelArithmetic = true;
+                for (uint32_t coverage=0;coverage<256;++coverage) for(uint32_t channel=0;channel<256;++channel)
+                {
+                    const auto straight=channel|(channel<<8)|(channel<<16)|(coverage<<24);
+                    const auto expected=(channel*coverage)/255;
+                    channelArithmetic=channelArithmetic&&(u32ColorPremultiply(straight)==(expected|(expected<<8)|(expected<<16)|(coverage<<24)));
+                }
+                VERIFY_IS_TRUE(channelArithmetic,L"Fractional-alpha packed color conversion has no channel spill");
+                bool binaryUnchanged = true;
+                for(uint32_t rgb=0;rgb<=0x00ffffff;++rgb)
+                {
+                    binaryUnchanged=binaryUnchanged&&u32ColorPremultiply(rgb)==0&&u32ColorPremultiply(rgb|0xff000000)==(rgb|0xff000000);
+                }
+                VERIFY_IS_TRUE(binaryUnchanged,L"All 16,777,216 RGB colors retain exact legacy alpha0/255 conversion");
+
+                // Leave a right-side fallback strip beside actual cell pixels.
+                VERIFY_SUCCEEDED(engine.UpdateViewport({0,0,28,17}));
+                unsigned maximumFirstTick = 0;
+                for (const int dpi : {96,120,144})
+                {
+                    VERIFY_SUCCEEDED(engine.UpdateDpi(dpi));
+                    for (const bool white : {false,true}) for (const float amount : {0.0f,.15f})
+                    {
+                        engine.SetRetroTerminalScanlineWhite(white);engine.SetRetroTerminalScanlineIntensity(.9f);
+                        std::vector<uint32_t> opaqueFrame, almostFrame;
+                        for (const float opacity : {1.0f,.99f,.5f,.01f,0.0f,.99f,1.0f})
+                        {
+                            const auto frame = draw(false,true,amount,true,false,false,true,opacity);
+                            VERIFY_ARE_EQUAL(static_cast<int>(std::lround(opacity*255)),engine._api.defaultBackgroundAlpha);
+                            VERIFY_ARE_EQUAL(static_cast<unsigned>(engine._api.defaultBackgroundAlpha),payload.s->misc->backgroundColor>>24);
+                            bool premultiplied = true;
+                            for (auto pixel : frame) { const auto coverage=pixel>>24;premultiplied=premultiplied&&((pixel>>16)&255)<=coverage&&((pixel>>8)&255)<=coverage&&(pixel&255)<=coverage; }
+                            VERIFY_IS_TRUE(premultiplied,L"Partial default-background effects remain premultiplied");
+                            VERIFY_ARE_EQUAL(255u,frame[4*270+4]>>24,L"Explicit cell backgrounds remain opaque");
+                            if (opacity==0) { VERIFY_ARE_EQUAL(0u,frame.back()>>24,L"Zero-opacity distant default background stays transparent"); }
+                            if (amount==0)
+                            {
+                                const auto cellX=static_cast<size_t>(28*cell.x-2),paddingX=static_cast<size_t>(29*cell.x+1);
+                                const auto clearY=static_cast<size_t>(15*cell.y);
+                                if(paddingX<270 && clearY<380) { VERIFY_ARE_EQUAL(frame[clearY*270+cellX],frame[clearY*270+paddingX],L"Cell and fallback padding match alpha quantization and scanline phase"); }
+                            }
+                            if (opacity==1 && opaqueFrame.empty()) { opaqueFrame=frame; }
+                            else if (opacity==1) { VERIFY_IS_TRUE(frame==opaqueFrame,L"100-99-100 restores exact output"); }
+                            if (opacity==.99f) { almostFrame=frame; }
+                        }
+                        unsigned delta=0;
+                        for(size_t pixel=0;pixel<opaqueFrame.size();++pixel)for(unsigned channel=0;channel<4;++channel)
+                        {
+                            const int a=(opaqueFrame[pixel]>>(8*channel))&255,b=(almostFrame[pixel]>>(8*channel))&255;
+                            delta=std::max(delta,static_cast<unsigned>(std::abs(a-b)));
+                        }
+                        maximumFirstTick=std::max(maximumFirstTick,delta);
+                        VERIFY_IS_TRUE(delta<=12,L"First opacity tick fades existing bands rather than dropping them");
+                    }
+                }
+                Log::Comment(String().Format(L"SOLID_SCHEME_OPACITY maxFirstTickRGBA=%u /255 across DPI96/120/144, dark/light90%%, glow0/.15",maximumFirstTick));
+                VERIFY_SUCCEEDED(engine.UpdateDpi(96));engine.SetDefaultBackgroundOpacity(-1);
+                renderSettings.SetColorAlias(ColorAlias::DefaultBackground,TextColor::DEFAULT_BACKGROUND,RGB(0,0,0));
+                settings->RetroTerminalSchemePhosphor(true);
+                settings->RetroTerminalTintColor(til::color{255,136,0});
+                core->ApplyAppearance(true);
+                const auto backdrop=core->MapSchemePhosphorColor(til::color{68,68,68,123});
+                VERIFY_ARE_EQUAL(uint8_t{68},backdrop.r);
+                VERIFY_ARE_EQUAL(uint8_t{32},backdrop.g);
+                VERIFY_ARE_EQUAL(uint8_t{0},backdrop.b);
+                VERIFY_ARE_EQUAL(uint8_t{123},backdrop.a);
+                settings->RetroTerminalGlowIntensity(.15f);
+                core->ApplyAppearance(true);
+                const auto glowBackdrop = core->MapSchemePhosphorColor(til::color{128,128,128,123});
+                VERIFY_ARE_EQUAL(uint8_t{138},glowBackdrop.r);
+                VERIFY_ARE_EQUAL(uint8_t{71},glowBackdrop.g);
+                VERIFY_ARE_EQUAL(uint8_t{0},glowBackdrop.b);
+                VERIFY_ARE_EQUAL(uint8_t{123},glowBackdrop.a);
+                settings->RetroTerminalGlowIntensity(0);
+                core->ApplyAppearance(true);
+                core->ToggleShaderEffects();
+                VERIFY_ARE_EQUAL(til::color(68,68,68,123),core->MapSchemePhosphorColor(til::color{68,68,68,123}));
+                core->ToggleShaderEffects();
+                VERIFY_ARE_EQUAL(backdrop,core->MapSchemePhosphorColor(til::color{68,68,68,123}));
+                engine.SetPixelShaderPath(L"C:\\nonexistent-phosphor-test.hlsl");
+                VERIFY_ARE_EQUAL(til::color(68,68,68,123),core->MapSchemePhosphorColor(til::color{68,68,68,123}));
+                engine.SetPixelShaderPath(L"");
+                settings->RetroTerminalTintIntensity(0);
+                core->ApplyAppearance(true);
+                VERIFY_ARE_EQUAL(til::color(68,68,68,123),core->MapSchemePhosphorColor(til::color{68,68,68,123}));
+                settings->RetroTerminalTintIntensity(1);
+                settings->UseAcrylic(true);
+                core->ApplyAppearance(true);
+                for(const float opacity : {1.0f,.99f,.5f,.01f,0.0f,.99f,1.0f})
+                {
+                    core->_setOpacity(opacity);
+                    VERIFY_IS_TRUE(core->RendererOwnsSchemeBackground(),L"Configured acrylic keeps the same renderer-owned tint at all opacities");
+                    VERIFY_ARE_EQUAL(static_cast<int>(std::lround(opacity*255)),engine._api.defaultBackgroundAlpha);
+                    VERIFY_ARE_EQUAL(opacity<1.0f,core->UseAcrylic(),L"Existing external acrylic underlay activation is retained");
+                    VERIFY_IS_TRUE(engine._api.s->target->useAlpha,L"Alpha-capable target is stable even at100 percent");
+                }
+                core->ToggleShaderEffects();
+                VERIFY_IS_FALSE(core->RendererOwnsSchemeBackground());VERIFY_ARE_EQUAL(-1,engine._api.defaultBackgroundAlpha);
+                core->ToggleShaderEffects();
+                VERIFY_IS_TRUE(core->RendererOwnsSchemeBackground());
+                Log::Comment(evidenceDir.c_str());
                 Log::Comment(L"Actual Atlas glyph/background contrast, indexed/truecolor/reverse/selection/cursor/transparency, endpoint and bypass readbacks passed. PPM captures in temp Backslash-Phosphor-Contrast-WARP.");
             }
             catch (...) { workerFailure=std::current_exception(); }

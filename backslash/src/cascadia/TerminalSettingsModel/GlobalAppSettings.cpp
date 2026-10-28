@@ -2,6 +2,8 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include "HostSshVisibility.h"
+#include "WorkspaceSsh.h"
 #include "GlobalAppSettings.h"
 #include "SavedTabGroups.h"
 #include <DefaultSettings.h>
@@ -63,6 +65,8 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::Copy() const
     globals->_UnparsedDefaultProfile = _UnparsedDefaultProfile;
 
     globals->_defaultProfile = _defaultProfile;
+    globals->_hostSshProfileVisibility = _hostSshProfileVisibility;
+    globals->_workspaceSshConnections = _workspaceSshConnections;
     globals->_savedTabGroups = _savedTabGroups;
     globals->_actionMap = _actionMap->Copy();
     globals->_keybindingsWarnings = _keybindingsWarnings;
@@ -161,6 +165,11 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::FromJson(const Json::Value&
 void GlobalAppSettings::LayerJson(const Json::Value& json, const OriginTag origin)
 {
     JsonUtils::GetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
+    if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember(::Microsoft::Terminal::Backslash::HostSshVisibility::Key))
+    {
+        _hostSshProfileVisibility = json[::Microsoft::Terminal::Backslash::HostSshVisibility::Key];
+    }
+    if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember("backslash.sshConnections")) { _workspaceSshConnections = json["backslash.sshConnections"]; }
     if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember("backslash.savedTabGroups"))
     {
         // Preserve unrecognized versions/fields rather than losing them on unrelated Save.
@@ -351,6 +360,8 @@ Json::Value GlobalAppSettings::ToJson(bool preserveExplicit)
     Json::Value json{ Json::ValueType::objectValue };
 
     JsonUtils::SetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
+    if (_hostSshProfileVisibility) { json[::Microsoft::Terminal::Backslash::HostSshVisibility::Key] = HostSshProfileVisibility(); }
+    if (_workspaceSshConnections) { json["backslash.sshConnections"] = *_workspaceSshConnections; }
     if (_savedTabGroups) { json["backslash.savedTabGroups"] = *_savedTabGroups; }
 
 #define GLOBAL_SETTINGS_TO_JSON(type, name, jsonKey, ...) \
@@ -561,4 +572,24 @@ winrt::hstring GlobalAppSettings::SavedTabGroupsJson() const
 void GlobalAppSettings::SavedTabGroupsJson(const winrt::hstring& value)
 {
     _savedTabGroups = ::Microsoft::Terminal::Backslash::SavedTabGroups::Read(value).ToValue();
+}
+
+winrt::hstring GlobalAppSettings::WorkspaceSshConnectionsJson() const
+{
+    return winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, _workspaceSshConnections.value_or(Json::Value{ Json::arrayValue })));
+}
+void GlobalAppSettings::WorkspaceSshConnectionsJson(const winrt::hstring& value)
+{
+    Json::Value parsed; Json::CharReaderBuilder builder;
+    builder["rejectDupKeys"] = true; builder["failIfExtra"] = true;
+    const auto bytes = winrt::to_string(value); std::string errors;
+    const std::unique_ptr<Json::CharReader> reader{ builder.newCharReader() };
+    if (bytes.size() > 1024 * 1024 || !reader->parse(bytes.data(), bytes.data() + bytes.size(), &parsed, &errors)) { throw std::invalid_argument("Invalid workspace SSH records."); }
+    (void)::Microsoft::Terminal::Backslash::WorkspaceSsh::ReadRecords(parsed);
+    _workspaceSshConnections = std::move(parsed);
+}
+
+Json::Value GlobalAppSettings::HostSshProfileVisibility() const
+{
+    return ::Microsoft::Terminal::Backslash::HostSshVisibility::Read(_hostSshProfileVisibility.value_or(Json::Value{ Json::objectValue }));
 }

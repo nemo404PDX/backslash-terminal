@@ -6,6 +6,9 @@
 #include "Tab.h"
 #include "../inc/ConnectionIdentityTitle.h"
 #include "SettingsPaneContent.h"
+#include "TransfersPaneContent.h"
+#include "../inc/SettingsClosePolicy.h"
+#include "../inc/PaneProfilePolicy.h"
 #include "TerminalPaneContent.h"
 #include "Tab.g.cpp"
 #include "Utils.h"
@@ -136,6 +139,7 @@ namespace winrt::TerminalApp::implementation
     void Tab::_MakeTabViewItem()
     {
         TabViewItem(::winrt::MUX::Controls::TabViewItem{});
+        TabViewItem().Loaded([weak = get_weak()](auto&&, auto&&) { if (const auto tab = weak.get()) { tab->_UpdateToolTip(); } });
 
         // GH#3609 If the tab was tapped, and no one else was around to handle
         // it, then ask our parent to toss focus into the active control.
@@ -285,6 +289,23 @@ namespace winrt::TerminalApp::implementation
             textBlock.Inlines().Append(keyChordRun);
         }
 
+        const auto closeLabel = RS_(_rootPane && _rootPane->GetLeafPaneCount() > 1 ? L"TabCloseFocusedPane" : L"TabCloseSinglePane");
+        auto explanation = WUX::Documents::Run(); explanation.Text(closeLabel);
+        textBlock.Inlines().Append(WUX::Documents::LineBreak{}); textBlock.Inlines().Append(explanation);
+        // The stock template creates this button after loading. Update its own
+        // accessibility/tooltip as well as the tab's explanatory tooltip.
+        const auto updateButton = [&](auto&& self, const WUX::DependencyObject& node) -> void {
+            if (const auto button = node.try_as<WUX::Controls::Button>(); button && button.Name() == L"CloseButton")
+            {
+                WUX::Controls::ToolTipService::SetToolTip(button, box_value(closeLabel));
+                Automation::AutomationProperties::SetName(button, closeLabel);
+                Automation::AutomationProperties::SetHelpText(button, closeLabel);
+                return;
+            }
+            for (int i = 0; i < WUX::Media::VisualTreeHelper::GetChildrenCount(node); ++i)
+            { self(self, WUX::Media::VisualTreeHelper::GetChild(node, i)); }
+        };
+        updateButton(updateButton, TabViewItem());
         WUX::Controls::ToolTip toolTip{};
         toolTip.Content(textBlock);
         WUX::Controls::ToolTipService::SetToolTip(TabViewItem(), toolTip);
@@ -804,6 +825,31 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     // Return Value:
     // - The root pane.
+    std::shared_ptr<Pane> Tab::SuspendRootForSettingsTransfer()
+    {
+        ASSERT_UI_THREAD();
+        auto root = _rootPane;
+        if (!root || _settingsTransferPending) { return nullptr; }
+        _settingsTransferPending = true;
+        root->Closed(_rootClosedToken);
+        root->WalkTree([](const auto& pane) { pane->Detached.raise(pane); });
+        Content(nullptr); // Remove the visual parent before another Tab attaches this tree.
+        _rootPane = nullptr; _activePane = nullptr; _mruPanes.clear();
+        return root;
+    }
+
+    void Tab::RestoreRootAfterSettingsTransfer(std::shared_ptr<Pane> root)
+    {
+        ASSERT_UI_THREAD();
+        _rootPane = std::move(root);
+        _rootPane->WalkTree([&](const auto& pane) { if (pane->GetContent()) { pane->Id(_nextPaneId++); } });
+        _activePane = _rootPane->GetActivePane();
+        _rootClosedToken = _rootPane->Closed([this](auto&&, auto&&) { Closed.raise(nullptr, nullptr); });
+        Initialize();
+        Content(_rootPane->GetRootElement());
+        _settingsTransferPending = false;
+    }
+
     std::shared_ptr<Pane> Tab::DetachRoot()
     {
         ASSERT_UI_THREAD();
@@ -1067,8 +1113,8 @@ namespace winrt::TerminalApp::implementation
     void Tab::ClosePane()
     {
         ASSERT_UI_THREAD();
-
-        _activePane->Close();
+        // The owning page performs content preflight and captures this tab's leaf.
+        PaneCloseRequested.raise(nullptr, nullptr);
     }
 
     void Tab::SetTabText(winrt::hstring title)
@@ -1688,9 +1734,9 @@ namespace winrt::TerminalApp::implementation
                 tab->CloseRequested.raise(nullptr, nullptr);
             }
         });
-        closeTabMenuItem.Text(RS_(L"TabClose"));
+        closeTabMenuItem.Text(RS_(L"TabCloseEntire"));
         closeTabMenuItem.Icon(closeSymbol);
-        const auto closeTabToolTip = RS_(L"TabCloseToolTip");
+        const auto closeTabToolTip = RS_(L"TabCloseEntireToolTip");
 
         WUX::Controls::ToolTipService::SetToolTip(closeTabMenuItem, box_value(closeTabToolTip));
         Automation::AutomationProperties::SetHelpText(closeTabMenuItem, closeTabToolTip);
@@ -1715,6 +1761,22 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     // Return Value:
     // - <none>
+    void Tab::ReplaceProfileContent(const std::shared_ptr<Pane>& leaf, const TerminalApp::IPaneContent& content)
+    {
+        ASSERT_UI_THREAD();
+        if (!leaf || !leaf->Id() || !::Microsoft::Terminal::Backslash::ContainsPaneNode(_rootPane, leaf)) { throw winrt::hresult_invalid_argument(); }
+        const auto id = *leaf->Id();
+        const auto expected = leaf->GetContent();
+        const auto previousActive = _activePane;
+        const auto previousMru = _mruPanes;
+        ::Microsoft::Terminal::Backslash::PaneProfilePolicy::Replace(expected, content,
+            [&](const auto& replacement) { return leaf->ExchangeRelaunchContent(replacement); },
+            [&](const auto& current) { _DetachEventHandlersFromContent(id); _AttachEventHandlersToContent(id, current); },
+            [&] { _UpdateActivePane(leaf); _RecalculateAndApplyTabColor(); },
+            [](const auto& old) { if (old) { try { old.Close(); } catch (...) { LOG_CAUGHT_EXCEPTION(); } } },
+            [&] { _UpdateActivePane(previousActive); _RecalculateAndApplyTabColor(); _mruPanes = previousMru; });
+    }
+
     void Tab::_CreateContextMenu()
     {
         auto weakThis{ get_weak() };
@@ -1862,17 +1924,44 @@ namespace winrt::TerminalApp::implementation
         contextMenuFlyout.Items().Append(renameTabMenuItem);
         contextMenuFlyout.Items().Append(duplicateTabMenuItem);
         contextMenuFlyout.Items().Append(splitTabMenuItem);
+        Controls::MenuFlyoutSubItem splitProfile, relaunchProfile;
+        splitProfile.Text(RS_(L"ProfilePane_Split")); relaunchProfile.Text(RS_(L"ProfilePane_Relaunch"));
+        Controls::FontIcon splitIcon, relaunchIcon;
+        splitIcon.Glyph(L"\xF246"); relaunchIcon.Glyph(L"\xE72C");
+        splitProfile.Icon(splitIcon); relaunchProfile.Icon(relaunchIcon);
+        WUX::Controls::ToolTipService::SetToolTip(splitProfile, box_value(RS_(L"ProfilePane_SplitHelp")));
+        WUX::Controls::ToolTipService::SetToolTip(relaunchProfile, box_value(RS_(L"ProfilePane_RelaunchHelp")));
+        Automation::AutomationProperties::SetHelpText(splitProfile, RS_(L"ProfilePane_SplitHelp"));
+        Automation::AutomationProperties::SetHelpText(relaunchProfile, RS_(L"ProfilePane_RelaunchHelp"));
+        contextMenuFlyout.Items().Append(splitProfile);
         _AppendMoveMenuItems(contextMenuFlyout);
         contextMenuFlyout.Items().Append(exportTabMenuItem);
         contextMenuFlyout.Items().Append(findMenuItem);
+        contextMenuFlyout.Items().Append(Controls::MenuFlyoutSeparator{});
+        contextMenuFlyout.Items().Append(relaunchProfile);
         contextMenuFlyout.Items().Append(restartConnectionMenuItem);
         contextMenuFlyout.Items().Append(menuSeparator);
 
         auto closeSubMenu = _AppendCloseMenuItems(contextMenuFlyout);
         closeSubMenu.Items().Append(closePaneMenuItem);
 
-        contextMenuFlyout.Opening([weakThis, renameTabMenuItem, duplicateTabMenuItem, splitTabMenuItem](auto&&, auto&&) {
+        contextMenuFlyout.Opening([weakThis, renameTabMenuItem, duplicateTabMenuItem, splitTabMenuItem, splitProfile, relaunchProfile](auto&&, auto&&) {
             if (const auto tab = weakThis.get()) {
+                splitProfile.Items().Clear(); relaunchProfile.Items().Clear();
+                if (tab->PopulateProfileMenu) { tab->PopulateProfileMenu(splitProfile, false); tab->PopulateProfileMenu(relaunchProfile, true); }
+                splitTabMenuItem.KeyboardAcceleratorTextOverride(L"");
+                for (const auto& binding : tab->_actionMap.KeyBindings())
+                {
+                    const auto action = binding.Value().ActionAndArgs();
+                    if (action.Action() != ShortcutAction::SplitPane) { continue; }
+                    const auto args = action.Args().try_as<SplitPaneArgs>();
+                    if (args && args.SplitMode() == SplitType::Duplicate && args.SplitDirection() == SplitDirection::Automatic && args.SplitSize() == 0.5f &&
+                        (!args.ContentArgs() || args.ContentArgs().Equals(NewTerminalArgs{})))
+                    {
+                        splitTabMenuItem.KeyboardAcceleratorTextOverride(KeyChordSerialization::ToString(binding.Key()));
+                        break;
+                    }
+                }
                 renameTabMenuItem.IsEnabled(!tab->Pin);
                 const bool terminal = !tab->Pin || !tab->Pin->dormant;
                 duplicateTabMenuItem.IsEnabled(terminal); splitTabMenuItem.IsEnabled(terminal);
@@ -2737,6 +2826,7 @@ namespace winrt::TerminalApp::implementation
             }
         }
         TabViewItem().IsClosable(isClosable);
+        _UpdateToolTip();
     }
 
     bool Tab::_focused() const noexcept

@@ -25,6 +25,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void DeleteConfirmation_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& e);
 
         void SshShellSelectionChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void ImportWorkspaceSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
         void ApplySshShellClick(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
 
         til::property_changed_event PropertyChanged;

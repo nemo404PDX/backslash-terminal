@@ -6,6 +6,7 @@
 #include "AddProfile.g.cpp"
 #include "AddProfilePageNavigationState.g.cpp"
 #include "EnumEntry.h"
+#include "SshScanUi.h"
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::System;
@@ -28,6 +29,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         const auto args = e.Parameter().as<Editor::NavigateToPageArgs>();
         _State = args.ViewModel().as<Editor::AddProfilePageNavigationState>();
+        _hostRoot = args.WindowRoot();
         BringIntoViewWhenLoaded(args.ElementToFocus());
 
         TraceLoggingWrite(
@@ -39,25 +41,38 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             TelemetryPrivacyDataTag(PDT_ProductAndServiceUsage));
     }
 
+    void AddProfile::BackgroundSettingsClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        if (const auto root = _hostRoot.get()) { root.OpenBackgroundSettings(); }
+    }
     void AddProfile::ScanSshClick(const IInspectable&, const RoutedEventArgs&)
     {
-        SshHosts().ItemsSource(_State.Settings().ScanSshProfiles());
-        SshHosts().SelectedIndex(-1);
-        RestoreSshButton().IsEnabled(false);
-        SshScanStatus().Text(RS_(SshHosts().Items().Size() ? L"AddProfile_SshSelect/Text" : L"AddProfile_SshEmpty/Text"));
-    }
-
-    void AddProfile::SshSelectionChanged(const IInspectable&, const RoutedEventArgs&)
-    {
-        RestoreSshButton().IsEnabled(SshHosts().SelectedItem() != nullptr);
-    }
-
-    void AddProfile::RestoreSshClick(const IInspectable&, const RoutedEventArgs&)
-    {
-        if (const auto selected = SshHosts().SelectedItem())
+        namespace ScanUi = ::Microsoft::Terminal::Backslash::SshScanUi;
+        std::wstring_view stage = L"preparing scan results";
+        try
         {
-            _State.RequestRestoreSsh(selected.as<Model::Profile>().Guid());
+            ImportSelectedSsh().IsEnabled(false);
+            SshCandidates().ItemsSource(nullptr);
+            SshScanStatus().Text(L"Scanning this computer's SSH connections...");
+            stage = L"reading SSH connection names";
+            const auto candidates = _State.Settings().ScanSshProfiles();
+            stage = L"displaying scan results";
+            SshCandidates().ItemsSource(ScanUi::Rows(candidates));
+            SshScanStatus().Text(candidates.Size() ? L"Select the connections to keep, then Import selected and Save Settings." : L"No new SSH connections found. Saved and hidden connections are already in Settings.");
+            ImportSelectedSsh().IsEnabled(candidates.Size() != 0);
         }
+        catch (const winrt::hresult_error& ex) { SshScanStatus().Text(ScanUi::Failure(stage, ex)); }
+        catch (const std::exception& ex) { SshScanStatus().Text(ScanUi::Failure(stage, ex)); }
+    }
+    void AddProfile::ImportSelectedSshClick(const IInspectable&, const RoutedEventArgs&)
+    {
+        // Copy before navigation events change the selection/page.
+        std::vector<winrt::guid> selected;
+        for (const auto& item : SshCandidates().SelectedItems()) { selected.push_back(item.as<Model::Profile>().Guid()); }
+        if (selected.empty()) { SshScanStatus().Text(L"Select at least one connection to import."); return; }
+        try { for (const auto& id : selected) { _State.RequestRestoreSsh(id); } }
+        catch (const std::exception& ex) { SshScanStatus().Text(winrt::to_hstring(ex.what())); }
+        catch (const winrt::hresult_error& ex) { SshScanStatus().Text(ex.message()); }
     }
 
     void AddProfile::AddNewClick(const IInspectable& /*sender*/,

@@ -48,6 +48,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         MainPage() = delete;
         MainPage(const Model::CascadiaSettings& settings);
 
+        bool SetHostSshDiscovery(bool enabled);
+        void OpenBackgroundSettings();
+        void ImportSshConnection(winrt::guid profile) { _ImportSshConnection(profile); }
+        safe_void_coroutine _ImportSshConnection(winrt::guid profile);
+        til::event<Windows::Foundation::EventHandler<Windows::Foundation::IInspectable>> HostSshDiscoveryChanged;
+        bool CanSavePaneRelaunchPreference() const { return !_settingsDraftIsStale && CanMoveSettingsEditor() && _settingsClone.ExplicitSettingsJson() == _settingsSource.ExplicitSettingsJson(); }
+        bool CanMoveSettingsEditor() const noexcept { return !_setupTransferBusy && !_settingsSaveAwaitingReload && !_closeSettingsBusy; }
+        Windows::Foundation::IAsyncOperation<bool> ConfirmCloseSettings();
         void UpdateSettings(const Model::CascadiaSettings& settings);
         winrt::hstring SavedGroupAppendError(const winrt::hstring& before, const winrt::hstring& after);
         void _ResetSettings(const Model::CascadiaSettings& settings);
@@ -71,6 +79,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void SettingsNav_ItemInvoked(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Microsoft::UI::Xaml::Controls::NavigationViewItemInvokedEventArgs& args);
         void SettingsNav_PaneOpened(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
         void SettingsNav_PaneClosed(const Microsoft::UI::Xaml::Controls::NavigationView& sender, const Windows::Foundation::IInspectable& args);
+        void SettingsActionRow_SizeChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::SizeChangedEventArgs& args);
+        bool _closeSettingsBusy = false;
         safe_void_coroutine SaveButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void ResetButton_Click(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& args);
         void BreadcrumbBar_ItemClicked(const Microsoft::UI::Xaml::Controls::BreadcrumbBar& sender, const Microsoft::UI::Xaml::Controls::BreadcrumbBarItemClickedEventArgs& args);

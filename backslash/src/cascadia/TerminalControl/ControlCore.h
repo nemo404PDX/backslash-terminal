@@ -140,6 +140,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void LostFocus();
 
         void ToggleShaderEffects();
+        til::color MapSchemePhosphorColor(til::color value) const;
+        bool RendererOwnsSchemeBackground() const;
+        bool SchemePhosphorActive() const;
         void AdjustOpacity(const float adjustment);
         void ResumeRendering();
 
@@ -366,6 +369,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _setOpacity(const float opacity, const bool focused = true);
 
         bool _isBackgroundTransparent();
+        void _updateRendererBackground();
         void _focusChanged(bool focused);
 
         void _selectSpan(til::point_span s);
@@ -427,6 +431,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         winrt::hstring _initialLaunchCommandline;
         winrt::hstring _initialStartingTitle;
         bool _initialTitleIsExplicit{ false };
+        IControlAppearance _phosphorAppearance{ nullptr };
         IControlSettings _settings{ nullptr };
         bool _hasUnfocusedAppearance{ false };
         IControlAppearance _unfocusedAppearance{ nullptr };

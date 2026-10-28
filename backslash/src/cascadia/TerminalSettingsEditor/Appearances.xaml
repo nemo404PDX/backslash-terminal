@@ -726,6 +726,13 @@
                 </Grid>
             </local:SettingContainer>
 
+            <local:SettingContainer x:Name="RetroTerminalSchemePhosphor" x:Uid="Profile_RetroTerminalSchemePhosphor"
+                                    ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalSchemePhosphor}"
+                                    HasSettingValue="{x:Bind Appearance.HasRetroTerminalSchemePhosphor, Mode=OneWay}"
+                                    SettingOverrideSource="{x:Bind Appearance.RetroTerminalSchemePhosphorOverrideSource, Mode=OneWay}">
+                <ToggleSwitch IsOn="{x:Bind Appearance.RetroTerminalSchemePhosphor, Mode=TwoWay}" Style="{StaticResource ToggleSwitchInExpanderStyle}" />
+            </local:SettingContainer>
+
             <local:SettingContainer x:Name="RetroTerminalContrastGuard" x:Uid="Profile_RetroTerminalContrastGuard"
                                     ClearSettingValue="{x:Bind Appearance.ClearRetroTerminalContrastGuard}"
                                     HasSettingValue="{x:Bind Appearance.HasRetroTerminalContrastGuard, Mode=OneWay}"

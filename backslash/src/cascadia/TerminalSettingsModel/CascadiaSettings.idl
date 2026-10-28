@@ -34,6 +34,7 @@ namespace Microsoft.Terminal.Settings.Model
         Boolean WriteSettingsToDisk();
         // Explicit configured values only; preserves profile/default inheritance.
         String ExplicitSettingsJson();
+        String DraftComparisonJson();
         void RebaseAfterGroupAppend(CascadiaSettings before, CascadiaSettings after);
         String LastSaveErrorMessage();
         CascadiaSettings DefaultsForLoadFailure();
@@ -62,6 +63,10 @@ namespace Microsoft.Terminal.Settings.Model
         String GetSerializationErrorMessage { get; };
 
         // Scan only reads SSH configuration. Add/Restore is an explicit settings-clone edit.
+        static Boolean HostSshDiscoveryEnabled;
+        String PreviewSshImport(Guid profileGuid);
+        Boolean CanImportSshProfile { get; };
+        Profile ImportSshProfile(Guid profileGuid);
         IVectorView<Profile> ScanSshProfiles();
         Profile RestoreSshProfile(Guid profileGuid);
         Profile CreateNewProfile();

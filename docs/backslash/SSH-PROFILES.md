@@ -1,5 +1,7 @@
 # SSH profile controls and WSL discovery
 
+Current portable discovery/import behavior is documented in [Portable SSH discovery and workspace imports](SSH-PORTABLE-IMPORT.md). The dated discovery/restore behavior below describes the preceding implementation.
+
 Implemented in the current checkout after checkpoint `79cf9d34`, with the preceding uncommitted bezel slice preserved. No SSH configuration, remote DefaultShell, keys, credentials, installed Terminal, or user's portable settings were edited. Validation never connects to an SSH server.
 
 ## Remote shell

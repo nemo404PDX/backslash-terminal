@@ -241,6 +241,7 @@ namespace winrt::TerminalApp::implementation
             co_return;
         }
 
+        if (_preserveRelaunchFailure && newConnectionState == ConnectionState::Failed) { co_return; }
         if (_profile)
         {
             const auto mode = _profile.CloseOnExit();

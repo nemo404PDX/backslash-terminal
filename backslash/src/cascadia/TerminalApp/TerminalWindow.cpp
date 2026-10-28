@@ -150,8 +150,9 @@ namespace winrt::TerminalApp::implementation
         // Now that we know we can do XAML, build our page.
         _root = winrt::make_self<TerminalPage>(*_WindowProperties, _manager);
 
-        const bool _rootHasStartupConnection = static_cast<bool>(_startupConnection);
-        const bool _rootHasInitialContent = !_initialContentArgs.empty();
+        _startupPayload.Capture(static_cast<bool>(_startupConnection), !_initialContentArgs.empty());
+        const bool _rootHasStartupConnection = _startupPayload.ConnectionPresent(false);
+        const bool _rootHasInitialContent = _startupPayload.ContentPresent(false);
         // Pass in information about the initial state of the window.
         // * If we were supposed to start from serialized "content", do that,
         // * If we were supposed to load from a persisted layout, do that
@@ -190,7 +191,7 @@ namespace winrt::TerminalApp::implementation
             }
         }
         const bool restored = static_cast<bool>(LoadPersistedLayout());
-        _root->SetPinStartupContext(ordinary && !_rootHasStartupConnection && !_rootHasInitialContent && !restored && !_gotSettingsStartupActions && !(_initialAppLaunch && _settings.GlobalSettings().StartupWithSavedGroup()), restored);
+        _root->SetPinStartupContext(ordinary && !_rootHasStartupConnection && !_rootHasInitialContent && !restored && !_gotSettingsStartupActions && !((_initialAppLaunch || _startupGroupReopen) && _settings.GlobalSettings().StartupWithSavedGroup()), restored);
         return _root->Initialize(hwnd);
     }
 
@@ -206,7 +207,7 @@ namespace winrt::TerminalApp::implementation
     bool TerminalWindow::_StartupGroupEligible()
     {
         return ::Microsoft::Terminal::Backslash::StartupGroupPolicy::Eligible({ _initialAppLaunch, _hasCommandLineArguments,
-            static_cast<bool>(_startupConnection), !_initialContentArgs.empty(), static_cast<bool>(LoadPersistedLayout()), _gotSettingsStartupActions });
+            _startupPayload.ConnectionPresent(static_cast<bool>(_startupConnection)), _startupPayload.ContentPresent(!_initialContentArgs.empty()), static_cast<bool>(LoadPersistedLayout()), _gotSettingsStartupActions, _startupGroupReopen });
     }
 
     void TerminalWindow::_PrepareStartupGroup()
@@ -1069,6 +1070,7 @@ namespace winrt::TerminalApp::implementation
     int32_t TerminalWindow::SetStartupCommandline(TerminalApp::CommandlineArgs args)
     {
         _initialAppLaunch = args.InitialAppLaunch();
+        _startupGroupReopen = args.StartupGroupReopen();
         _appArgs = winrt::get_self<CommandlineArgs>(args);
         _startupConnection = args.Connection();
         auto& parsedArgs = _appArgs->ParsedArgs();

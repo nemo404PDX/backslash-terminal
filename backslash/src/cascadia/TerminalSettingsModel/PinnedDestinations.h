@@ -93,8 +93,8 @@ namespace Microsoft::Terminal::Backslash::Pins
         }
         const bool wsl = value.kind == Kind::Wsl;
         const bool ssh = value.kind == Kind::SshWindows || value.kind == Kind::SshPosix;
-        if ((wsl && value.source != "Windows.Terminal.Wsl") || (ssh && value.source != "Windows.Terminal.SSH") ||
-            (value.kind == Kind::Local && (value.source == "Windows.Terminal.Wsl" || value.source == "Windows.Terminal.SSH")))
+        if ((wsl && value.source != "Windows.Terminal.Wsl") || (ssh && value.source != "Windows.Terminal.SSH" && value.source != "Backslash.Terminal.SSH") ||
+            (value.kind == Kind::Local && (value.source == "Windows.Terminal.Wsl" || value.source == "Windows.Terminal.SSH" || value.source == "Backslash.Terminal.SSH")))
         {
             throw std::invalid_argument("Pin path context does not match its profile source.");
         }

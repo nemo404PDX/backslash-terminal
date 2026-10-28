@@ -75,6 +75,7 @@ namespace SettingsModelUnitTests
         {
             implementation::SettingsLoader loader{ json, "{}" };
             loader.inboxSettings.profiles = loader.GenerateProfilesFor(generator);
+            loader.GenerateWorkspaceProfiles();
             loader.MergeInboxIntoUserSettings();
             loader.FinalizeLayering();
             loader.DisableDeletedProfiles(state);
@@ -202,137 +203,76 @@ namespace SettingsModelUnitTests
     void ProfileSourceTests::BackslashSshRestoreLifecycle()
     {
         auto state = tempState();
-        FixtureSshGenerator generator;
-        const auto guid = hostGuid(L"sameHost");
-        const auto other = hostGuid(L"unrelatedHost");
-        auto original = load(localJSON, generator, *state);
-        original->FindProfile(guid).HistorySize(123);
-        auto saved = toString(original->ToJson());
-        // Remove Host, delete the retained orphan, save, then reintroduce identical Host.
-        generator.hosts = { L"unrelatedHost" };
-        auto missing = load(saved, generator, *state);
-        VERIFY_IS_TRUE(missing->FindProfile(guid).Orphaned());
-        remove(missing, guid);
-        remove(missing, other); // A still-present, intentionally deleted unrelated host.
-        saved = toString(missing->ToJson());
-        generator.hosts = { L"sameHost", L"unrelatedHost", L"sameHost" };
-        auto deleted = load(saved, generator, *state);
-        VERIFY_IS_TRUE(deleted->FindProfile(guid).Deleted());
-        VERIFY_IS_TRUE(deleted->FindProfile(other).Deleted());
-        auto clone = deleted->Copy();
-        const auto edit = winrt::get_self<implementation::CascadiaSettings>(clone);
+        FixtureSshGenerator generator; generator.hosts = {};
+        auto source = load(localJSON, generator, *state);
+        const auto before = toString(source->ToJson());
+        generator.hosts = {L"sameHost", L"unrelatedHost", L"sameHost"};
+        auto clone = source->Copy(); const auto edit = winrt::get_self<implementation::CascadiaSettings>(clone);
         const auto seen = state->GeneratedProfiles();
-        edit->ScanSshProfiles(generator);
-        VERIFY_IS_TRUE(clone.FindProfile(guid).Deleted()); // Scan is read-only.
-        const auto restored = clone.RestoreSshProfile(guid);
-        VERIFY_IS_NOT_NULL(restored);
-        VERIFY_IS_FALSE(restored.Deleted());
-        VERIFY_IS_FALSE(restored.Hidden());
-        VERIFY_IS_FALSE(restored.Orphaned());
-        VERIFY_ARE_EQUAL(9001, restored.HistorySize()); // Defaults, not deleted customization.
-        VERIFY_IS_TRUE(restored.HasSshShellSelector());
-        VERIFY_IS_TRUE(clone.FindProfile(other).Deleted());
+        VERIFY_ARE_EQUAL(2u, edit->ScanSshProfiles(generator).Size());
+        VERIFY_ARE_EQUAL(before, toString(edit->ToJson()));
+        const auto imported = clone.RestoreSshProfile(hostGuid(L"sameHost"));
+        VERIFY_IS_NOT_NULL(imported); const auto id = imported.Guid();
+        VERIFY_IS_FALSE(imported.Deleted()); VERIFY_IS_FALSE(imported.Orphaned());
+        VERIFY_ARE_EQUAL(9001, imported.HistorySize());
+        VERIFY_IS_TRUE(imported.HasSshShellSelector());
         VERIFY_IS_TRUE(state->GeneratedProfiles() == seen);
-        VERIFY_IS_TRUE(deleted->FindProfile(guid).Deleted()); // Source untouched until Save.
-        clone.RestoreSshProfile(guid);
-        size_t matching = 0;
-        for (const auto& p : clone.AllProfiles()) { matching += p.Guid() == guid; }
-        VERIFY_ARE_EQUAL(size_t{ 1 }, matching);
-        size_t activeMatching = 0;
-        for (const auto& p : clone.ActiveProfiles()) { activeMatching += p.Guid() == guid; }
-        VERIFY_ARE_EQUAL(size_t{ 1 }, activeMatching);
-        size_t generatedParents = 0;
-        for (const auto& p : winrt::get_self<implementation::Profile>(restored)->Parents())
-        {
-            generatedParents += p->Source() == L"Windows.Terminal.SSH" && p->Guid() == guid && p->Origin() == OriginTag::Generated;
-        }
-        VERIFY_ARE_EQUAL(size_t{ 1 }, generatedParents);
-        saved = toString(edit->ToJson());
-        auto afterSave = load(saved, generator, *state);
-        VERIFY_IS_FALSE(afterSave->FindProfile(guid).Deleted());
-        VERIFY_IS_TRUE(afterSave->FindProfile(other).Deleted());
-        VERIFY_ARE_EQUAL(size_t{ 1 }, count(afterSave, guid));
-        // Second deletion after restoration, with Host still present, stays suppressed.
-        remove(afterSave, guid);
-        auto secondDelete = load(toString(afterSave->ToJson()), generator, *state);
-        VERIFY_IS_TRUE(secondDelete->FindProfile(guid).Deleted());
-        secondDelete->ScanSshProfiles(generator);
-        VERIFY_IS_NOT_NULL(secondDelete->RestoreSshProfile(guid));
-        VERIFY_IS_TRUE(secondDelete->FindProfile(other).Deleted());
-        VERIFY_ARE_EQUAL(size_t{ 1 }, count(secondDelete, guid));
+        VERIFY_ARE_EQUAL(before,toString(source->ToJson()));
+        VERIFY_IS_NULL(clone.RestoreSshProfile(hostGuid(L"sameHost")));
+        VERIFY_ARE_EQUAL(2u,clone.AllProfiles().Size());
+        std::string saved;
+        VERIFY_IS_TRUE(edit->WriteSettingsToDisk([&](std::string_view text){saved=text;},*state));
+        generator.hosts={}; // Restart with no host discovery/config availability.
+        auto fresh=load(saved,generator,*state);
+        VERIFY_IS_NOT_NULL(fresh->FindProfile(id)); VERIFY_IS_FALSE(fresh->FindProfile(id).Orphaned());
+        VERIFY_ARE_EQUAL(size_t{1},count(fresh,id));
+        generator.hosts={L"sameHost",L"unrelatedHost"};
+        VERIFY_ARE_EQUAL(1u,fresh->ScanSshProfiles(generator).Size());
     }
 
     void ProfileSourceTests::BackslashSshRestoreHiddenAndOrphan()
     {
-        auto state = tempState();
-        FixtureSshGenerator generator;
-        const auto guid = hostGuid(L"sameHost");
-        auto settings = load(localJSON, generator, *state);
-        settings->FindProfile(guid).Hidden(true);
-        settings->FindProfile(guid).HistorySize(321);
-        settings->FindProfile(guid).Name(L"custom name");
-        const auto saved = toString(settings->ToJson());
-        generator.hosts = {};
-        auto orphan = load(saved, generator, *state);
-        VERIFY_IS_TRUE(orphan->FindProfile(guid).Orphaned());
-        generator.hosts = { L"sameHost" };
-        orphan->ScanSshProfiles(generator);
-        const auto restored = orphan->RestoreSshProfile(guid);
-        VERIFY_IS_FALSE(restored.Orphaned());
-        VERIFY_IS_FALSE(restored.Hidden());
-        VERIFY_ARE_EQUAL(321, restored.HistorySize());
-        VERIFY_ARE_EQUAL(winrt::hstring{ L"custom name" }, restored.Name());
-        VERIFY_IS_TRUE(restored.SetSshShell(2, L""));
-        VERIFY_ARE_EQUAL(size_t{ 1 }, count(orphan, guid));
+        auto state=tempState(); FixtureSshGenerator generator; generator.hosts={};
+        auto source=load(localJSON,generator,*state);
+        generator.hosts={L"sameHost"}; source->ScanSshProfiles(generator);
+        const auto imported=source->RestoreSshProfile(hostGuid(L"sameHost"));
+        const auto id=imported.Guid(); imported.Hidden(true); imported.HistorySize(321); imported.Name(L"custom name");
+        const auto saved=toString(source->ToJson());
+        generator.hosts={}; auto fresh=load(saved,generator,*state);
+        const auto owned=fresh->FindProfile(id);
+        VERIFY_IS_NOT_NULL(owned); VERIFY_IS_FALSE(owned.Orphaned()); VERIFY_IS_TRUE(owned.Hidden());
+        VERIFY_ARE_EQUAL(321,owned.HistorySize()); VERIFY_ARE_EQUAL(winrt::hstring{L"custom name"},owned.Name());
+        VERIFY_IS_TRUE(owned.SetSshShell(2,L""));
+        generator.hosts={L"sameHost"};
+        VERIFY_ARE_EQUAL(0u,fresh->ScanSshProfiles(generator).Size()); // Hidden records never reappear as candidates.
+        VERIFY_ARE_EQUAL(size_t{1},count(fresh,id));
     }
 
     void ProfileSourceTests::BackslashSshScanCancelAndFailedSave()
     {
-        auto state = tempState();
-        FixtureSshGenerator generator;
-        const auto guid = hostGuid(L"sameHost");
-        auto source = load(localJSON, generator, *state);
-        remove(source, guid);
-        const auto diskBefore = toString(source->ToJson());
-        source = load(diskBefore, generator, *state);
-        const auto sourceBefore = toString(source->ToJson());
-        auto clone = source->Copy();
-        const auto edit = winrt::get_self<implementation::CascadiaSettings>(clone);
-        clone.FindProfile(hostGuid(L"unrelatedHost")).Name(L"unsaved edit");
-        const auto stateBefore = state->ToJson(implementation::FileSource::Shared);
-        generator.hosts.push_back(L"freshHost");
-        const auto fresh = hostGuid(L"freshHost");
-        VERIFY_ARE_EQUAL(uint32_t{ 3 }, edit->ScanSshProfiles(generator).Size());
-        VERIFY_IS_NOT_NULL(clone.RestoreSshProfile(fresh));
-        VERIFY_IS_FALSE(state->GeneratedProfiles().contains(fresh));
-        VERIFY_ARE_EQUAL(winrt::hstring{ L"unsaved edit" }, clone.FindProfile(hostGuid(L"unrelatedHost")).Name());
-        clone.RestoreSshProfile(guid);
-        // A failure in the same Save writer boundary cannot alter settings source or seen IDs.
-        VERIFY_IS_FALSE(edit->WriteSettingsToDisk([](std::string_view) { throw winrt::hresult_error(E_ACCESSDENIED); }, *state));
-        VERIFY_ARE_EQUAL(sourceBefore, toString(source->ToJson()));
-        VERIFY_IS_TRUE(stateBefore == state->ToJson(implementation::FileSource::Shared));
-        VERIFY_IS_TRUE(source->FindProfile(guid).Deleted());
-        clone = nullptr; // Cancel discards the editor clone.
-        VERIFY_IS_TRUE(source->FindProfile(guid).Deleted());
-        auto next = source->Copy();
-        const auto nextEdit = winrt::get_self<implementation::CascadiaSettings>(next);
+        auto state=tempState(); FixtureSshGenerator generator; generator.hosts={};
+        auto source=load(localJSON,generator,*state);
+        const auto sourceBefore=toString(source->ToJson());
+        const auto stateBefore=state->ToJson(implementation::FileSource::Shared);
+        generator.hosts={L"sameHost",L"freshHost"};
+        auto clone=source->Copy(); const auto edit=winrt::get_self<implementation::CascadiaSettings>(clone);
+        VERIFY_ARE_EQUAL(2u,edit->ScanSshProfiles(generator).Size());
+        const auto selected=clone.RestoreSshProfile(hostGuid(L"freshHost")); VERIFY_IS_NOT_NULL(selected);
+        VERIFY_IS_FALSE(edit->WriteSettingsToDisk([](std::string_view){throw winrt::hresult_error(E_ACCESSDENIED);},*state));
+        VERIFY_ARE_EQUAL(sourceBefore,toString(source->ToJson()));
+        VERIFY_IS_TRUE(stateBefore==state->ToJson(implementation::FileSource::Shared));
+        clone=nullptr; // Cancel.
+        VERIFY_ARE_EQUAL(sourceBefore,toString(source->ToJson()));
+        auto next=source->Copy(); const auto nextEdit=winrt::get_self<implementation::CascadiaSettings>(next);
+        nextEdit->ScanSshProfiles(generator); const auto imported=next.RestoreSshProfile(hostGuid(L"freshHost"));
+        std::string saved; VERIFY_IS_TRUE(nextEdit->WriteSettingsToDisk([&](std::string_view text){saved=text;},*state));
+        generator.hosts={}; auto fresh=load(saved,generator,*state);
+        VERIFY_IS_NOT_NULL(fresh->FindProfile(imported.Guid())); VERIFY_IS_FALSE(fresh->FindProfile(imported.Guid()).Orphaned());
+        auto disabled=winrt::make_self<implementation::CascadiaSettings>(R"({"disabledProfileSources":["Windows.Terminal.SSH"],"profiles":[{"name":"local"}]})");
+        VERIFY_ARE_EQUAL(0u,disabled->ScanSshProfiles(generator).Size());
+        VERIFY_THROWS(disabled->RestoreSshProfile(hostGuid(L"sameHost")),std::invalid_argument);
         nextEdit->ScanSshProfiles(generator);
-        next.RestoreSshProfile(guid);
-        next.RestoreSshProfile(fresh);
-        std::string saved;
-        VERIFY_IS_TRUE(nextEdit->WriteSettingsToDisk([&](std::string_view value) { saved = value; }, *state));
-        VERIFY_IS_TRUE(state->GeneratedProfiles().contains(fresh));
-        auto reloaded = load(saved, generator, *state);
-        remove(reloaded, fresh);
-        const auto freshDeleted = load(toString(reloaded->ToJson()), generator, *state);
-        VERIFY_IS_TRUE(freshDeleted->FindProfile(fresh).Deleted());
-        VERIFY_IS_FALSE(reloaded->FindProfile(guid).Deleted());
-        auto disabled = winrt::make_self<implementation::CascadiaSettings>(R"({"disabledProfileSources":["Windows.Terminal.SSH"],"profiles":[{"name":"local"}]})");
-        VERIFY_ARE_EQUAL(uint32_t{ 0 }, disabled->ScanSshProfiles(generator).Size());
-        VERIFY_IS_NULL(disabled->RestoreSshProfile(guid));
-        generator.hosts = {};
-        nextEdit->ScanSshProfiles(generator);
-        VERIFY_IS_NULL(next.RestoreSshProfile(guid)); // No stale candidates from previous scan.
+        VERIFY_IS_NULL(next.RestoreSshProfile(hostGuid(L"sameHost"))); // Cleared stale candidates.
     }
 
     void ProfileSourceTests::BackslashBezelSquareOuterRoundedInner()

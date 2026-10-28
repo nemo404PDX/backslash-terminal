@@ -36,6 +36,7 @@ winrt::com_ptr<Profile> Model::implementation::CreateChild(const winrt::com_ptr<
     // If you add more fields here, make sure to do the same in
     // SettingsLoader::_addUserProfileParent().
     auto profile = winrt::make_self<Profile>();
+    profile->SessionOnly(parent->SessionOnly());
     profile->Origin(OriginTag::User);
     profile->Name(parent->Name());
     profile->Guid(parent->Guid());
@@ -1056,6 +1057,7 @@ void CascadiaSettings::UpdateColorSchemeReferences(const winrt::hstring& oldName
 
 winrt::hstring CascadiaSettings::ExplicitSettingsJson() const
 {
+    _validateTransientHostEdits();
     Json::StreamWriterBuilder writer;
     writer["indentation"] = "    ";
     return winrt::to_hstring(Json::writeString(writer, ToJson(true)));
@@ -1076,13 +1078,14 @@ Model::CascadiaSettings CascadiaSettings::ValidateSetupImport(const winrt::hstri
     const auto userBase = _baseLayerProfile ? _baseLayerProfile->SourceBasePath : hstring{};
     loader.userSettings.baseLayerProfile->SourceBasePath = userBase;
     loader.userSettings.globals->SourceBasePath = _globals->SourceBasePath;
+    loader.GenerateWorkspaceProfiles(); // Pure workspace records, never host configuration.
     loader.MergeInboxIntoUserSettings();
 
     // Clone only non-user context. Importing omitted explicit fields must regain
     // the NEW Defaults, never pick up the old user's Defaults through a parent.
     std::unordered_map<const Profile*, winrt::com_ptr<Profile>> detached;
     const std::function<winrt::com_ptr<Profile>(const winrt::com_ptr<Profile>&)> cloneContext = [&](const auto& parent) -> winrt::com_ptr<Profile> {
-        if (parent->Origin() == OriginTag::User || parent->Origin() == OriginTag::ProfilesDefaults ||
+        if (parent->Source() == L"Backslash.Terminal.SSH" || parent->Origin() == OriginTag::User || parent->Origin() == OriginTag::ProfilesDefaults ||
             (!parent->Source().empty() && !loader.IsProfileSourceEnabled(parent->Source()))) { return nullptr; }
         if (const auto found = detached.find(parent.get()); found != detached.end()) { return found->second; }
         auto clone = parent->CopySettings();
@@ -1368,4 +1371,29 @@ void CascadiaSettings::ExpandCommands()
 void CascadiaSettings::UpdateCommandID(const Model::Command& cmd, winrt::hstring newID)
 {
     _globals->UpdateCommandID(cmd, newID);
+}
+
+// Comparison-only snapshot: never use this representation for persistence or export.
+winrt::hstring CascadiaSettings::DraftComparisonJson() const
+{
+    // Compare raw draft settings, without adopting SSH profiles or validating
+    // the prospective collection. Save/export may fail while the user must
+    // still be able to compare, discard, reset or keep editing the draft.
+    auto json = ToJson(true, false);
+    Json::Value transient{Json::arrayValue};
+    for (const auto& entry : _allProfiles)
+    {
+        const auto profile = winrt::get_self<Profile>(entry);
+        if (!entry.Deleted() && profile->IsTransientHostSsh())
+        {
+            auto explicitProfile = profile->ToJson();
+            explicitProfile["guid"] = winrt::to_string(winrt::to_hstring(entry.Guid()));
+            explicitProfile["source"] = winrt::to_string(entry.Source());
+            transient.append(std::move(explicitProfile));
+        }
+    }
+    json["comparisonOnly.transientProfiles"] = std::move(transient);
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "    ";
+    return winrt::to_hstring(Json::writeString(writer, json));
 }

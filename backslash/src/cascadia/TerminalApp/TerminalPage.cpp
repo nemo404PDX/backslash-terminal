@@ -20,6 +20,10 @@
 #include "Remoting.h"
 #include "ScratchpadContent.h"
 #include "SettingsPaneContent.h"
+#include "TransfersPaneContent.h"
+#include "SettingsViewHost.h"
+#include "../inc/PaneProfilePolicy.h"
+#include "../inc/SettingsPlacementGeometry.h"
 #include "TerminalPaneContent.h"
 #include "../TerminalSettingsModel/SavedTabGroups.h"
 #include <filesystem>
@@ -325,6 +329,9 @@ namespace winrt::TerminalApp::implementation
         _HookupKeyBindings(_settings.ActionMap());
 
         _tabContent = this->TabContent();
+        _windowImageLayout = _tabContent.LayoutUpdated(winrt::auto_revoke, [weak{ get_weak() }](auto&&, auto&&) {
+            if (const auto self = weak.get()) { self->_UpdateWindowImagePresentations(); }
+        });
         _tabRow = this->TabRow();
         _tabView = _tabRow.TabView();
         _rearranging = false;
@@ -1009,6 +1016,20 @@ namespace winrt::TerminalApp::implementation
             {
                 _SetAcceleratorForMenuItem(settingsItem, settingsKeyChord);
             }
+
+            // Temporarily hidden for v0.0.1-preview.2: Transfers has no backend.
+            // Restore this menu block only in a subsequent development commit after release.
+            /*
+            auto transfersItem = WUX::Controls::MenuFlyoutItem{};
+            transfersItem.Text(RS_(L"Transfers_Title"));
+            WUX::Controls::FontIcon transfersIcon;
+            transfersIcon.Glyph(L"\xE8AB");
+            transfersIcon.FontFamily(Media::FontFamily{ L"Segoe Fluent Icons, Segoe MDL2 Assets" });
+            transfersItem.Icon(transfersIcon);
+            Automation::AutomationProperties::SetHelpText(transfersItem, RS_(L"Transfers_OpenHelp"));
+            transfersItem.Click([weak = get_weak()](auto&&, auto&&) { if (const auto page = weak.get()) { page->_OpenTransfersUI(); } });
+            newTabFlyout.Items().Append(transfersItem);
+            */
 
             // Create the command palette button.
             auto commandPaletteFlyout = WUX::Controls::MenuFlyoutItem{};
@@ -2001,6 +2022,7 @@ namespace winrt::TerminalApp::implementation
                 if (e.PropertyName() == L"BackgroundBrush")
                 {
                     page->_updateThemeColors();
+                    page->_UpdateWindowImagePresentations();
                 }
             }
         });
@@ -2045,6 +2067,116 @@ namespace winrt::TerminalApp::implementation
     //    * the Color{Selected,Cleared} events to change the color of a tab.
     // Arguments:
     // - hostingTab: The Tab that's hosting this TermControl instance
+    void TerminalPage::_PopulateProfilePaneMenu(Tab& tab, WUX::Controls::MenuFlyoutSubItem menu, bool relaunch)
+    {
+        const auto leaf = tab.GetActivePane();
+        const auto old = leaf ? leaf->GetContent() : TerminalApp::IPaneContent{nullptr};
+        const bool enabled = ::Microsoft::Terminal::Backslash::PaneProfilePolicy::Eligible(old && old.try_as<TerminalApp::TerminalPaneContent>(), old && old.ReadOnly(), static_cast<bool>(tab.Pin), tab.SettingsTransferPending(), tab.ProfileActionBusy);
+        menu.IsEnabled(enabled);
+        if (!enabled) { return; }
+        for (const auto profile : _settings.ActiveProfiles())
+        {
+            WUX::Controls::MenuFlyoutItem item;
+            item.Text(profile.Name());
+            item.Icon(UI::IconPathConverter::IconWUX(profile.Icon().Resolved()));
+            // Only display an actually assigned, exact profile-specific split shortcut.
+            if (!relaunch)
+            {
+                for (const auto& binding : _settings.ActionMap().KeyBindings())
+                {
+                    const auto action = binding.Value().ActionAndArgs();
+                    if (action.Action() != ShortcutAction::SplitPane) { continue; }
+                    const auto args = action.Args().try_as<SplitPaneArgs>();
+                    const auto terminal = args ? args.ContentArgs().try_as<NewTerminalArgs>() : nullptr;
+                    NewTerminalArgs expected = terminal && terminal.ProfileIndex() ? NewTerminalArgs{terminal.ProfileIndex().Value()} : NewTerminalArgs{};
+                    if (terminal) { expected.Profile(terminal.Profile()); }
+                    if (terminal && terminal.Equals(expected) && (!terminal.Profile().empty() || terminal.ProfileIndex()) && args.SplitMode() == SplitType::Manual && args.SplitDirection() == SplitDirection::Automatic && args.SplitSize() == 0.5f && _settings.GetProfileForArgs(terminal) == profile)
+                    { _SetAcceleratorForMenuItem(item, binding.Key()); break; }
+                }
+            }
+            item.Click([weakPage = get_weak(), weakTab = tab.get_weak(), leaf, old, id = profile.Guid(), source = profile.Source(), relaunch](auto&&, auto&&) {
+                if (const auto page = weakPage.get()) { if (const auto owner = weakTab.get()) { page->_RunProfilePaneAction(owner, leaf, old, id, source, relaunch); } }
+            });
+            menu.Items().Append(item);
+        }
+    }
+
+    safe_void_coroutine TerminalPage::_RunProfilePaneAction(winrt::com_ptr<Tab> tab, std::shared_ptr<Pane> leaf, TerminalApp::IPaneContent oldContent, winrt::guid id, winrt::hstring source, bool relaunch)
+    {
+        const auto lifetime = get_strong();
+        if (!tab || tab->ProfileActionBusy) { co_return; }
+        const auto closeLease = tab->CloseRequest.Begin();
+        if (!closeLease) { co_return; }
+        tab->ProfileActionBusy = true;
+        const auto finish = wil::scope_exit([&] { tab->ProfileActionBusy = false; tab->CloseRequest.End(closeLease); });
+        const auto valid = [&]() {
+            uint32_t index;
+            return _tabs.IndexOf(*tab, index) && !tab->Pin && !tab->SettingsTransferPending() && leaf && tab->GetActivePane() == leaf &&
+                leaf->GetContent() == oldContent && oldContent.try_as<TerminalApp::TerminalPaneContent>() && !oldContent.ReadOnly() &&
+                ::Microsoft::Terminal::Backslash::FindContentLeaf(tab->GetRootPane(), oldContent) == leaf;
+        };
+        const auto selected = [&]() -> Profile {
+            for (const auto profile : _settings.ActiveProfiles()) { if (profile.Guid() == id && profile.Source() == source) { return profile; } }
+            return nullptr;
+        };
+        try
+        {
+            if (!valid() || !selected()) { _PinError(RS_(L"ProfilePane_Stale")); co_return; }
+            const auto profile = selected();
+            if (profile.Elevate() && !IsRunningElevated()) { _PinError(RS_(L"ProfilePane_Elevation")); co_return; }
+            bool suppress = false;
+            if (relaunch && _settings.GlobalSettings().ConfirmPaneRelaunch())
+            {
+                WUX::Controls::ContentDialog dialog;
+                dialog.Title(box_value(RS_(L"ProfilePane_Relaunch")));
+                WUX::Controls::StackPanel panel;
+                WUX::Controls::TextBlock message; message.TextWrapping(TextWrapping::Wrap);
+                message.Text(RS_(L"ProfilePane_Confirm") + L"\n\n" + profile.Name() + L"\n\n" + RS_(L"ProfilePane_SshWarning"));
+                WUX::Controls::CheckBox choice; choice.Content(box_value(RS_(L"ProfilePane_DontAsk"))); choice.IsChecked(false);
+                panel.Children().Append(message); panel.Children().Append(choice);
+                dialog.Content(panel); dialog.PrimaryButtonText(RS_(L"ProfilePane_Continue")); dialog.CloseButtonText(RS_(L"ProfilePane_Cancel"));
+                dialog.DefaultButton(WUX::Controls::ContentDialogButton::Close);
+                const auto presenter = _dialogPresenter.get();
+                if (!presenter || co_await presenter.ShowDialog(dialog) != WUX::Controls::ContentDialogResult::Primary) { co_return; }
+                suppress = choice.IsChecked().Value();
+            }
+            if (!valid() || !selected() || selected() != profile) { _PinError(RS_(L"ProfilePane_Stale")); co_return; }
+            NewTerminalArgs args; args.Profile(::Microsoft::Console::Utils::GuidToString(id));
+            // No old cwd, command line, session ID or appearance overrides cross profiles.
+            auto replacement = _MakeTerminalPane(args, nullptr);
+            if (!replacement || !replacement->GetContent() || !valid()) { if (replacement) { replacement->Shutdown(); } co_return; }
+            if (relaunch)
+            {
+                auto content = replacement->TakeRelaunchContent();
+                winrt::get_self<TerminalPaneContent>(content.as<TerminalApp::TerminalPaneContent>())->PreserveRelaunchFailure();
+                try { tab->ReplaceProfileContent(leaf, content); }
+                catch (...) { content.Close(); throw; }
+                if (::Microsoft::Terminal::Backslash::PaneProfilePolicy::RestoreKeyboardFocus(*tab == _GetFocusedTab(), _activated))
+                { content.Focus(FocusState::Programmatic); }
+            }
+            else
+            {
+                // Focus the captured leaf in the clicked tab, never a different terminal.
+                _tabView.SelectedItem(tab->TabViewItem());
+                tab->FocusPane(*leaf->Id());
+                _SplitPane(tab, SplitDirection::Automatic, 0.5f, replacement);
+            }
+            if (relaunch && ::Microsoft::Terminal::Backslash::PaneProfilePolicy::SaveSuppression(true, true, true, suppress))
+            {
+                const bool canSave = SettingsViewHost::Instance().CanWritePreference();
+                if (canSave)
+                {
+                    const auto updated = _settings.Copy(); updated.GlobalSettings().ConfirmPaneRelaunch(false);
+                    if (updated.WriteSettingsToDisk()) { _settings = updated; Application::Current().as<TerminalApp::App>().Logic().ReloadSettingsThrottled(); }
+                    else { _PinError(RS_(L"ProfilePane_PreferenceNotSaved")); }
+                }
+                else { _PinError(RS_(L"ProfilePane_PreferenceNotSaved")); }
+            }
+        }
+        catch (const winrt::hresult_error& error) { _PinError(error.message()); }
+        catch (const std::exception& error) { _PinError(winrt::to_hstring(error.what())); }
+    }
+
     void TerminalPage::_RegisterTabEvents(Tab& hostingTab)
     {
         auto weakTab{ hostingTab.get_weak() };
@@ -2085,6 +2217,9 @@ namespace winrt::TerminalApp::implementation
         hostingTab.TaskbarProgressChanged({ get_weak(), &TerminalPage::_SetTaskbarProgressHandler });
 
         hostingTab.RestartTerminalRequested({ get_weak(), &TerminalPage::_restartPaneConnection });
+        hostingTab.PopulateProfileMenu = [weakThis, weakTab](auto menu, bool relaunch) {
+            if (const auto page = weakThis.get()) { if (const auto tab = weakTab.get()) { page->_PopulateProfilePaneMenu(*tab, menu, relaunch); } }
+        };
     }
 
     // Method Description:
@@ -2336,6 +2471,7 @@ namespace winrt::TerminalApp::implementation
     //   than one tab opened, show a warning dialog.
     safe_void_coroutine TerminalPage::CloseWindow()
     {
+        for (const auto& tab : _tabs) { if (_GetTabImpl(tab)->SettingsTransferPending()) { co_return; } }
         if (_pinsClosing || _displayingCloseDialog) { co_return; }
         if (_HasMultipleTabs() &&
             _settings.GlobalSettings().ConfirmCloseAllTabs() &&
@@ -2425,9 +2561,22 @@ namespace winrt::TerminalApp::implementation
     {
         const auto tabIdx{ args.TabIndex() };
         const auto windowId{ args.Window() };
+        if (const auto focused = _GetFocusedTabImpl())
+        {
+            const auto content = focused->GetActiveContent();
+            if (TransfersPaneContent::IsContent(content))
+            {
+                _PinError(RS_(L"Transfers_MoveUnavailable")); return false;
+            }
+            if (content && content.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+            {
+                _PinError(RS_(L"SettingsTransfer_Pane")); return false;
+            }
+        }
 
         auto focusedTab{ _GetFocusedTabImpl() };
 
+        if (focusedTab && focusedTab->ProfileActionBusy) { return false; }
         if (!focusedTab)
         {
             return false;
@@ -2561,7 +2710,7 @@ namespace winrt::TerminalApp::implementation
 
     bool TerminalPage::_MoveTab(winrt::com_ptr<Tab> tab, MoveTabArgs args)
     {
-        if (!tab)
+        if (!tab || tab->ProfileActionBusy)
         {
             return false;
         }
@@ -2580,6 +2729,7 @@ namespace winrt::TerminalApp::implementation
 
             if (tab)
             {
+                if (_TryTransferSettingsTab(tab, windowId, 0)) { return true; }
                 if (tab->Pin) { _SendPinnedTab(tab, windowId, 0); return true; }
                 auto startupActions = tab->BuildStartupActions(BuildStartupKind::Content);
                 _DetachTabFromWindow(tab);
@@ -2636,15 +2786,14 @@ namespace winrt::TerminalApp::implementation
             // Possibly update the icon of the tab.
             _UpdateTabIcon(*tab);
 
-            _updateThemeColors();
-
-            // Update the taskbar progress as well. We'll raise our own
-            // SetTaskbarProgress event here, to get tell the hosting
-            // application to re-query this value from us.
-            SetTaskbarProgress.raise(*this, nullptr);
-
-            auto profile = tab->GetFocusedProfile();
-            _UpdateBackground(profile);
+            // Inactive tabs may refresh their own icon/title, but must not
+            // replace the selected tab's window-wide appearance or taskbar state.
+            if (::Microsoft::Terminal::Backslash::PaneProfilePolicy::UpdateWindowAppearance(sender == _GetFocusedTab()))
+            {
+                _updateThemeColors();
+                SetTaskbarProgress.raise(*this, nullptr);
+                _UpdateBackground(tab->GetFocusedProfile());
+            }
         }
 
         _adjustProcessPriorityThrottled->Run();
@@ -2756,11 +2905,10 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
-        // For now, prevent splitting the _settingsTab. We can always revisit this later.
-        if (*activeTab == _settingsTab)
-        {
-            return;
-        }
+        // Settings is a native pane; new terminal splits require a terminal target.
+        // A terminal sibling in a mixed Settings tab remains a valid split target.
+        const auto activeContent = activeTab->GetActiveContent();
+        if (activeContent && activeContent.GetRoot().try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>()) { return; }
 
         // If the caller is calling us with the return value of _MakePane
         // directly, it's possible that nullptr was returned, if the connections
@@ -3566,7 +3714,7 @@ namespace winrt::TerminalApp::implementation
         const auto tabViewItem = eventArgs.Tab();
         if (auto tab{ _GetTabByTabViewItem(tabViewItem) })
         {
-            _HandleCloseTabRequested(tab);
+            _RequestFocusedPaneClose(tab);
         }
     }
 
@@ -3770,6 +3918,34 @@ namespace winrt::TerminalApp::implementation
 
             content = *scratchPane;
         }
+        else if (std::wstring_view{paneType}.starts_with(L"settings-live-transfer:"))
+        {
+            const auto suffix = std::wstring{std::wstring_view{paneType}.substr(23)};
+            size_t used = 0; uint64_t lease = 0;
+            try { lease = std::stoull(suffix, &used); } catch (...) { return nullptr; }
+            if (used != suffix.size()) { return nullptr; }
+            return SettingsViewHost::Instance().TakeTransfer(lease);
+        }
+        else if (std::wstring_view{paneType}.starts_with(L"settings-reserved:"))
+        {
+            const auto suffix = std::wstring{std::wstring_view{paneType}.substr(18)};
+            size_t used = 0; uint64_t lease = 0;
+            try { lease = std::stoull(suffix, &used); } catch (...) { return nullptr; }
+            if (used != suffix.size()) { return nullptr; }
+            content = _makeSettingsContent(lease);
+        }
+        else if (std::wstring_view{paneType}.starts_with(L"transfers-reserved:"))
+        {
+            const auto suffix = std::wstring{std::wstring_view{paneType}.substr(std::wstring_view{L"transfers-reserved:"}.size())};
+            size_t used = 0; uint64_t lease = 0;
+            try { lease = std::stoull(suffix, &used); } catch (...) { return nullptr; }
+            if (used != suffix.size()) { return nullptr; }
+            content = _MakeTransfersContent(lease);
+        }
+        else if (paneType == L"transfers")
+        {
+            content = _MakeTransfersContent();
+        }
         else if (paneType == L"settings")
         {
             content = _makeSettingsContent();
@@ -3833,7 +4009,7 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
-        assert(content);
+        if (!content) { return nullptr; }
 
         return std::make_shared<Pane>(content);
     }
@@ -3868,58 +4044,182 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     void TerminalPage::_SetBackgroundImage(const winrt::Microsoft::Terminal::Settings::Model::IAppearanceConfig& newAppearance)
     {
-        if (!_settings.GlobalSettings().UseBackgroundImageForWindow())
-        {
-            _tabContent.Background(nullptr);
-            return;
-        }
-
         const auto path = newAppearance.BackgroundImagePath().Resolved();
-        if (path.empty())
+        if (!_settings.GlobalSettings().UseBackgroundImageForWindow() || path.empty())
         {
+            _windowImageBrush = nullptr;
             _tabContent.Background(nullptr);
+            _UpdateWindowImagePresentations();
             return;
         }
-
-        Windows::Foundation::Uri imageUri{ nullptr };
         try
         {
-            imageUri = Windows::Foundation::Uri{ path };
+            const Windows::Foundation::Uri uri{ path };
+            const auto prior = _windowImageBrush ? _windowImageBrush.ImageSource().try_as<Media::Imaging::BitmapImage>() : nullptr;
+            if (!prior || !prior.UriSource() || !prior.UriSource().Equals(uri))
+            {
+                _windowImageBrush = Media::ImageBrush{};
+                _windowImageBrush.ImageSource(Media::Imaging::BitmapImage{ uri });
+            }
+            _windowImageBrush.Stretch(newAppearance.BackgroundImageStretchMode());
+            _windowImageBrush.Opacity(newAppearance.BackgroundImageOpacity());
+            _UpdateWindowImagePresentations();
         }
         catch (...)
         {
             LOG_CAUGHT_EXCEPTION();
+            _windowImageBrush = nullptr;
             _tabContent.Background(nullptr);
-            return;
+            _UpdateWindowImagePresentations();
         }
-        // Check if the image brush is already pointing to the image
-        // in the modified settings; if it isn't (or isn't there),
-        // set a new image source for the brush
+    }
 
-        auto brush = _tabContent.Background().try_as<Media::ImageBrush>();
-        Media::Imaging::BitmapImage imageSource = brush == nullptr ? nullptr : brush.ImageSource().try_as<Media::Imaging::BitmapImage>();
-
-        if (imageSource == nullptr ||
-            imageSource.UriSource() == nullptr ||
-            !imageSource.UriSource().Equals(imageUri))
+    void TerminalPage::_UpdateWindowImagePresentations()
+    {
+        if (_updatingWindowImage || !_tabContent) { return; }
+        _updatingWindowImage = true;
+        const auto reset = wil::scope_exit([&] { _updatingWindowImage = false; });
+        try
         {
-            Media::ImageBrush b{};
-            // Note that BitmapImage handles the image load asynchronously,
-            // which is especially important since the image
-            // may well be both large and somewhere out on the
-            // internet.
-            Media::Imaging::BitmapImage image(imageUri);
-            b.ImageSource(image);
-            _tabContent.Background(b);
+            std::vector<TermControl> controls;
+            if (const auto tab = _GetFocusedTabImpl(); tab && tab->GetRootPane())
+            {
+                tab->GetRootPane()->WalkTree([&](const auto& pane) {
+                    if (const auto content = pane->GetContent().template try_as<TerminalApp::TerminalPaneContent>())
+                    {
+                        const auto control = content.GetTermControl();
+                        bool visible = control.IsLoaded() && control.ActualWidth() > 0 && control.ActualHeight() > 0;
+                        Windows::UI::Xaml::DependencyObject node{control};
+                        while (visible && node && node != _tabContent)
+                        {
+                            if (const auto element = node.try_as<UIElement>(); element && (element.Visibility() != Visibility::Visible || element.Opacity() <= 0)) { visible = false; }
+                            node = Media::VisualTreeHelper::GetParent(node);
+                        }
+                        if (visible && node == _tabContent) { controls.push_back(control); }
+                    }
+                });
+            }
+            for (const auto& prior : _windowImageControls)
+            {
+                if (const auto control = prior.get(); control && std::find(controls.begin(), controls.end(), control) == controls.end()) { control.SetSharedWindowImage(nullptr, nullptr, 1); }
+            }
+            _windowImageControls.clear();
+            const bool mapped = _settings.GlobalSettings().UseBackgroundImageForWindow() && _windowImageBrush &&
+                std::any_of(controls.begin(), controls.end(), [](const auto& control) { return control.SchemePhosphorActive(); });
+            const auto children = _tabContent.Children();
+            if (!mapped)
+            {
+                for (const auto& control : controls) { control.SetSharedWindowImage(nullptr, nullptr, 1); }
+                uint32_t index{};
+                if (_windowImageSourceHost && children.IndexOf(_windowImageSourceHost, index)) { children.RemoveAt(index); }
+                if (_windowImageBackdrop && children.IndexOf(_windowImageBackdrop, index)) { children.RemoveAt(index); }
+                if (_windowImageSource) { _windowImageSource.Source(nullptr); }
+                if (_windowImageBackdrop && _windowImageBackdrop.Children().Size() > 0) { _windowImageBackdrop.Children().Clear(); }
+                _windowImageClipSignature.clear();
+                if (_windowImageBrush && _tabContent.Background() != _windowImageBrush) { _tabContent.Background(_windowImageBrush); }
+                return;
+            }
+            const auto width = static_cast<float>(_tabContent.ActualWidth());
+            const auto height = static_cast<float>(_tabContent.ActualHeight());
+            if (width <= 0 || height <= 0) { return; }
+            if (!_windowImageSource)
+            {
+                _windowImageSourceHost = Controls::Grid{};
+                _windowImageSourceHost.IsHitTestVisible(false);
+                _windowImageSource = Controls::Image{};
+                _windowImageSourceHost.Children().Append(_windowImageSource);
+                _windowImageBackdrop = Controls::Grid{};
+                _windowImageBackdrop.IsHitTestVisible(false);
+                Automation::AutomationProperties::SetAccessibilityView(_windowImageSourceHost, Automation::Peers::AccessibilityView::Raw);
+                Automation::AutomationProperties::SetAccessibilityView(_windowImageBackdrop, Automation::Peers::AccessibilityView::Raw);
+            }
+            _windowImageSourceHost.Width(width);
+            _windowImageSourceHost.Height(height);
+            Media::TranslateTransform hidden;
+            hidden.X(-width - 64);
+            if (const auto prior = _windowImageSourceHost.RenderTransform().try_as<Media::TranslateTransform>(); !prior || prior.X() != hidden.X()) { _windowImageSourceHost.RenderTransform(hidden); }
+            if (_windowImageSource.Source() != _windowImageBrush.ImageSource()) { _windowImageSource.Source(_windowImageBrush.ImageSource()); }
+            // Auto size inside the fixed host preserves ImageBrush's centered
+            // letterbox/crop geometry, including UniformToFill overflow.
+            _windowImageSource.HorizontalAlignment(HorizontalAlignment::Center);
+            _windowImageSource.VerticalAlignment(VerticalAlignment::Center);
+            _windowImageSource.Stretch(_windowImageBrush.Stretch());
+            _windowImageBackdrop.Width(width);
+            _windowImageBackdrop.Height(height);
+            for (const auto& child : _windowImageBackdrop.Children())
+            {
+                if (const auto tile = child.try_as<Controls::Grid>(); tile && tile.Background() != _windowImageBrush) { tile.Background(_windowImageBrush); }
+            }
+            uint32_t index{};
+            if (!children.IndexOf(_windowImageSourceHost, index)) { children.InsertAt(0, _windowImageSourceHost); }
+            if (!children.IndexOf(_windowImageBackdrop, index)) { children.InsertAt(0, _windowImageBackdrop); }
+            // Replace the image beneath terminal apertures, rather than overlaying
+            // a second translucent image on top of the original colored pixels.
+            _tabContent.Background(nullptr);
+            std::wstring signature = std::to_wstring(width) + L"," + std::to_wstring(height);
+            std::vector<Windows::Foundation::Rect> apertures;
+            for (const auto& control : controls)
+            {
+                const auto bounds = control.TransformToVisual(_tabContent).TransformBounds({0,0,static_cast<float>(control.ActualWidth()),static_cast<float>(control.ActualHeight())});
+                const auto left = std::clamp(bounds.X, 0.0f, width);
+                const auto top = std::clamp(bounds.Y, 0.0f, height);
+                const auto right = std::clamp(bounds.X + bounds.Width, 0.0f, width);
+                const auto bottom = std::clamp(bounds.Y + bounds.Height, 0.0f, height);
+                control.SetSharedWindowImage(_windowImageSource, _tabContent, static_cast<float>(_windowImageBrush.Opacity()));
+                const bool ready = control.SharedWindowImageReady();
+                if (ready && right > left && bottom > top) { apertures.push_back({left, top, right - left, bottom - top}); }
+                signature += L";" + std::to_wstring(left) + L"," + std::to_wstring(top) + L"," + std::to_wstring(right) + L"," + std::to_wstring(bottom) + (ready ? L",ready" : L",fallback");
+                _windowImageControls.emplace_back(control);
+            }
+            if (signature != _windowImageClipSignature)
+            {
+                // Rectangular clips preserve the original Grid/ImageBrush
+                // sampling exactly. Path.Fill subtly changes letterbox-edge
+                // filtering, so partition the complement into disjoint tiles.
+                std::vector<float> edges{0, height};
+                for (const auto& aperture : apertures) { edges.push_back(aperture.Y); edges.push_back(aperture.Y + aperture.Height); }
+                std::sort(edges.begin(), edges.end());
+                edges.erase(std::unique(edges.begin(), edges.end()), edges.end());
+                std::vector<Windows::Foundation::Rect> regions;
+                for (size_t band = 1; band < edges.size(); ++band)
+                {
+                    const auto top = edges[band - 1], bottom = edges[band];
+                    std::vector<std::pair<float, float>> occupied;
+                    for (const auto& aperture : apertures)
+                    {
+                        if (aperture.Y < bottom && aperture.Y + aperture.Height > top) { occupied.emplace_back(aperture.X, aperture.X + aperture.Width); }
+                    }
+                    std::sort(occupied.begin(), occupied.end());
+                    const auto add = [&](float left, float right) {
+                        if (right <= left || bottom <= top) { return; }
+                        // Merge vertically adjacent identical spans to keep
+                        // the number of XAML visuals bounded by visible gaps.
+                        for (auto& region : regions)
+                        {
+                            if (region.X == left && region.Width == right - left && region.Y + region.Height == top) { region.Height += bottom - top; return; }
+                        }
+                        regions.push_back({left, top, right - left, bottom - top});
+                    };
+                    float cursor = 0;
+                    for (const auto& span : occupied) { add(cursor, span.first); cursor = std::max(cursor, span.second); }
+                    add(cursor, width);
+                }
+                _windowImageBackdrop.Children().Clear();
+                for (const auto& region : regions)
+                {
+                    Controls::Grid tile;
+                    tile.Width(width);
+                    tile.Height(height);
+                    tile.Background(_windowImageBrush);
+                    Media::RectangleGeometry clip;
+                    clip.Rect(region);
+                    tile.Clip(clip);
+                    _windowImageBackdrop.Children().Append(tile);
+                }
+                _windowImageClipSignature = std::move(signature);
+            }
         }
-
-        // Pull this into a separate block. If the image didn't change, but the
-        // properties of the image did, we should still update them.
-        if (const auto newBrush{ _tabContent.Background().try_as<Media::ImageBrush>() })
-        {
-            newBrush.Stretch(newAppearance.BackgroundImageStretchMode());
-            newBrush.Opacity(newAppearance.BackgroundImageOpacity());
-        }
+        CATCH_LOG();
     }
 
     // Method Description:
@@ -4446,8 +4746,11 @@ namespace winrt::TerminalApp::implementation
         ChangeMaximizeRequested.raise(*this, nullptr);
     }
 
-    TerminalApp::IPaneContent TerminalPage::_makeSettingsContent()
+    TerminalApp::IPaneContent TerminalPage::_makeSettingsContent(uint64_t ownershipLease)
     {
+        if (!ownershipLease) { ownershipLease = SettingsViewHost::Instance().Request(); }
+        if (!ownershipLease || !SettingsViewHost::Instance().ClaimCreation(ownershipLease)) { return nullptr; }
+        const auto failed = wil::scope_exit([&] { if (ownershipLease) { SettingsViewHost::Instance().Release(ownershipLease); } });
         if (auto app{ winrt::Windows::UI::Xaml::Application::Current().try_as<winrt::TerminalApp::App>() })
         {
             if (auto appPrivate{ winrt::get_self<implementation::App>(app) })
@@ -4460,28 +4763,27 @@ namespace winrt::TerminalApp::implementation
         // Create the SUI pane content
         auto settingsContent{ winrt::make_self<SettingsPaneContent>(_settings) };
         auto sui = settingsContent->SettingsUI();
-
-        if (_hostingHwnd)
-        {
-            sui.SetHostingWindow(reinterpret_cast<uint64_t>(*_hostingHwnd));
-        }
-
-        // GH#8767 - let unhandled keys in the SUI try to run commands too.
-        sui.KeyDown({ get_weak(), &TerminalPage::_KeyDownHandler });
-
-        sui.OpenJson([weakThis{ get_weak() }](auto&& /*s*/, winrt::Microsoft::Terminal::Settings::Model::SettingsTarget e) {
-            if (auto page{ weakThis.get() })
-            {
-                page->_LaunchSettings(e);
-            }
+        settingsContent->OwnershipLease(ownershipLease);
+        const auto lease = ownershipLease;
+        auto weakEditor = winrt::make_weak(sui);
+        auto dispatcher = sui.Dispatcher();
+        sui.Loaded([weakPage = get_weak(), weakEditor, dispatcher, lease](auto&&, auto&&) {
+            SettingsViewHost::Instance().Ready(lease, [weakPage, weakEditor, dispatcher] {
+                dispatcher.RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, [weakPage, weakEditor] {
+                    if (const auto page = weakPage.get())
+                    {
+                        if (const auto editor = weakEditor.get()) { page->_FocusSettingsEditor(editor); }
+                    }
+                });
+            });
         });
+        ownershipLease = 0; // Content releases on close/destruction, including failed attachment.
 
-        sui.ShowLoadWarningsDialog([weakThis{ get_weak() }](auto&& /*s*/, const Windows::Foundation::Collections::IVectorView<winrt::Microsoft::Terminal::Settings::Model::SettingsLoadWarnings>& warnings) {
-            if (auto page{ weakThis.get() })
-            {
-                page->ShowLoadWarningsDialog.raise(*page, warnings);
-            }
+
+        sui.HostSshDiscoveryChanged([](auto&&, auto&&) {
+            Application::Current().as<TerminalApp::App>().Logic().ReloadSettingsThrottled();
         });
+        _BindSettingsHost(*settingsContent);
 
         return *settingsContent;
     }
@@ -4493,18 +4795,268 @@ namespace winrt::TerminalApp::implementation
     // - <none>
     // Return Value:
     // - <none>
+    void TerminalPage::_BindSettingsHost(SettingsPaneContent& content)
+    {
+        const auto sui = content.SettingsUI();
+        SettingsViewHost::Instance().PreferenceWriteGuard([weak = winrt::make_weak(sui)] {
+            const auto editor = weak.get();
+            return !editor || (editor.Dispatcher().HasThreadAccess() && editor.CanSavePaneRelaunchPreference());
+        });
+        if (_hostingHwnd) { sui.SetHostingWindow(reinterpret_cast<uint64_t>(*_hostingHwnd)); }
+        content.KeyDownRevoker = sui.KeyDown(winrt::auto_revoke, {get_weak(), &TerminalPage::_KeyDownHandler});
+        content.OpenJsonRevoker = sui.OpenJson(winrt::auto_revoke, [weak = get_weak()](auto&&, auto target) {
+            if (const auto page = weak.get()) { page->_LaunchSettings(target); }
+        });
+        content.WarningsRevoker = sui.ShowLoadWarningsDialog(winrt::auto_revoke, [weak = get_weak()](auto&&, const auto& warnings) {
+            if (const auto page = weak.get()) { page->ShowLoadWarningsDialog.raise(*page, warnings); }
+        });
+    }
+
+    bool TerminalPage::_TryTransferSettingsTab(const winrt::com_ptr<Tab>& tab, const winrt::hstring& windowId, uint32_t tabIndex, std::optional<Windows::Foundation::Point> dragPoint)
+    {
+        if (!tab || !tab->GetRootPane()) { return false; }
+        if (tab->GetRootPane()->WalkTree([](const auto& pane) { return TransfersPaneContent::IsContent(pane->GetContent()); }))
+        {
+            _PinError(RS_(L"Transfers_MoveUnavailable")); return true;
+        }
+        SettingsPaneContent* settings = nullptr;
+        tab->GetRootPane()->WalkTree([&](const auto& pane) {
+            if (const auto content = pane->GetContent())
+            {
+                if (const auto editor = content.GetRoot().template try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+                {
+                    settings = static_cast<SettingsPaneContent*>(winrt::get_self<SettingsPaneContent>(content)); return true;
+                }
+            }
+            return false;
+        });
+        if (!settings) { return false; }
+        const auto editor = settings->SettingsUI();
+        // Supported in-process window creation/attach is synchronous on the emperor UI thread.
+        // Never marshal a live XAML tree to another thread, and don't move an active dialog.
+        if (!editor.Dispatcher().HasThreadAccess() || !editor.CanMoveSettingsEditor() ||
+            Windows::UI::Xaml::Media::VisualTreeHelper::GetOpenPopupsForXamlRoot(editor.XamlRoot()).Size() != 0)
+        {
+            _PinError(RS_(L"SettingsTransfer_Busy")); return true;
+        }
+        const auto visualRoot = tab->GetRootPane()->GetRootElement();
+        uint32_t visualIndex = 0;
+        if (_tabContent.Children().IndexOf(visualRoot, visualIndex)) { _tabContent.Children().RemoveAt(visualIndex); }
+        const auto root = tab->SuspendRootForSettingsTransfer();
+        if (!root) { _UpdatedSelectedTab(*tab); return true; }
+        const bool sourceEnabled = IsEnabled();
+        const bool editorEnabled = editor.IsEnabled();
+        editor.IsEnabled(false);
+        IsEnabled(false);
+        const auto sourceLease = settings->OwnershipLease();
+        const auto weak = get_weak();
+        const auto target = SettingsViewHost::Instance().BeginTransfer(sourceLease, root,
+            [weak, tab, editor, sourceEnabled, editorEnabled] {
+                editor.IsEnabled(editorEnabled);
+                tab->CompleteSettingsTransfer();
+                if (const auto page = weak.get()) { page->IsEnabled(sourceEnabled); page->_RemoveTab(*tab); }
+            },
+            [weak, tab, root, editor, sourceLease, sourceEnabled, editorEnabled] {
+                tab->RestoreRootAfterSettingsTransfer(root);
+                editor.IsEnabled(editorEnabled);
+                if (const auto page = weak.get())
+                {
+                    page->IsEnabled(sourceEnabled);
+                    root->WalkTree([&](const auto& pane) {
+                        const auto content = pane->GetContent();
+                        if (content && content.GetRoot().template try_as<winrt::Microsoft::Terminal::Settings::Editor::MainPage>())
+                        {
+                            const auto settings = winrt::get_self<SettingsPaneContent>(content);
+                            settings->OwnershipLease(sourceLease); page->_BindSettingsHost(*settings);
+                        }
+                        return false;
+                    });
+                    page->_tabView.SelectedItem(tab->TabViewItem());
+                    page->_UpdatedSelectedTab(*tab);
+                    page->_PinError(RS_(L"SettingsTransfer_Failed"));
+                }
+            });
+        if (!target) { tab->RestoreRootAfterSettingsTransfer(root); editor.IsEnabled(editorEnabled); IsEnabled(sourceEnabled); _UpdatedSelectedTab(*tab); return true; }
+        try
+        {
+            ActionAndArgs action; action.Action(ShortcutAction::NewTab);
+            action.Args(NewTabArgs{BaseContentArgs{L"settings-live-transfer:" + winrt::to_hstring(target)}});
+            _MoveContent({std::move(action)}, windowId, tabIndex, dragPoint);
+            // A destination that never reaches its initial layout must not leave
+            // the source editor suspended forever. Claimed transfers are cleaned
+            // up by the destination's attachment/readiness transaction instead.
+            Windows::UI::Xaml::DispatcherTimer timer;
+            timer.Interval(std::chrono::seconds{15});
+            auto tick = std::make_shared<winrt::event_token>();
+            *tick = timer.Tick([timer, tick, target](auto&&, auto&&) {
+                timer.Stop(); timer.Tick(*tick);
+                SettingsViewHost::Instance().AbortUnclaimedTransfer(target);
+            });
+            timer.Start();
+        }
+        catch (...) { SettingsViewHost::Instance().AbortTransfer(target); }
+        return true;
+    }
+
+    void TerminalPage::_FocusSettingsEditor(const winrt::Microsoft::Terminal::Settings::Editor::MainPage& editor)
+    {
+        for (const auto& tab : _tabs)
+        {
+            const auto impl = _GetTabImpl(tab);
+            const auto root = impl->GetRootPane();
+            if (root && root->WalkTree([&](const auto& pane) {
+                const auto content = pane->GetContent();
+                if (content && content.GetRoot() == editor)
+                {
+                    _tabView.SelectedItem(tab.TabViewItem());
+                    if (const auto id = pane->Id()) { impl->FocusPane(*id); }
+                    editor.Focus(FocusState::Programmatic);
+                    return true;
+                }
+                return false;
+            }))
+            {
+                if (_hostingHwnd) { ::ShowWindow(*_hostingHwnd, SW_RESTORE); ::SetForegroundWindow(*_hostingHwnd); }
+                return;
+            }
+        }
+    }
+
+    void TerminalPage::_FocusTransfersView(const Windows::UI::Xaml::FrameworkElement& view)
+    {
+        for (const auto& tab : _tabs)
+        {
+            const auto impl = _GetTabImpl(tab);
+            const auto root = impl->GetRootPane();
+            if (root && root->WalkTree([&](const auto& pane) {
+                const auto content = pane->GetContent();
+                if (content && content.GetRoot() == view)
+                {
+                    _tabView.SelectedItem(tab.TabViewItem());
+                    if (const auto id = pane->Id()) { impl->FocusPane(*id); }
+                    content.Focus(FocusState::Programmatic);
+                    return true;
+                }
+                return false;
+            }))
+            {
+                if (_hostingHwnd) { ::ShowWindow(*_hostingHwnd, SW_RESTORE); ::SetForegroundWindow(*_hostingHwnd); }
+                return;
+            }
+        }
+    }
+
+    TerminalApp::IPaneContent TerminalPage::_MakeTransfersContent(uint64_t ownershipLease)
+    {
+        namespace B = ::Microsoft::Terminal::Backslash;
+        auto& host = SettingsViewHost::Instance(B::BuiltinViewId::Transfers);
+        if (!ownershipLease) { ownershipLease = host.Request(); }
+        if (!ownershipLease || !host.ClaimCreation(ownershipLease)) { return nullptr; }
+        const auto failed = wil::scope_exit([&] { if (ownershipLease) { host.Release(ownershipLease); } });
+        auto content = winrt::make_self<TransfersPaneContent>(_settings);
+        content->OwnershipLease(ownershipLease);
+        const auto view = content->GetRoot();
+        content->KeyDownRevoker = view.KeyDown(winrt::auto_revoke, {get_weak(), &TerminalPage::_KeyDownHandler});
+        const auto lease = ownershipLease;
+        const auto weakView = winrt::make_weak(view);
+        const auto dispatcher = view.Dispatcher();
+        view.Loaded([weakPage = get_weak(), weakView, dispatcher, lease](auto&&, auto&&) {
+            SettingsViewHost::Instance(B::BuiltinViewId::Transfers).Ready(lease, [weakPage, weakView, dispatcher] {
+                dispatcher.RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, [weakPage, weakView] {
+                    if (const auto page = weakPage.get())
+                    {
+                        if (const auto currentView = weakView.get()) { page->_FocusTransfersView(currentView); }
+                    }
+                });
+            });
+        });
+        ownershipLease = 0;
+        return *content;
+    }
+
+    void TerminalPage::_OpenTransfersUI()
+    {
+        namespace B = ::Microsoft::Terminal::Backslash;
+        auto& host = SettingsViewHost::Instance(B::BuiltinViewId::Transfers);
+        const auto lease = host.Request();
+        if (!lease) { return; }
+        try
+        {
+            const auto mode = _settings.GlobalSettings().TransfersLaunchMode();
+            if (mode == SettingsLaunchMode::SeparateWindow)
+            {
+                Windows::UI::Xaml::DispatcherTimer timer;
+                timer.Interval(std::chrono::seconds{15});
+                auto tick = std::make_shared<winrt::event_token>();
+                *tick = timer.Tick([timer, tick, lease](auto&&, auto&&) {
+                    timer.Stop(); timer.Tick(*tick);
+                    SettingsViewHost::Instance(B::BuiltinViewId::Transfers).FailUnclaimedCreation(lease);
+                });
+                timer.Start();
+                _OpenNewWindow(BaseContentArgs{L"transfers-reserved:" + winrt::to_hstring(lease)});
+                return;
+            }
+            const auto content = _MakeTransfersContent(lease);
+            if (!content) { return; }
+            const auto pane = std::make_shared<Pane>(content);
+            const auto activeTab = _GetFocusedTabImpl();
+            const auto activePane = activeTab ? activeTab->GetActivePane() : nullptr;
+            const auto minimum = content.MinimumSize();
+            if (mode == SettingsLaunchMode::SideBySide && activeTab && activePane && activeTab->GetActiveTerminalControl() &&
+                (!activeTab->Pin || !activeTab->Pin->dormant) &&
+                B::SettingsFitsRightSplit(activePane->GetRootElement().ActualWidth(), activePane->GetRootElement().ActualHeight(), minimum.Width, minimum.Height) &&
+                activeTab->PreCalculateCanSplit(SplitDirection::Right, 0.5f, {static_cast<float>(_tabContent.ActualWidth()), static_cast<float>(_tabContent.ActualHeight())}))
+            {
+                _SplitPane(activeTab, SplitDirection::Right, 0.5f, pane);
+            }
+            else { _CreateNewTabFromPane(pane); }
+        }
+        catch (...) { host.Release(lease); throw; }
+    }
+
     void TerminalPage::OpenSettingsUI()
     {
-        // If we're holding the settings tab's switch command, don't create a new one, switch to the existing one.
-        if (!_settingsTab)
+        const auto lease = SettingsViewHost::Instance().Request();
+        if (!lease) { return; } // Existing or pending Settings editor owns the reserved identity.
+        try
         {
-            // Create the tab
-            auto resultPane = std::make_shared<Pane>(_makeSettingsContent());
-            _settingsTab = _CreateNewTabFromPane(resultPane);
+            const auto mode = _settings.GlobalSettings().SettingsLaunchMode();
+            if (mode == SettingsLaunchMode::SeparateWindow)
+            {
+                // The reservation is acknowledged by the destination editor's
+                // Loaded handler. A never-claimed request must not block later opens.
+                Windows::UI::Xaml::DispatcherTimer timer;
+                timer.Interval(std::chrono::seconds{15});
+                auto tick = std::make_shared<winrt::event_token>();
+                *tick = timer.Tick([timer, tick, lease](auto&&, auto&&) {
+                    timer.Stop(); timer.Tick(*tick);
+                    SettingsViewHost::Instance().FailUnclaimedCreation(lease);
+                });
+                timer.Start();
+                _OpenNewWindow(BaseContentArgs{L"settings-reserved:" + winrt::to_hstring(lease)});
+                return;
+            }
+            auto content = _makeSettingsContent(lease);
+            if (!content) { return; }
+            auto pane = std::make_shared<Pane>(content);
+            const auto activeTab = _GetFocusedTabImpl();
+            const auto activePane = activeTab ? activeTab->GetActivePane() : nullptr;
+            const auto minimum = content.MinimumSize();
+            // Validate the incoming Settings minimum against the actual active
+            // leaf, including nested splits; the tab's total area is insufficient.
+            if (mode == SettingsLaunchMode::SideBySide && activeTab && activePane && activeTab->GetActiveTerminalControl() &&
+                (!activeTab->Pin || !activeTab->Pin->dormant) &&
+                ::Microsoft::Terminal::Backslash::SettingsFitsRightSplit(activePane->GetRootElement().ActualWidth(), activePane->GetRootElement().ActualHeight(), minimum.Width, minimum.Height) &&
+                activeTab->PreCalculateCanSplit(SplitDirection::Right, 0.5f, { static_cast<float>(_tabContent.ActualWidth()), static_cast<float>(_tabContent.ActualHeight()) }))
+            {
+                _SplitPane(activeTab, SplitDirection::Right, 0.5f, pane);
+            }
+            else { _settingsTab = _CreateNewTabFromPane(pane); }
         }
-        else
+        catch (...)
         {
-            _tabView.SelectedItem(_settingsTab.TabViewItem());
+            SettingsViewHost::Instance().Release(lease);
+            throw;
         }
     }
 
@@ -5763,6 +6315,8 @@ namespace winrt::TerminalApp::implementation
                                                const uint32_t tabIndex,
                                                std::optional<winrt::Windows::Foundation::Point> dragPoint)
     {
+        if (_stashed.draggedTab && _stashed.draggedTab->ProfileActionBusy) { return; }
+        if (_TryTransferSettingsTab(_stashed.draggedTab, windowId, tabIndex, dragPoint)) { return; }
         if (_stashed.draggedTab->Pin) { _SendPinnedTab(_stashed.draggedTab, windowId, tabIndex, dragPoint); return; }
         auto startupActions = _stashed.draggedTab->BuildStartupActions(BuildStartupKind::Content);
         _DetachTabFromWindow(_stashed.draggedTab);
@@ -5851,7 +6405,7 @@ namespace winrt::TerminalApp::implementation
     static bool _groupCanCaptureFolder(const Profile& profile, const TermControl& control, const winrt::hstring& reportedFolder)
     {
         // A local ssh client or WSL process cwd says nothing about the remote/Linux cwd.
-        if (profile.Source() == L"Windows.Terminal.SSH" || profile.Source() == L"Windows.Terminal.Wsl") { return false; }
+        if (profile.Source() == L"Windows.Terminal.SSH" || profile.Source() == L"Backslash.Terminal.SSH" || profile.Source() == L"Windows.Terminal.Wsl") { return false; }
         int count = 0;
         const wil::unique_hlocal_ptr<wchar_t*[]> argv{ CommandLineToArgvW(control.Settings().Commandline().c_str(), &count) };
         if (!argv || count < 1) { return false; }

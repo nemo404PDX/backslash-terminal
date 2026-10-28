@@ -11,6 +11,7 @@
 #include "../../tsf/Handle.h"
 
 #include "ControlInteractivity.h"
+#include "../inc/PhosphorImageRenderer.h"
 
 namespace Microsoft::Console::VirtualTerminal
 {
@@ -106,6 +107,9 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         bool BracketedPasteEnabled() const noexcept;
 
         float BackgroundOpacity() const;
+        bool SchemePhosphorActive() const;
+        bool SharedWindowImageReady() const noexcept;
+        void SetSharedWindowImage(const Windows::UI::Xaml::Controls::Image& source, const Windows::UI::Xaml::FrameworkElement& coordinateRoot, float opacity);
 
         uint64_t OwningHwnd();
         void OwningHwnd(uint64_t owner);
@@ -357,8 +361,30 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void _ApplyUISettings();
         void UpdateAppearance(Control::IControlAppearance newAppearance);
         void _SetBackgroundImage(const IControlAppearance& newAppearance);
+        void _refreshPhosphorImage();
+        void _closePhosphorImage(bool restoreSource = true);
+        std::shared_ptr<::Microsoft::Terminal::Backslash::PhosphorImageSource> _phosphorImageSource;
+        std::shared_ptr<::Microsoft::Terminal::Backslash::PhosphorImagePresentation> _phosphorImagePresentation;
+        winrt::weak_ref<Windows::UI::Xaml::Controls::Image> _sharedWindowImage;
+        winrt::weak_ref<Windows::UI::Xaml::FrameworkElement> _sharedWindowImageRoot;
+        Windows::UI::Xaml::Controls::Image::ImageOpened_revoker _phosphorImageOpened;
+        Windows::UI::Xaml::Controls::Image::ImageOpened_revoker _sharedPhosphorImageOpened;
+        Windows::UI::Xaml::Media::ImageSource _phosphorImageContent{ nullptr };
+        Windows::UI::Xaml::FrameworkElement::LayoutUpdated_revoker _phosphorImageLayout;
+        Control::IControlAppearance _imageAppearance{ nullptr };
+        float _sharedWindowImageOpacity = 1;
+        bool _imageRenderingVisible = false;
+        bool _imageWindowVisible = true;
+        bool _phosphorImageResetPending = false;
+        bool _refreshingPhosphorImage = false;
+        bool _phosphorImageReady = false;
+        uint32_t _phosphorImageLayoutSignature = UINT32_MAX;
 
         void _InitializeBackgroundBrush();
+        void _updateSchemePadding();
+        std::wstring _schemePaddingSignature;
+        Windows::UI::Xaml::Media::SolidColorBrush _schemePaddingBrush{ nullptr };
+        void _publishBackgroundBrush(til::color sourceColor);
         safe_void_coroutine _coreBackgroundColorChanged(const IInspectable& sender, const IInspectable& args);
         void _changeBackgroundColor(til::color bg);
         static bool _isColorLight(til::color bg) noexcept;

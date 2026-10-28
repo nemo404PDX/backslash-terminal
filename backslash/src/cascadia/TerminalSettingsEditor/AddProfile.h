@@ -57,9 +57,10 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void DuplicateClick(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);
         void ProfilesSelectionChanged(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);
 
+        void BackgroundSettingsClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void ImportSelectedSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        winrt::weak_ref<Editor::IHostedInWindow> _hostRoot;
         void ScanSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
-        void RestoreSshClick(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
-        void SshSelectionChanged(const IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
 
         til::property_changed_event PropertyChanged;
         WINRT_PROPERTY(Editor::AddProfilePageNavigationState, State, nullptr);

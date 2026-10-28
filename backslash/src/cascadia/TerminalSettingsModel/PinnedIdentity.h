@@ -25,7 +25,7 @@ namespace Microsoft::Terminal::Backslash::Pins
         target.profile = winrt::to_string(::Microsoft::Console::Utils::GuidToString(profile.Guid()));
         target.source = winrt::to_string(profile.Source()); target.active = true; target.elevationCompatible = !profile.Elevate() || elevated;
         const auto identity = winrt::to_string(profile.ConnectionIdentity(profile.Commandline()));
-        if (target.source == "Windows.Terminal.SSH")
+        if ((target.source == "Windows.Terminal.SSH" || target.source == "Backslash.Terminal.SSH"))
         {
             target.kind = Kind::SshWindows;
             if (identity.starts_with("SSH ")) { target.host = identity.substr(4); target.supportsFixedPath = profile.SshShell() == 3; }

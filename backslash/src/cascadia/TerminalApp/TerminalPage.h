@@ -38,6 +38,7 @@ namespace winrt::Microsoft::Terminal::Settings
 
 namespace winrt::TerminalApp::implementation
 {
+    class SettingsPaneContent;
     struct TerminalSettingsCache;
 
     inline constexpr uint32_t DefaultRowsToScroll{ 3 };
@@ -170,6 +171,9 @@ namespace winrt::TerminalApp::implementation
         bool IsRunningElevated() const noexcept;
 
         void OpenSettingsUI();
+        void _OpenTransfersUI();
+        TerminalApp::IPaneContent _MakeTransfersContent(uint64_t ownershipLease = 0);
+        void _FocusTransfersView(const Windows::UI::Xaml::FrameworkElement& view);
         void WindowActivated(const bool activated);
 
         bool OnDirectKeyEvent(const uint32_t vkey, const uint8_t scanCode, const bool down);
@@ -228,6 +232,15 @@ namespace winrt::TerminalApp::implementation
         Microsoft::UI::Xaml::Controls::TabView _tabView{ nullptr };
         TerminalApp::TabRowControl _tabRow{ nullptr };
         Windows::UI::Xaml::Controls::Grid _tabContent{ nullptr };
+        Windows::UI::Xaml::Media::ImageBrush _windowImageBrush{ nullptr };
+        Windows::UI::Xaml::Controls::Grid _windowImageSourceHost{ nullptr };
+        Windows::UI::Xaml::Controls::Image _windowImageSource{ nullptr };
+        Windows::UI::Xaml::Controls::Grid _windowImageBackdrop{ nullptr };
+        Windows::UI::Xaml::FrameworkElement::LayoutUpdated_revoker _windowImageLayout;
+        std::vector<winrt::weak_ref<winrt::Microsoft::Terminal::Control::TermControl>> _windowImageControls;
+        std::wstring _windowImageClipSignature;
+        bool _updatingWindowImage = false;
+        void _UpdateWindowImagePresentations();
         Microsoft::UI::Xaml::Controls::SplitButton _newTabButton{ nullptr };
         winrt::TerminalApp::ColorPickupFlyout _tabColorPicker{ nullptr };
 
@@ -406,6 +419,8 @@ namespace winrt::TerminalApp::implementation
         void _InitializeTab(winrt::com_ptr<Tab> newTabImpl, uint32_t insertPosition = -1, bool background = false);
         void _RegisterTerminalEvents(Microsoft::Terminal::Control::TermControl term);
         void _RegisterTabEvents(Tab& hostingTab);
+        void _PopulateProfilePaneMenu(Tab& tab, Windows::UI::Xaml::Controls::MenuFlyoutSubItem menu, bool relaunch);
+        safe_void_coroutine _RunProfilePaneAction(winrt::com_ptr<Tab> tab, std::shared_ptr<Pane> leaf, TerminalApp::IPaneContent oldContent, winrt::guid profile, winrt::hstring source, bool relaunch);
 
         void _DismissTabContextMenus();
         void _FocusCurrentTab(const bool focusAlways);
@@ -451,7 +466,7 @@ namespace winrt::TerminalApp::implementation
         void _HandleClosePaneRequested(std::shared_ptr<Pane> pane);
         safe_void_coroutine _SetFocusedTab(const winrt::TerminalApp::Tab tab);
         safe_void_coroutine _CloseFocusedPane();
-        void _ClosePanes(weak_ref<Tab> weakTab, std::vector<uint32_t> paneIds);
+        safe_void_coroutine _ClosePanes(weak_ref<Tab> weakTab, std::vector<uint32_t> paneIds);
         winrt::Windows::Foundation::IAsyncOperation<bool> _PaneConfirmCloseReadOnly(std::shared_ptr<Pane> pane);
         void _AddPreviouslyClosedPaneOrTab(std::vector<Microsoft::Terminal::Settings::Model::ActionAndArgs>&& args);
 
@@ -506,6 +521,7 @@ namespace winrt::TerminalApp::implementation
 
         void _OnTabSelectionChanged(const IInspectable& sender, const Windows::UI::Xaml::Controls::SelectionChangedEventArgs& eventArgs);
         void _OnTabItemsChanged(const IInspectable& sender, const Windows::Foundation::Collections::IVectorChangedEventArgs& eventArgs);
+        safe_void_coroutine _RequestFocusedPaneClose(winrt::TerminalApp::Tab tab, bool fromTabButton = true);
         void _OnTabCloseRequested(const IInspectable& sender, const Microsoft::UI::Xaml::Controls::TabViewTabCloseRequestedEventArgs& eventArgs);
         void _OnFirstLayout(const IInspectable& sender, const IInspectable& eventArgs);
         void _UpdatedSelectedTab(const winrt::TerminalApp::Tab& tab);
@@ -522,7 +538,10 @@ namespace winrt::TerminalApp::implementation
         winrt::Microsoft::Terminal::Control::TermControl _SetupControl(const winrt::Microsoft::Terminal::Control::TermControl& term);
         winrt::Microsoft::Terminal::Control::TermControl _AttachControlToContent(const uint64_t& contentGuid);
 
-        TerminalApp::IPaneContent _makeSettingsContent();
+        TerminalApp::IPaneContent _makeSettingsContent(uint64_t ownershipLease = 0);
+        void _BindSettingsHost(SettingsPaneContent& content);
+        bool _TryTransferSettingsTab(const winrt::com_ptr<Tab>& tab, const winrt::hstring& windowId, uint32_t tabIndex, std::optional<winrt::Windows::Foundation::Point> dragPoint = {});
+        void _FocusSettingsEditor(const winrt::Microsoft::Terminal::Settings::Editor::MainPage& editor);
         std::shared_ptr<Pane> _MakeTerminalPane(const Microsoft::Terminal::Settings::Model::NewTerminalArgs& newTerminalArgs = nullptr,
                                                 const winrt::TerminalApp::Tab& sourceTab = nullptr,
                                                 winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection existingConnection = nullptr);

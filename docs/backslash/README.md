@@ -8,11 +8,15 @@
 >
 > Older preparation notes and index descriptions below are retained as history. Pending badge/finish headings and the dated inventory can lag implementation. Per-record evidence and the root overview take precedence for delivered scope.
 
+**Current release/development boundary:** [development status](DEVELOPMENT-STATUS.md) identifies published `v0.0.1-preview.1` separately from later uncommitted work and the latest verified candidate. Start there for verification limits, open issues and future-only scope. New implementation records: [SSH import](SSH-PORTABLE-IMPORT.md), [resident startup](STARTUP-GROUP-REOPEN.md), [Settings placement](SETTINGS-PLACEMENT.md), [focused close/footer](FOCUSED-PANE-CLOSE.md), [UI accent](UI-ACCENT.md), [scheme phosphor](PHOSPHOR-SCHEME-TONES.md) and [scanline color](SCANLINE-COLOR.md).
+
 # Backslash Terminal project
+
+Current terminal-only tab-menu additions: [Split with profile and Relaunch with profile](PROFILE-PANE-ACTIONS.md), including scoped confirmation, sibling/layout preservation and saved Group identity behavior. Native interaction QA remains pending.
 
 Display brand: **Backslash**. Repository/folder: **backslash-terminal**.
 
-Backslash is a planned independently branded, Windows-first fork of Microsoft Windows Terminal. The goal is approachable saved workspaces, useful inline terminal graphics, understandable palette editing, and optional configurable CRT styling. This is the existing C++/Windows source baseline, not a Rust rewrite or a cross-platform port.
+Backslash is a Windows-first fork of Microsoft Windows Terminal. The goal is approachable saved workspaces, useful inline terminal graphics, understandable palette editing, and optional configurable CRT styling. This is the existing C++/Windows source baseline, not a Rust rewrite or a cross-platform port.
 
 **Current status: isolated portable Backslash Dev builds with configurable CRT/bezel controls and SSH profile controls; modern WSL discovery is corrected.** See [portable implementation](PORTABLE-IMPLEMENTATION.md), [CRT evidence](CRT-APPEARANCE.md), [bezel evidence](BEZEL-DESIGN.md), and [SSH/WSL evidence](SSH-PROFILES.md) for completed scope and unrun visual checks. The unsigned portable delivery is not an installed production release. [Baseline build evidence](BUILD-BASELINE.md) records the earlier preparation stage. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](UPSTREAM-SOURCE.md).
 
@@ -61,7 +65,7 @@ The following paragraph records the original preparation scope, before the separ
 
 This preparation authorizes the folder rename, documentation and concept asset retrieval. It does not authorize code changes, builds, package restoration, installations, Git initialization, remotes, commits, pushes or publication. The user will configure their own remote later. Future implementation should start with a concrete, separately authorized slice of the roadmap.
 
-## Pending badge colors and finishes
+## Implemented badge colors and finishes
 
 - [CurrentColor Lettering and Backing controls](CURRENTCOLOR-BADGE-CONTROLS.md): independent RGB/None choices using existing profile and picker patterns; supplied artwork is unchanged.
 - [Appended bezel finishes](BEZEL-FINISH-EXTENSIONS.md): muted retro red and warm mustard, exact RGB/material values, with original palette baselines unchanged.

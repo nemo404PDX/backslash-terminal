@@ -55,7 +55,9 @@ namespace Microsoft.Terminal.Settings.Model
         void DeleteUnfocusedAppearance();
 
         // These controls persist through the existing commandline override.
+        String SshBaseCommandline { get; };
         Boolean HasSshShellSelector { get; };
+        Boolean IsTransientHostSsh { get; };
         Int32 SshShell { get; };
         String SshCustomCommand { get; };
         Boolean SetSshShell(Int32 mode, String customCommand);

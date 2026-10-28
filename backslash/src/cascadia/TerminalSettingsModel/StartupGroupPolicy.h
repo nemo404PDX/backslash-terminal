@@ -2,24 +2,14 @@
 // Licensed under the MIT license.
 #pragma once
 #include "SavedTabGroups.h"
+#include "../inc/StartupGroupActivation.h"
 #include <optional>
 #include <cwctype>
 
 namespace Microsoft::Terminal::Backslash::StartupGroupPolicy
 {
-    struct Context
-    {
-        bool initialAppLaunch = false;
-        bool explicitCommand = false;
-        bool connection = false;
-        bool content = false;
-        bool restoredLayout = false;
-        bool settingsActions = false;
-    };
-    constexpr bool Eligible(const Context& c)
-    {
-        return c.initialAppLaunch && !c.explicitCommand && !c.connection && !c.content && !c.restoredLayout && !c.settingsActions;
-    }
+    using Context = ::Microsoft::Terminal::Backslash::StartupGroupActivation::Context;
+    using ::Microsoft::Terminal::Backslash::StartupGroupActivation::Eligible;
     struct Prepared
     {
         std::optional<SavedTabGroup> group;

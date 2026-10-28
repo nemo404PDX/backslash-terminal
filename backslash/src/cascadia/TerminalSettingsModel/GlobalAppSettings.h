@@ -67,6 +67,9 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void AddTheme(const Model::Theme& theme);
         Model::Theme CurrentTheme() noexcept;
         bool ShouldUsePersistedLayout() const;
+        Json::Value HostSshProfileVisibility() const;
+        winrt::hstring WorkspaceSshConnectionsJson() const;
+        void WorkspaceSshConnectionsJson(const winrt::hstring& value);
         winrt::hstring SavedTabGroupsJson() const;
         void SavedTabGroupsJson(const winrt::hstring& value);
 
@@ -96,6 +99,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         static constexpr bool debugFeaturesDefault{ true };
 #endif
 
+        std::optional<Json::Value> _hostSshProfileVisibility;
+        std::optional<Json::Value> _workspaceSshConnections;
         std::optional<Json::Value> _savedTabGroups;
         winrt::guid _defaultProfile{};
         bool _fixupsAppliedDuringLoad{ false };

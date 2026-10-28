@@ -16,6 +16,7 @@ namespace TerminalApp
         String CurrentDirectory;
         UInt32 ShowWindowCommand;
         Boolean InitialAppLaunch;
+        Boolean StartupGroupReopen;
         String CurrentEnvironment;
     };
 

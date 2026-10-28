@@ -1,5 +1,7 @@
 # Settings layout proposal
 
+The navigation reorganization below remains a proposal. Separately, [Settings placement and lifecycle](SETTINGS-PLACEMENT.md), dedicated responsive close chrome, focus-cycle and compact-breadcrumb fixes are implemented in uncommitted development. They do not implement this proposed navigation tree. See [current status](DEVELOPMENT-STATUS.md).
+
 Status: review only, 2026-10-14. This does not reorganize the running UI or assign new settings keys. The machine-readable [proposal](settings-layout.proposed.jsonc) records current controls and future nodes separately; [profiles.schema.json](../../backslash/doc/cascadia/profiles.schema.json) remains the setting schema. The inventory is from the current uncommitted source over checkpoint `bfd6c420`, including saved-groups build `5666c86f`.
 
 ## Proposed navigation

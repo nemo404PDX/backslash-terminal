@@ -51,6 +51,7 @@ namespace Microsoft.Terminal.Settings.Model
 
         INHERITABLE_APPEARANCE_SETTING(Boolean, RetroTerminalScanlineWhite);
         INHERITABLE_APPEARANCE_SETTING(Boolean, RetroTerminalContrastGuard);
+        INHERITABLE_APPEARANCE_SETTING(Boolean, RetroTerminalSchemePhosphor);
         INHERITABLE_APPEARANCE_SETTING(Boolean, RetroTerminalEffect);
         INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalGlowIntensity);
         INHERITABLE_APPEARANCE_SETTING(Single, RetroTerminalScanlineIntensity);

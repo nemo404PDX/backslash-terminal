@@ -14,6 +14,7 @@
 
 #include "AppHost.h"
 #include "resource.h"
+#include "../inc/StartupGroupActivation.h"
 #include "VirtualDesktopUtils.h"
 #include "../../types/inc/User32Utils.hpp"
 #include "../../types/inc/utils.hpp"
@@ -247,6 +248,13 @@ AppHost* WindowEmperor::GetWindowByName(std::wstring_view name) const noexcept
 void WindowEmperor::CreateNewWindow(winrt::TerminalApp::WindowRequestedArgs args)
 {
     _assertIsMainThread();
+    const auto command = args.Command();
+    const ::Microsoft::Terminal::Backslash::StartupGroupActivation::CreationReservation creation{
+        _pendingWindowCreations, _windows.size(), command && command.InitialAppLaunch() };
+    if (command && args.Content().empty() && (!args.StartupActions() || args.StartupActions().Size() == 0))
+    {
+        command.StartupGroupReopen(creation.ResidentReopen());
+    }
 
     uint64_t id = args.Id();
     bool needsNewId = id == 0;

@@ -965,4 +965,41 @@
   <data name="Pins_ConfirmPin" xml:space="preserve"><value>Pin folder</value></data>
   <data name="Pins_Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Pins_ResolvedFolder" xml:space="preserve"><value>Folder that will be pinned: </value></data>
+  <data name="SettingsPane_TabCloseGuard" xml:space="preserve"><value>The tab close button is hidden while Settings is active to protect other panes. Use Close Settings inside the editor to close only that pane.</value></data>
+  <data name="Transfers_Title" xml:space="preserve"><value>Transfers</value></data>
+  <data name="Transfers_OpenHelp" xml:space="preserve"><value>Open transfer activity and history</value></data>
+  <data name="Transfers_Search" xml:space="preserve"><value>Search transfers</value></data>
+  <data name="Transfers_Filter" xml:space="preserve"><value>Filter transfers by status</value></data>
+  <data name="Transfers_Close" xml:space="preserve"><value>Close Transfers</value></data>
+  <data name="Transfers_All" xml:space="preserve"><value>All</value></data>
+  <data name="Transfers_Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Transfers_Completed" xml:space="preserve"><value>Completed</value></data>
+  <data name="Transfers_Failed" xml:space="preserve"><value>Failed</value></data>
+  <data name="Transfers_Canceled" xml:space="preserve"><value>Canceled</value></data>
+  <data name="Transfers_Queued" xml:space="preserve"><value>Queued</value></data>
+  <data name="Transfers_Connecting" xml:space="preserve"><value>Connecting</value></data>
+  <data name="Transfers_Running" xml:space="preserve"><value>Transferring</value></data>
+  <data name="Transfers_Verifying" xml:space="preserve"><value>Verifying</value></data>
+  <data name="Transfers_Canceling" xml:space="preserve"><value>Canceling</value></data>
+  <data name="Transfers_Empty" xml:space="preserve"><value>No transfers yet.</value></data>
+  <data name="Transfers_NoMatches" xml:space="preserve"><value>No transfers match your search and status filter.</value></data>
+  <data name="Transfers_NoBackend" xml:space="preserve"><value>No transfer backend is connected yet.</value></data>
+  <data name="Transfers_TabCloseGuard" xml:space="preserve"><value>The tab close button is hidden while Transfers is active to protect other panes. Use Close Transfers to close only this view.</value></data>
+  <data name="Transfers_MoveUnavailable" xml:space="preserve"><value>Moving a Transfers view between panes or windows is not available yet. Close it and reopen it using your Transfers placement preference. Job records remain available.</value></data>
+  <data name="TabCloseFocusedPane" xml:space="preserve"><value>Close focused pane</value></data>
+  <data name="TabCloseSinglePane" xml:space="preserve"><value>Close tab</value></data>
+  <data name="TabCloseEntire" xml:space="preserve"><value>Close entire tab</value></data>
+  <data name="TabCloseEntireToolTip" xml:space="preserve"><value>Close this entire tab and all its panes</value></data>
+  <data name="ProfilePane_Split" xml:space="preserve"><value>Split with profile</value></data>
+  <data name="ProfilePane_Relaunch" xml:space="preserve"><value>Relaunch with profile</value></data>
+  <data name="ProfilePane_SplitHelp" xml:space="preserve"><value>Start the selected profile in a new split of this tab’s focused terminal pane. The current session stays open.</value></data>
+  <data name="ProfilePane_RelaunchHelp" xml:space="preserve"><value>End this tab’s focused terminal session and launch the selected profile in its place. Other panes stay open.</value></data>
+  <data name="ProfilePane_Confirm" xml:space="preserve"><value>End this pane’s current terminal session and launch the selected profile here? Running work may be interrupted.</value></data>
+  <data name="ProfilePane_SshWarning" xml:space="preserve"><value>For SSH, this ends the local connection; remote jobs may continue on the server.</value></data>
+  <data name="ProfilePane_DontAsk" xml:space="preserve"><value>Don’t ask again when relaunching a pane</value></data>
+  <data name="ProfilePane_Continue" xml:space="preserve"><value>Relaunch</value></data>
+  <data name="ProfilePane_Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="ProfilePane_Elevation" xml:space="preserve"><value>This profile needs an elevated window. Relaunch in place is unavailable here.</value></data>
+  <data name="ProfilePane_Stale" xml:space="preserve"><value>The pane or profile changed while confirmation was open. Nothing was relaunched.</value></data>
+  <data name="ProfilePane_PreferenceNotSaved" xml:space="preserve"><value>The pane was relaunched, but the warning preference was not saved. Save or reset any open Settings draft, then try again.</value></data>
 </root>

@@ -173,6 +173,7 @@
     <ClInclude Include="SettingContainer.h">
       <DependentUpon>SettingContainer.idl</DependentUpon>
     </ClInclude>
+    <ClInclude Include="SshScanUi.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="PreviewConnection.h" />
     <ClInclude Include="$(GeneratedFilesDir)GeneratedSettingsIndex.g.h" />

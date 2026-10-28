@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "../TerminalSettingsModel/GroupSavePolicy.h"
+#include "../inc/SettingsClosePolicy.h"
 #include "../TerminalSettingsModel/SetupTransfer.h"
 #include "../TerminalSettingsModel/SetupTransferStorage.h"
 #include "../TerminalSettingsModel/SetupTransferResources.h"
@@ -275,7 +276,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void MainPage::UpdateSettings(const Model::CascadiaSettings& settings)
     {
         namespace P = ::Microsoft::Terminal::Backslash::GroupSavePolicy;
-        const auto incomingMatchesDraft = _settingsClone.ExplicitSettingsJson() == settings.ExplicitSettingsJson();
+        const auto incomingMatchesDraft = _settingsClone.DraftComparisonJson() == settings.DraftComparisonJson();
         if (!_settingsDraftIsStale && _settingsSaveAwaitingReload && !_settingsClone.Hash().empty() && _settingsClone.Hash() == settings.Hash())
         {
             // The user may have edited again after Save but before its watcher
@@ -330,7 +331,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
             catch (...) { /* Preserve dirty drafts below if merge/rebase proof fails. */ }
         }
-        if (_settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+        if (_settingsClone.DraftComparisonJson() != _settingsSource.DraftComparisonJson())
         {
             _KeepStaleSettingsDraft(settings);
             return;
@@ -1198,7 +1199,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 throw std::invalid_argument(til::u16u8(RS_(L"Settings_StaleDraftMessage")));
             }
-            if (importing && _settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+            if (importing && _settingsClone.DraftComparisonJson() != _settingsSource.DraftComparisonJson())
             {
                 throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
             }
@@ -1230,8 +1231,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_TooLarge")));
             }
             const auto document = Transfer::Parse(til::io::read_file_as_utf8_string_if_exists(filePath));
-            const auto sourceAtReview = _settingsSource.ExplicitSettingsJson();
-            if (_settingsClone.ExplicitSettingsJson() != sourceAtReview)
+            const auto sourceAtReview = _settingsSource.DraftComparisonJson();
+            if (_settingsClone.DraftComparisonJson() != sourceAtReview)
             {
                 throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
             }
@@ -1332,7 +1333,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
                 co_return;
             }
             if (co_await _ShowSetupMessage(RS_(L"SetupTransfer_ImportTitle"), to_hstring(summary), true) != ContentDialogResult::Primary) { co_return; }
-            if (_settingsSource.ExplicitSettingsJson() != sourceAtReview || _settingsClone.ExplicitSettingsJson() != sourceAtReview)
+            if (_settingsSource.DraftComparisonJson() != sourceAtReview || _settingsClone.DraftComparisonJson() != sourceAtReview)
             {
                 throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_DraftChanged")));
             }
@@ -1355,7 +1356,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         hstring error;
         try
         {
-            if (_settingsClone.ExplicitSettingsJson() != _settingsSource.ExplicitSettingsJson())
+            if (_settingsClone.DraftComparisonJson() != _settingsSource.DraftComparisonJson())
             {
                 throw std::invalid_argument(til::u16u8(RS_(L"SetupTransfer_Unsaved")));
             }
@@ -1377,6 +1378,48 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         dialog.XamlRoot(XamlRoot());dialog.Title(box_value(L"Unsaved saved-group edits"));
         WUX::Controls::TextBlock text;text.Text(L"A newly saved group conflicts with this Settings draft. Rename or resolve the conflicting group, then Save, or use Reset. Your edits were kept and nothing was written.");text.TextWrapping(WUX::TextWrapping::Wrap);
         dialog.Content(text);dialog.CloseButtonText(L"OK");co_await dialog.ShowAsync();
+    }
+
+    void MainPage::SettingsActionRow_SizeChanged(const IInspectable&, const SizeChangedEventArgs&)
+    {
+        const auto measure = [](const Button& button) {
+            TextBlock text; text.Text(winrt::unbox_value_or<hstring>(button.Content(), {}));
+            text.FontFamily(button.FontFamily()); text.FontSize(button.FontSize());
+            text.FontWeight(button.FontWeight()); text.FontStyle(button.FontStyle());
+            text.Measure({std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()});
+            const auto padding = button.Padding(); const auto border = button.BorderThickness();
+            return text.DesiredSize().Width + padding.Left + padding.Right + border.Left + border.Right;
+        };
+        const bool stacked = ::Microsoft::Terminal::Backslash::SettingsClosePolicy::StackFooterActions(SettingsActionRow().ActualWidth(), measure(SaveButton()), measure(ResetButton()));
+        Grid::SetColumn(SaveButton(), stacked ? 2 : 1);
+        Grid::SetRow(ResetButton(), stacked ? 1 : 0);
+        ResetButton().Margin(stacked ? Thickness{0,8,0,0} : Thickness{8,0,0,0});
+    }
+
+    Windows::Foundation::IAsyncOperation<bool> MainPage::ConfirmCloseSettings()
+    {
+        const auto lifetime = get_strong();
+        if (_closeSettingsBusy) { co_return false; }
+        namespace P = ::Microsoft::Terminal::Backslash::SettingsClosePolicy;
+        const auto decision = P::Evaluate(_setupTransferBusy, _settingsSaveAwaitingReload, _settingsDraftIsStale,
+            _settingsClone.DraftComparisonJson() != _settingsSource.DraftComparisonJson());
+        if (decision == P::Decision::Wait) { co_return false; }
+        _closeSettingsBusy = true;
+        const auto resetBusy = wil::scope_exit([&] { _closeSettingsBusy = false; });
+        if (decision == P::Decision::ConfirmDiscard)
+        {
+            // An inactive/detached editor must never discard without a hosted prompt.
+            if (!XamlRoot()) { co_return false; }
+            ContentDialog dialog; dialog.XamlRoot(XamlRoot());
+            dialog.Title(box_value(RS_(L"Settings_CloseSettingsTitle")));
+            TextBlock text; text.Text(RS_(L"Settings_CloseSettingsUnsaved")); text.TextWrapping(TextWrapping::Wrap);
+            dialog.Content(text);
+            dialog.PrimaryButtonText(RS_(L"Settings_CloseSettingsDiscard"));
+            dialog.CloseButtonText(RS_(L"Settings_CloseSettingsKeepEditing"));
+            dialog.DefaultButton(ContentDialogButton::Close);
+            if (co_await dialog.ShowAsync() != ContentDialogResult::Primary) { co_return false; }
+        }
+        co_return true;
     }
 
     safe_void_coroutine MainPage::SaveButton_Click(const IInspectable& /*sender*/, const RoutedEventArgs& /*args*/)
@@ -1828,5 +1871,42 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             }
             SearchIndex::Instance().Reset();
         }
+    }
+}
+
+namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
+{
+    void MainPage::OpenBackgroundSettings()
+    {
+        _Navigate(box_value(compatibilityTag), BreadcrumbSubPage::None, L"AllowHeadless");
+    }
+    bool MainPage::SetHostSshDiscovery(bool enabled)
+    {
+        if (_settingsClone.DraftComparisonJson() != _settingsSource.DraftComparisonJson())
+        {
+            _ShowSetupMessage(RS_(L"Ssh_WorkspaceTitle"), RS_(L"Ssh_SaveBeforeDiscovery")); return false;
+        }
+        Model::CascadiaSettings::HostSshDiscoveryEnabled(enabled);
+        HostSshDiscoveryChanged.raise(*this, nullptr); return true;
+    }
+    safe_void_coroutine MainPage::_ImportSshConnection(winrt::guid guid)
+    {
+        const auto strong = get_strong();
+        if (_setupTransferBusy) { co_return; }
+        _setupTransferBusy = true; const auto done = wil::scope_exit([&] { _setupTransferBusy = false; });
+        hstring error;
+        try
+        {
+            if (_settingsDraftIsStale) { throw std::invalid_argument("Reload Settings before importing a connection; your draft was kept."); }
+            const auto summary = _settingsClone.PreviewSshImport(guid);
+            const auto allowed = _settingsClone.CanImportSshProfile();
+            const auto choice = co_await _ShowSetupMessage(RS_(L"Ssh_WorkspaceTitle"), summary, allowed, RS_(L"Ssh_ImportAction"));
+            if (!allowed || choice != Windows::UI::Xaml::Controls::ContentDialogResult::Primary) { co_return; }
+            const auto imported = _settingsClone.ImportSshProfile(guid);
+            _CreateAndNavigateToNewProfile(_profileMenuItemSource.Size(), imported);
+        }
+        catch (const hresult_error& ex) { error = ex.message(); }
+        catch (const std::exception& ex) { error = to_hstring(ex.what()); }
+        if (!error.empty()) { co_await _ShowSetupMessage(RS_(L"Ssh_WorkspaceTitle"), error); }
     }
 }

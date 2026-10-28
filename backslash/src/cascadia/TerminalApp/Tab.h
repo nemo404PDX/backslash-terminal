@@ -7,6 +7,7 @@
 #include "Tab.h"
 #include "Tab.g.h"
 #include "PinTabView.h"
+#include "../inc/FocusedPaneClose.h"
 
 // fwdecl unittest classes
 namespace TerminalAppLocalTests
@@ -23,6 +24,9 @@ namespace winrt::TerminalApp::implementation
 
         // Called after construction to perform the necessary setup, which relies on weak_ptr
         void Initialize();
+        std::function<void(winrt::Windows::UI::Xaml::Controls::MenuFlyoutSubItem, bool)> PopulateProfileMenu;
+        bool ProfileActionBusy = false;
+        void ReplaceProfileContent(const std::shared_ptr<Pane>& leaf, const TerminalApp::IPaneContent& content);
 
         winrt::Microsoft::Terminal::Control::TermControl GetActiveTerminalControl() const;
         winrt::Microsoft::Terminal::Settings::Model::Profile GetFocusedProfile() const noexcept;
@@ -33,6 +37,12 @@ namespace winrt::TerminalApp::implementation
         void Scroll(const int delta);
 
         std::shared_ptr<Pane> DetachRoot();
+        std::shared_ptr<Pane> SuspendRootForSettingsTransfer();
+        void RestoreRootAfterSettingsTransfer(std::shared_ptr<Pane> root);
+        void CompleteSettingsTransfer() noexcept { _settingsTransferPending = false; }
+        void MarkSettingsTransferPending() noexcept { _settingsTransferPending = true; }
+        bool SettingsTransferPending() const noexcept { return _settingsTransferPending; }
+        ::Microsoft::Terminal::Backslash::CloseRequestGate CloseRequest;
         std::shared_ptr<Pane> DetachPane();
         void AttachPane(std::shared_ptr<Pane> pane);
 
@@ -121,6 +131,7 @@ namespace winrt::TerminalApp::implementation
 
         til::event<winrt::Windows::Foundation::EventHandler<winrt::Windows::Foundation::IInspectable>> Closed;
         til::event<winrt::Windows::Foundation::EventHandler<winrt::Windows::Foundation::IInspectable>> CloseRequested;
+        til::event<winrt::Windows::Foundation::EventHandler<winrt::Windows::Foundation::IInspectable>> PaneCloseRequested;
         til::property_changed_event PropertyChanged;
 
         til::typed_event<TerminalApp::TerminalPaneContent> RestartTerminalRequested;
@@ -203,6 +214,7 @@ namespace winrt::TerminalApp::implementation
 
         std::vector<uint32_t> _mruPanes;
         uint32_t _nextPaneId{ 0 };
+        bool _settingsTransferPending = false;
 
         bool _receivedKeyDown{ false };
         bool _iconHidden{ false };

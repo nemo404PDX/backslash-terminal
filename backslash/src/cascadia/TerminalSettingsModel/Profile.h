@@ -120,11 +120,15 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         hstring ConnectionIdentity(const hstring& launchCommandline) const;
         hstring GeneratedConnectionProfileName() const;
         const Profile* _generatedConnectionParent() const;
+        hstring SshBaseCommandline() const;
         bool HasSshShellSelector() const;
+        bool IsTransientHostSsh() const { return SessionOnly() && Source() == L"Windows.Terminal.SSH"; }
         int32_t SshShell() const;
         hstring SshCustomCommand() const;
         bool SetSshShell(int32_t mode, const hstring& customCommand);
 
+        WINRT_PROPERTY(bool, SessionOnly, false);
+        WINRT_PROPERTY(Json::Value, SessionBaseline);
         WINRT_PROPERTY(bool, Deleted, false);
         WINRT_PROPERTY(bool, Orphaned, false);
         WINRT_PROPERTY(OriginTag, Origin, OriginTag::None);

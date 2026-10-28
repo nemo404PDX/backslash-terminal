@@ -26,7 +26,7 @@ namespace Microsoft::Terminal::Backslash::ConnectionIdentityTitle
         std::wstring exe{ args[0] };
         if (const auto pos = exe.find_last_of(L"\\/"); pos != exe.npos) { exe.erase(0, pos + 1); }
         std::transform(exe.begin(), exe.end(), exe.begin(), [](wchar_t ch) { return static_cast<wchar_t>(towlower(ch)); });
-        if (exe == L"ssh" || exe == L"ssh.exe") { return LaunchKind::Ssh; }
+        if (exe == L"ssh" || exe == L"ssh.exe" || exe == L"%backslash_ssh_exe%") { return LaunchKind::Ssh; }
         if (exe == L"wsl" || exe == L"wsl.exe") { return LaunchKind::Wsl; }
         if (exe != L"cmd" && exe != L"cmd.exe" && exe != L"pwsh" && exe != L"pwsh.exe" && exe != L"powershell" && exe != L"powershell.exe") { return LaunchKind::Unknown; }
         for (int i = 1; i < count; ++i)

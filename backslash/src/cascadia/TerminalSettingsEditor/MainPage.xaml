@@ -62,7 +62,26 @@
         </ResourceDictionary>
     </Page.Resources>
 
-    <muxc:NavigationView x:Name="SettingsNav"
+    <Grid Background="{Binding Background, ElementName=SettingsNav}" TabFocusNavigation="Cycle">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!-- App-owned chrome stays above the page title in every NavigationView mode. -->
+        <Grid x:Name="SettingsHeader" Grid.Row="0" Height="48" Padding="4,0,8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ToggleButton x:Name="SettingsNavigationToggle" x:Uid="Settings_NavigationToggle"
+                          Width="40" Height="40" VerticalAlignment="Center"
+                          IsChecked="{Binding IsPaneOpen, ElementName=SettingsNav, Mode=TwoWay}">
+                <FontIcon Glyph="&#xE700;" FontSize="16" />
+            </ToggleButton>
+        </Grid>
+        <muxc:NavigationView x:Name="SettingsNav" Grid.Row="1"
+                         IsPaneToggleButtonVisible="False"
                          Background="{ThemeResource SettingsPageBackground}"
                          IsBackButtonVisible="Collapsed"
                          IsSettingsVisible="False"
@@ -70,22 +89,29 @@
                          Loaded="SettingsNav_Loaded"
                          PaneClosed="SettingsNav_PaneClosed"
                          PaneOpened="SettingsNav_PaneOpened"
-                         TabFocusNavigation="Cycle">
+                         TabFocusNavigation="Local">
         <muxc:NavigationView.Resources>
             <ResourceDictionary>
+                <!-- The native minimal header uses -24,44,0,0 to compensate for
+                     its hamburger. Our hamburger is in separate chrome, so both
+                     adaptive states need the same uncompensated header inset. -->
                 <Thickness x:Key="NavigationViewHeaderMargin">0,4,0,0</Thickness>
+                <Thickness x:Key="NavigationViewMinimalHeaderMargin">0,4,0,0</Thickness>
             </ResourceDictionary>
         </muxc:NavigationView.Resources>
         <muxc:NavigationView.Header>
-            <Grid Padding="16,0">
-                <!--  Wrapping the BreadcrumbBar in a Grid to avoid the title to drift (and no longer being aligned with the content of the page) when resizing the window. It's weird, I know. I believe it has to do with https://github.com/microsoft/microsoft-ui-xaml/issues/3842 doing funky things when setting a MaxWidth  -->
+            <Grid x:Name="SettingsBreadcrumbHost" Margin="16,0" MinWidth="0" HorizontalAlignment="Stretch">
                 <muxc:BreadcrumbBar x:Name="NavigationBreadcrumbBar"
-                                    MaxWidth="1000"
+                                    MinWidth="0"
+                                    Width="{Binding ActualWidth, ElementName=SettingsBreadcrumbHost}"
+                                    HorizontalAlignment="Stretch"
                                     ItemClicked="BreadcrumbBar_ItemClicked"
                                     ItemsSource="{x:Bind Breadcrumbs}">
                     <muxc:BreadcrumbBar.ItemTemplate>
                         <DataTemplate x:DataType="local:Breadcrumb">
-                            <TextBlock Text="{x:Bind Label}" />
+                            <TextBlock Text="{x:Bind Label}"
+                                       TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                       ToolTipService.ToolTip="{x:Bind Label}" />
                         </DataTemplate>
                     </muxc:BreadcrumbBar.ItemTemplate>
                     <muxc:BreadcrumbBar.Resources>
@@ -97,7 +123,6 @@
                         </ResourceDictionary>
                     </muxc:BreadcrumbBar.Resources>
                 </muxc:BreadcrumbBar>
-
             </Grid>
         </muxc:NavigationView.Header>
 
@@ -243,50 +268,65 @@
                 </StackPanel>
             </ScrollViewer>
             <!--  Explicitly set the background color on grid to prevent the navigation animation from overflowing it  -->
-            <Grid Grid.Row="1"
-                  Height="56"
+            <Grid x:Name="SettingsFooter" Grid.Row="1" MinHeight="56"
                   BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                   BorderThickness="0,1,0,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Margin="32,0,0,0"
-                            HorizontalAlignment="Left"
-                            VerticalAlignment="Center"
-                            Orientation="Vertical">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Margin="16,8,16,0" Spacing="4">
                     <TextBlock x:Uid="Settings_UnsavedSettingsWarning"
-                               Foreground="Goldenrod"
-                               TextAlignment="Left"
+                               Foreground="Goldenrod" TextWrapping="Wrap"
                                Visibility="Collapsed" />
-                    <StackPanel VerticalAlignment="Center"
-                                Orientation="Horizontal"
-                                Spacing="4"
-                                Visibility="{x:Bind tsm:CascadiaSettings.IsPortableMode, Mode=OneTime}">
+                    <Grid x:Name="SettingsPortableNotice"
+                          Visibility="{x:Bind tsm:CascadiaSettings.IsPortableMode, Mode=OneTime}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
                         <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}"
-                                  Foreground="SlateBlue"
-                                  Glyph="&#xE946;" />
-                        <TextBlock Foreground="SlateBlue">
+                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                  Margin="0,2,6,0" VerticalAlignment="Top" Glyph="&#xE946;" />
+                        <TextBlock Grid.Column="1" TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}">
                             <Run x:Uid="Settings_PortableModeNote" />
                             <Hyperlink x:Uid="Settings_PortableModeInfoLink">
                                 <Run x:Uid="Settings_PortableModeInfoLinkTextRun" />
                             </Hyperlink>
                         </TextBlock>
-                    </StackPanel>
+                    </Grid>
                 </StackPanel>
-                <StackPanel Margin="0,0,32,0"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Orientation="Horizontal">
-                    <Button x:Name="SaveButton"
-                            x:Uid="Settings_SaveSettingsButton"
-                            Click="SaveButton_Click"
-                            Style="{StaticResource AccentButtonStyle}" />
-                    <Button x:Name="ResetButton"
-                            x:Uid="Settings_ResetSettingsButton"
-                            Margin="8,0,0,0"
-                            Click="ResetButton_Click" />
-                </StackPanel>
+                <Grid x:Name="SettingsActionRow" Grid.Row="1" Margin="16,8,16,8"
+                      SizeChanged="SettingsActionRow_SizeChanged">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="SaveButton" x:Uid="Settings_SaveSettingsButton"
+                            Grid.Column="1" HorizontalAlignment="Right" MinWidth="0"
+                            MaxWidth="{Binding ActualWidth, ElementName=SettingsActionRow}"
+                            Click="SaveButton_Click" Style="{StaticResource AccentButtonStyle}">
+                        <Button.ContentTemplate>
+                            <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center" /></DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                    <Button x:Name="ResetButton" x:Uid="Settings_ResetSettingsButton"
+                            Grid.Column="2" Margin="8,0,0,0" HorizontalAlignment="Right" MinWidth="0"
+                            MaxWidth="{Binding ActualWidth, ElementName=SettingsActionRow}"
+                            Click="ResetButton_Click">
+                        <Button.ContentTemplate>
+                            <DataTemplate><TextBlock Text="{Binding}" TextWrapping="Wrap" TextAlignment="Center" /></DataTemplate>
+                        </Button.ContentTemplate>
+                    </Button>
+                </Grid>
             </Grid>
         </Grid>
     </muxc:NavigationView>
+    </Grid>
 </Page>
