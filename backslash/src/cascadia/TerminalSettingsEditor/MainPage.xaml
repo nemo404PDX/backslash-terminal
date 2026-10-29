@@ -52,6 +52,13 @@
 
             </ResourceDictionary.MergedDictionaries>
 
+            <DataTemplate x:Key="TransferBackendCardTemplate">
+                <Border Padding="16" Background="{ThemeResource ExpanderHeaderBackground}"
+                        BorderBrush="{ThemeResource ExpanderHeaderBorderBrush}" BorderThickness="1"
+                        CornerRadius="{ThemeResource ControlCornerRadius}">
+                    <StackPanel Spacing="8" />
+                </Border>
+            </DataTemplate>
             <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground"
                              Color="Transparent" />
             <SolidColorBrush x:Key="NavigationViewContentBackground"
@@ -184,6 +191,8 @@
             <muxc:NavigationViewItem x:Name="InteractionNavItem"
                                      x:Uid="Nav_Interaction"
                                      Tag="Interaction_Nav" />
+
+            <muxc:NavigationViewItem x:Name="TransfersNavItem" x:Uid="Nav_Transfers" Tag="Transfers_Nav" />
 
             <muxc:NavigationViewItem x:Name="AppearanceNavItem"
                                      x:Uid="Nav_Appearance"

@@ -539,6 +539,20 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             return;
         }
 
+        // The picker rows are cached, but folder names/icons remain editable.
+        // Forward only those live values; the weak callback and revoker avoid
+        // retaining either a discarded row or the originating editor.
+        _folderChangedRevoker = _folderEntry.PropertyChanged(winrt::auto_revoke, [weak = get_weak()](auto&&, const PropertyChangedEventArgs& args) {
+            if (const auto self = weak.get())
+            {
+                const auto name = args.PropertyName();
+                if (name.empty() || name == L"Name" || name == L"Icon")
+                {
+                    self->_NotifyChanges(L"Name", L"Icon");
+                }
+            }
+        });
+
         for (const auto&& entry : _folderEntry.Entries())
         {
             if (entry.Type() == NewTabMenuEntryType::Folder)

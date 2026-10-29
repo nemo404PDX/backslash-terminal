@@ -2205,9 +2205,6 @@
     <value>Advertir al cerrar más de una pestaña</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>Advertir cuando el servicio "Panel de escritura a mano y teclado táctil" está deshabilitado</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>Advertir al pegar más de 5 KiB</value>
   </data>

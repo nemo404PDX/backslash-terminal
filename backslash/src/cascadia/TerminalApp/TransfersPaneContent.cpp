@@ -23,6 +23,10 @@ namespace winrt::TerminalApp::implementation
         _empty = _root.FindName(L"Empty").as<TextBlock>();
         _filtersLayout = _root.FindName(L"FiltersLayout").as<Grid>();
         _root.FindName(L"Heading").as<TextBlock>().Text(Title());
+        const auto gear = _root.FindName(L"BackendSettings").as<Button>();
+        Automation::AutomationProperties::SetName(gear, RS_(L"Transfers_BackendSettings"));
+        ToolTipService::SetToolTip(gear, box_value(RS_(L"Transfers_BackendSettings")));
+        gear.Click([weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get(); self && self->OpenBackendSettings) { self->OpenBackendSettings(); } });
         _root.FindName(L"BackendNotice").as<TextBlock>().Text(RS_(L"Transfers_NoBackend"));
         _search.PlaceholderText(RS_(L"Transfers_Search"));
         Automation::AutomationProperties::SetName(_search, RS_(L"Transfers_Search"));

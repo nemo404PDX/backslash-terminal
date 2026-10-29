@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$BuildRun,
-    [string]$VsInstallPath = 'C:\Program Files\Microsoft Visual Studio\18\Community'
+    [string]$VsInstallPath = 'C:\Program Files\Microsoft Visual Studio\18\Community',
+    [string]$ExplorerHelperSource
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -52,6 +53,23 @@ Copy-Item -LiteralPath $merged -Destination (Join-Path $dest 'resources.pri')
 $crt = Get-ChildItem (Join-Path $VsInstallPath 'VC\Redist\MSVC') -Directory | Where-Object Name -match '^\d+\.' | Sort-Object Name -Descending | Select-Object -First 1
 Copy-Item (Join-Path $crt.FullName 'x64\Microsoft.VC145.CRT\*.dll') -Destination $dest
 Copy-Item (Join-Path $repo '..\LICENSE'),(Join-Path $repo '..\NOTICE.md'),(Join-Path $repo 'src\cascadia\CascadiaPackage\NOTICE.html') -Destination $dest
+Copy-Item (Join-Path $PSScriptRoot 'Remove-ExplorerIntegration.ps1') -Destination $dest
+# Bundle the independently reviewed development helper without installing it.
+# Native management pins these bytes; a new helper version requires fresh review.
+if (-not $ExplorerHelperSource) { $ExplorerHelperSource = Join-Path (Split-Path $repo -Parent) 'artifacts\modern-explorer\20261029-104430-748-26cadc60' }
+if ((Get-FileHash -LiteralPath (Join-Path $ExplorerHelperSource 'files.json')).Hash -cne 'C15C700E1D19BFFC496B838B12A6E25C4A311DBE8C4D693CE7A9E19007109E58') { throw 'Use the reviewed Explorer helper inventory.' }
+$helperInventory = Get-Content -Raw -LiteralPath (Join-Path $ExplorerHelperSource 'files.json') | ConvertFrom-Json
+if ($helperInventory.Count -ne 8) { throw 'Expected exactly eight helper files.' }
+$helperDestination = Join-Path $dest 'ExplorerIntegration'
+New-Item -ItemType Directory -Path $helperDestination,(Join-Path $helperDestination 'Assets') | Out-Null
+foreach ($file in $helperInventory) {
+    $source = Join-Path $ExplorerHelperSource ('layout\' + $file.relativePath)
+    $destination = Join-Path $helperDestination $file.relativePath
+    if (-not ([IO.Path]::GetFullPath($destination)).StartsWith(($helperDestination+'\'), [StringComparison]::OrdinalIgnoreCase)) { throw 'Helper inventory path escaped payload.' }
+    if ((Get-FileHash -LiteralPath $source).Hash -cne $file.sha256) { throw 'Reviewed helper file changed.' }
+    Copy-Item -LiteralPath $source -Destination $destination
+    if ((Get-FileHash -LiteralPath $destination).Hash -cne $file.sha256) { throw 'Helper payload copy failed verification.' }
+}
 Copy-Item (Join-Path $repo 'packages\Microsoft.UI.Xaml.2.8.4\license.txt') -Destination (Join-Path $dest 'Microsoft.UI.Xaml.LICENSE.txt')
 [IO.File]::WriteAllText((Join-Path $dest '.portable'), '')
 @"

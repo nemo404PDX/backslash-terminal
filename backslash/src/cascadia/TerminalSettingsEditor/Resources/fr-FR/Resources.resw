@@ -2205,9 +2205,6 @@
     <value>M'avertir lorsque je ferme plusieurs onglets</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>Avertir lorsque le « service clavier tactile et volet d’écriture manuscrite » est désactivé</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>Avertir lors du collage de plus de 5 KiO</value>
   </data>

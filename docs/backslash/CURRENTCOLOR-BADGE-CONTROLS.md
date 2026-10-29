@@ -1,7 +1,5 @@
 # CurrentColor badge: Lettering and Backing
 
-Pending user review, 2026-10-16, on top of `4f699b1fe65104f71522a2854df71eb9301a9389`. This slice is uncommitted and must not be published until the user reviews it.
-
 In a profile or Defaults > Appearance > Bezel, choose **CurrentColor** artwork to show **Lettering** and **Backing**. Each uses the existing color picker with **None (transparent)**, plus the normal inherited-value/reset control. Defaults are white letter faces (`#FFFFFF`) and black backing (`#000000`). Either region, or both regions, may be None. Solid and Outline continue to use their exact supplied artwork and ignore these two choices.
 
 The existing profile settings pipeline handles inheritance, copy, null/reset, Save and discard. These are independent profile-level values, like the other bezel choices. Literal `"none"` is an explicit transparent override; omitted values inherit; JSON null clears that layer's override. Reset can therefore restore an inherited color or inherited None rather than forcing a global default.
@@ -22,7 +20,7 @@ The normal export already has a backing cut out under its separate letter faces,
 
 Live pane and profile Appearance preview read the same settings and share the same renderer. Position enum values/order, 527x100 raster viewport, 22 DIP maximum badge height, opening-relative 12 DIP horizontal placement, extra filler and accepted live-sizing behavior remain unchanged. The two [appended finishes](BEZEL-FINISH-EXTENSIONS.md) are separate from these controls.
 
-Validation for this delivery is build success and package/source-asset integrity only. No broad or focused test suite, rendering matrix, UI loop or native screenshot check was run. Interactive picker/None combinations, inheritance/reset/Save/discard behavior, runtime DOM decoding and preview appearance remain unverified in this build. The user can review them in the fresh portable without changes to existing working settings.
+Validation for this delivery is build success and package/source-asset integrity only. No broad or focused test suite, rendering matrix, UI loop or native screenshot check was run. Interactive picker/None combinations, inheritance/reset/Save/discard behavior, runtime DOM decoding and preview appearance remain unverified in this build.
 
 ## Build for review
 
@@ -31,5 +29,3 @@ Fresh Release/x64 run: **`20261015-213130-815-Release-x64-6a5e300d`**, **0 error
 Executable: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-20261015-213130-815-Release-x64-6a5e300d/WindowsTerminal.exe`.
 
 ZIP: `D:/codex-workspace/backslash-terminal/artifacts/portable/Backslash-Dev-0.0.1.0-CurrentColorControls-x64-6a5e300d.zip`. SHA256: `E073D2101586DE433475154F030AE130AA4FBA31B3E57D4F7CE24FA2A29347A8`.
-
-Source inventory, source checkpoint and delivery summary are in this build run. All changes remain uncommitted on master at `4f699b1fe65104f71522a2854df71eb9301a9389`; no push was made. Extract into a new folder for review. Existing user settings, working copies and older artifacts are preserved.

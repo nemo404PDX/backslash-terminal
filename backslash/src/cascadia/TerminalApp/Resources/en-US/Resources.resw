@@ -1002,4 +1002,5 @@
   <data name="ProfilePane_Elevation" xml:space="preserve"><value>This profile needs an elevated window. Relaunch in place is unavailable here.</value></data>
   <data name="ProfilePane_Stale" xml:space="preserve"><value>The pane or profile changed while confirmation was open. Nothing was relaunched.</value></data>
   <data name="ProfilePane_PreferenceNotSaved" xml:space="preserve"><value>The pane was relaunched, but the warning preference was not saved. Save or reset any open Settings draft, then try again.</value></data>
+  <data name="Transfers_BackendSettings" xml:space="preserve"><value>Transfers backend settings</value></data>
 </root>

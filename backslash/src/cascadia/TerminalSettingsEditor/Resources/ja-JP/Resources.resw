@@ -2205,9 +2205,6 @@
     <value>複数のタブを閉じるときに警告する</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>[タッチ キーボードと手書きパネル サービス] が無効になっている場合に警告する</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>5 KiB を超える貼り付け時に警告する</value>
   </data>

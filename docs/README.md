@@ -1,8 +1,8 @@
 # Backslash documentation
 
-For the published preview versus current uncommitted work, start with [release and development status](backslash/DEVELOPMENT-STATUS.md). It links current Settings/SSH/rendering records and distinguishes automated verification from pending visual QA.
+Start with the [project overview and download instructions](../README.md) or the [feature guides](backslash/README.md). Read the release notes for the version you download; development documentation can describe features absent from a released ZIP.
 
-Start with the [Backslash guide](backslash/README.md) for features, implementation evidence and future designs. The [root README](../README.md) gives the product overview; [tools/backslash/README.md](../backslash/tools/backslash/README.md) covers Windows builds and validation.
+For contributors, the [Windows build guide](../backslash/tools/backslash/README.md) covers builds and validation. [Maintainer handoff notes](dev/HANDOFF.md) contain internal checkpoint and operational context.
 
 | Location | Ownership and purpose |
 | --- | --- |

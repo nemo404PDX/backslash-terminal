@@ -1,6 +1,6 @@
 # Backslash application identity and coexistence plan
 
-This is a historical identity plan. Current portable Backslash Dev executable/artwork identity and a published preview exist; installed-package identity and signing remain separate. See [portable implementation](PORTABLE-IMPLEMENTATION.md) and [release/development status](DEVELOPMENT-STATUS.md). Later App/Data relocation and tool discovery remain design work.
+This is a historical identity plan. Current portable Backslash Dev executable/artwork identity and a published preview exist; installed-package identity and signing remain separate. See [portable implementation](PORTABLE-IMPLEMENTATION.md) and [maintainer handoff](../dev/HANDOFF.md). Later App/Data relocation and tool discovery remain design work.
 
 [Project entry point](README.md) · [Roadmap](ROADMAP.md) · [Provenance](UPSTREAM-SOURCE.md) · [Brand concept](../../backslash/branding/concepts/README.md)
 

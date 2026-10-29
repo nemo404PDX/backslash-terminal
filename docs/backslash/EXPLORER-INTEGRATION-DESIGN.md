@@ -1,6 +1,6 @@
 # Optional Explorer integration: Open in Backslash
 
-Status: tracked future work, not implemented by this documentation pass. No registry, shell association, executable, user settings or default-terminal changes are made here. This is separate from the current export/import and About/version implementation tasks.
+Original design background; see the [current development feature guide](EXPLORER-INTEGRATION.md) for modern Windows 11 integration and legacy-entry recovery. The checklist below describes the design goals, not a current test report.
 
 ## Requested behavior
 
@@ -15,7 +15,7 @@ Provide an optional Windows Explorer **Open in Backslash** action that launches 
 - Provide an explicit unregister action that removes only Backslash-owned entries for the selected registration, including cleanup when the former executable is missing. Leave other terminal registrations and unrelated context-menu items intact.
 - Treat registration as local machine state. Full setup export/import or a future appearance recipe must not silently install, copy or activate Explorer registration from another machine.
 
-## Acceptance checklist for the future implementation
+## Design acceptance checklist
 
 - [ ] Opt-in registration creates a distinct Open in Backslash action and leaves Open in Terminal intact.
 - [ ] Selected-folder and folder-background launches resolve supported paths correctly, including spaces and Unicode, without command injection.
@@ -24,4 +24,4 @@ Provide an optional Windows Explorer **Open in Backslash** action that launches 
 - [ ] Unregister removes only owned entries and works after a move/removal of the original copy.
 - [ ] Setup transfer and appearance-recipe application do not change machine registration automatically.
 
-See [application identity planning](APP-IDENTITY.md), [portable delivery](PORTABLE-IMPLEMENTATION.md) and [appearance recipes](APPEARANCE-RECIPES-DESIGN.md). Exact API/registration design, UI, ownership keys and validation remain future work; this record is not implementation evidence.
+See [application identity planning](APP-IDENTITY.md), [portable delivery](PORTABLE-IMPLEMENTATION.md) and [appearance recipes](APPEARANCE-RECIPES-DESIGN.md). Current behavior is described in the [feature guide](EXPLORER-INTEGRATION.md); this original design checklist is not validation evidence.

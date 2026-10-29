@@ -2205,9 +2205,6 @@
     <value>Warnen, wenn mehrere Registerkarten geschlossen werden</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>Warnen, wenn „Dienst für Bildschirmtastatur und Handschrifteingabefeld“ deaktiviert ist</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>Warnung beim Einfügen von mehr als 5 KiB</value>
   </data>

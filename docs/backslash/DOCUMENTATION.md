@@ -1,6 +1,6 @@
 > **Historical preparation inventory.** This dated record is not the complete current file list. Use the [Backslash guide](README.md) and [documentation entry point](../README.md). Original descriptions below, including the retained upstream README and unimplemented bezel, describe earlier preparation stages.
 
-Current entry points added after the dated inventory: [release/development status](DEVELOPMENT-STATUS.md), [portable SSH import](SSH-PORTABLE-IMPORT.md), [resident startup](STARTUP-GROUP-REOPEN.md), [Settings placement](SETTINGS-PLACEMENT.md), [UI accent](UI-ACCENT.md), [Transfers foundation](TRANSFERS-FOUNDATION.md), [scheme phosphor](PHOSPHOR-SCHEME-TONES.md) and [scanline color](SCANLINE-COLOR.md). The old inventory descriptions below are historical, not a complete file list.
+Current entry points added after the dated inventory: [maintainer handoff](../dev/HANDOFF.md), [portable SSH import](SSH-PORTABLE-IMPORT.md), [resident startup](STARTUP-GROUP-REOPEN.md), [Settings placement](SETTINGS-PLACEMENT.md), [UI accent](UI-ACCENT.md), [Transfers foundation](TRANSFERS-FOUNDATION.md), [scheme phosphor](PHOSPHOR-SCHEME-TONES.md) and [scanline color](SCANLINE-COLOR.md). The old inventory descriptions below are historical, not a complete file list.
 
 # Exact project documentation inventory
 

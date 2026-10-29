@@ -2205,9 +2205,6 @@
     <value>Предупреждать при закрытии нескольких вкладок</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>Предупреждать, если параметр "Служба сенсорной клавиатуры и панели рукописного ввода" отключен</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>Предупреждать при вставке более 5 КиБ</value>
   </data>

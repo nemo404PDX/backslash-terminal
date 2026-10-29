@@ -1,6 +1,6 @@
 # Current pinned-tabs checkpoint - automatic live cwd
 
-Fresh plain interactive local PowerShell 7 reports its actual filesystem-provider cwd automatically. The integration retains the original prompt and logical launcher, refreshes at input readiness, clears during execution/unsupported providers/disconnect and invalidates old connection generations. **Pin current folder** requires a usable report; **Add a folder...** is separate. See [repair, reusable metadata architecture, limitations and acceptance](LIVE-CWD-AND-SESSION-METADATA.md).
+Fresh plain interactive local PowerShell 7 reports its actual filesystem-provider cwd automatically. The integration retains the original prompt and logical launcher, refreshes at input readiness, clears during execution/unsupported providers/disconnect and invalidates old connection generations. **Pin current folder** requires a usable report; **Add a folder...** is separate. See [repair, reusable metadata architecture, limitations and acceptance](../backslash/LIVE-CWD-AND-SESSION-METADATA.md).
 
 * App: **0 errors / 134 warnings**. **230/230 Settings**, **34/34 Control**, **759 parser passed / 1 preexisting skip**, **9/9 portable runtime**, isolation passed.
 * Real owned PowerShell: home -> D: -> C:, three fixed pins, spaces/semicolons/Unicode/apostrophes, custom PSDrive, nested execution, unsupported provider, custom prompt observing `$?`/`$LASTEXITCODE`, prior handler and idempotence.

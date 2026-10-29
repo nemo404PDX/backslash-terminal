@@ -42,6 +42,7 @@ namespace TerminalAppLocalTests
         END_TEST_CLASS()
 
         TEST_METHOD(ParseSimpleCommandline);
+        TEST_METHOD(ParseExplorerFolder);
         TEST_METHOD(ParseTrickyCommandlines);
         TEST_METHOD(TestEscapeDelimiters);
 
@@ -116,6 +117,42 @@ namespace TerminalAppLocalTests
             Log::Comment(NoThrowString().Format(L"%s", buffer.c_str()));
         }
     };
+
+    void CommandlineTest::ParseExplorerFolder()
+    {
+        // The real parser must preserve the folder as one literal action, bypassing
+        // both semicolon splitting and Commandline's backslash-semicolon unescaping.
+        wchar_t temporary[MAX_PATH];
+        VERIFY_IS_TRUE(GetTempPathW(MAX_PATH, temporary) > 0);
+        const std::wstring folder = std::wstring{ temporary } + L"Backslash Explorer & ;literal-" + std::to_wstring(GetCurrentProcessId());
+        VERIFY_IS_TRUE(CreateDirectoryW(folder.c_str(), nullptr) || GetLastError() == ERROR_ALREADY_EXISTS);
+        const auto cleanup = wil::scope_exit([&] { RemoveDirectoryW(folder.c_str()); });
+        AppCommandlineArgs parser;
+        std::vector<hstring> args{ L"Backslash.exe", L"--backslash-explorer-folder", folder + L"\\." };
+        VERIFY_ARE_EQUAL(0, parser.ParseArgs(args));
+        parser.ValidateStartupCommands();
+        VERIFY_ARE_EQUAL(1u, parser.GetStartupActions().size());
+        VERIFY_IS_TRUE(parser.GetTargetWindow() == "new");
+        const auto terminal = parser.GetStartupActions().front().Args().as<NewTabArgs>().ContentArgs().as<NewTerminalArgs>();
+        VERIFY_ARE_EQUAL(hstring{ folder }, terminal.StartingDirectory());
+        VERIFY_IS_TRUE(terminal.Commandline().empty());
+        VERIFY_IS_TRUE(terminal.Profile().empty());
+        parser.FullResetState();
+        args.push_back(L"new-tab");
+        VERIFY_ARE_NOT_EQUAL(0, parser.ParseArgs(args));
+        VERIFY_IS_TRUE(parser.ShouldExitEarly());
+        VERIFY_IS_TRUE(parser.GetStartupActions().empty());
+        parser.FullResetState();
+        args = { L"Backslash.exe", L"--backslash-explorer-folder", folder + L"\\missing" };
+        VERIFY_ARE_NOT_EQUAL(0, parser.ParseArgs(args));
+        VERIFY_IS_TRUE(parser.GetStartupActions().empty());
+        parser.FullResetState();
+        // Normal launch still uses the existing CLI grammar and leaves the profile directory unset.
+        args = { L"Backslash.exe", L"new-tab" };
+        VERIFY_ARE_EQUAL(0, parser.ParseArgs(args));
+        VERIFY_ARE_EQUAL(1u, parser.GetStartupActions().size());
+        VERIFY_IS_TRUE(parser.GetStartupActions().front().Args().as<NewTabArgs>().ContentArgs().as<NewTerminalArgs>().StartingDirectory().empty());
+    }
 
     void CommandlineTest::ParseSimpleCommandline()
     {

@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 #pragma once
 #include <Windows.h>
+#include "TransferBackends.h"
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -24,6 +25,7 @@ namespace Microsoft::Terminal::Backslash::Transfers
         std::wstring destination;
         Status status = Status::Queued;
         std::wstring detail;
+        JobOwnership ownership;
     };
     constexpr bool IsActive(Status status) noexcept
     {

@@ -2,7 +2,7 @@
 
 **Superseded delivery:** c69d5ac7 painted a gray square despite decoder success. See [the composed-render fix and approved aperture anchors](BEZEL-BADGE-RENDER-FIX.md) for the corrected portable, actual-application captures and new pixel regressions. The initial delivery record below remains historical.
 
-Implemented 2026-10-16 UTC, uncommitted on master atop `602009965b8861778291c8176bbad146195f001e`. This replaces the temporary text label and rectangular plate with the user's SVG artwork in the existing shared live-pane/Appearance-preview bezel. No new per-pane bezel architecture is introduced. Branding remains **off by default**; all prior casing/palette/phosphor/grid defaults remain unchanged.
+The SVG badge replaces the temporary text label and rectangular plate in the shared live-pane/Appearance-preview bezel. Branding is off by default; casing, palette, phosphor and grid defaults are unchanged.
 
 ## Placement, artwork and extra space
 

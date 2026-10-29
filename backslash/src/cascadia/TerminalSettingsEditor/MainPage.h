@@ -50,6 +50,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
         bool SetHostSshDiscovery(bool enabled);
         void OpenBackgroundSettings();
+        void OpenTransferBackends();
+        void _BuildTransferBackends();
         void ImportSshConnection(winrt::guid profile) { _ImportSshConnection(profile); }
         safe_void_coroutine _ImportSshConnection(winrt::guid profile);
         til::event<Windows::Foundation::EventHandler<Windows::Foundation::IInspectable>> HostSshDiscoveryChanged;

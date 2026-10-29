@@ -5,7 +5,7 @@ import "NewTabMenuViewModel.idl";
 
 namespace Microsoft.Terminal.Settings.Editor
 {
-    [default_interface] runtimeclass NewTabMenu : Windows.UI.Xaml.Controls.Page
+    [default_interface] runtimeclass NewTabMenu : Windows.UI.Xaml.Controls.Page, Windows.UI.Xaml.Data.INotifyPropertyChanged
     {
         NewTabMenu();
         NewTabMenuViewModel ViewModel { get; };

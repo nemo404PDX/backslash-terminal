@@ -11,6 +11,7 @@
 #include <cmath>
 #include <algorithm>
 #include "MainPage.h"
+#include "../TerminalSettingsModel/TransferBackendSettings.h"
 #include "MainPage.g.cpp"
 #include "Launch.h"
 #include "Interaction.h"
@@ -763,6 +764,12 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             {
                 contentFrame().Navigate(xaml_typename<Editor::Launch>(), winrt::make<NavigateToPageArgs>(winrt::make<LaunchViewModel>(_settingsClone), *this, elementToFocus));
                 _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Nav_Launch/Content"), BreadcrumbSubPage::None));
+            }
+            else if (*clickedItemTag == transfersTag)
+            {
+                _BuildTransferBackends();
+                _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Nav_Transfers/Content"), BreadcrumbSubPage::None));
+                _breadcrumbs.Append(winrt::make<Breadcrumb>(vm, RS_(L"Transfers_Backends"), BreadcrumbSubPage::None));
             }
             else if (*clickedItemTag == interactionTag)
             {
@@ -1909,4 +1916,86 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         catch (const std::exception& ex) { error = to_hstring(ex.what()); }
         if (!error.empty()) { co_await _ShowSetupMessage(RS_(L"Ssh_WorkspaceTitle"), error); }
     }
+    void MainPage::OpenTransferBackends()
+    {
+        // Navigation changes only the visible page; the live draft is retained.
+        _Navigate(box_value(transfersTag), BreadcrumbSubPage::None);
+    }
+    void MainPage::_BuildTransferBackends()
+    {
+        namespace T = ::Microsoft::Terminal::Backslash::Transfers;
+        StackPanel panel; panel.Spacing(16); panel.Margin({24, 12, 24, 24});
+        TextBlock heading; heading.Text(RS_(L"Transfers_Backends")); heading.FontSize(24);
+        Automation::AutomationProperties::SetHeadingLevel(heading, Automation::Peers::AutomationHeadingLevel::Level1);
+        panel.Children().Append(heading);
+        const auto text = [&](const hstring& message) { TextBlock t; t.Text(message); t.TextWrapping(TextWrapping::Wrap); panel.Children().Append(t); };
+        text(RS_(L"Transfers_BackendsNotice"));
+        contentFrame().Content(panel);
+        std::shared_ptr<Json::Value> draft;
+        try { draft = std::make_shared<Json::Value>(T::Parse(winrt::to_string(_settingsClone.GlobalSettings().TransferBackendsJson()))); }
+        catch (...) { text(RS_(L"Transfers_InvalidConfiguration")); return; }
+        const auto persist = [weak = get_weak(), draft] {
+            if (const auto self = weak.get()) { self->_settingsClone.GlobalSettings().TransferBackendsJson(winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, *draft))); }
+        };
+        // Only owned SSH profiles are eligible. No scan, command execution or secrets.
+        std::vector<Model::Profile> profiles;
+        for (const auto& profile : _settingsClone.AllProfiles())
+        {
+            if (!profile.Deleted() && !profile.IsTransientHostSsh() &&
+                (profile.Source() == L"Backslash.Terminal.SSH" || profile.Source() == L"Windows.Terminal.SSH"))
+            { profiles.push_back(profile); }
+        }
+        for (size_t i = 0; i < T::Keys.size(); ++i)
+        {
+            const std::string key{T::Keys[i]};
+            const auto border = Resources().Lookup(box_value(L"TransferBackendCardTemplate")).as<DataTemplate>().LoadContent().as<Border>();
+            const auto card = border.Child().as<StackPanel>();
+            ToggleSwitch enabled; enabled.Header(box_value(winrt::to_hstring(key == "sftp" ? "SFTP" : key)));
+            enabled.IsOn((*draft)[key]["enabled"].asBool());
+            Automation::AutomationProperties::SetName(enabled, winrt::to_hstring(key));
+            card.Children().Append(enabled);
+            TextBlock status; status.TextWrapping(TextWrapping::Wrap);
+            const auto refresh = [draft, key, profiles, status] {
+                bool configured = false;
+                if (key == "sftp")
+                {
+                    const auto reference = (*draft)[key]["profile"].asString();
+                    for (const auto& profile : profiles) { if (!reference.empty() && profile.Guid() == winrt::guid{winrt::to_hstring(reference)}) { configured = true; break; } }
+                }
+                const auto state = T::Evaluate((*draft)[key]["enabled"].asBool(), configured);
+                status.Text(state == T::Availability::Disabled ? RS_(L"Transfers_Disabled") :
+                            state == T::Availability::Unconfigured ? RS_(L"Transfers_Unconfigured") : RS_(L"Transfers_Unavailable"));
+            };
+            enabled.Toggled([draft, key, persist, refresh](const IInspectable& sender, auto&&) { (*draft)[key]["enabled"] = sender.as<ToggleSwitch>().IsOn(); persist(); refresh(); });
+            if (key == "sftp")
+            {
+                ComboBox selection; selection.Header(box_value(RS_(L"Transfers_SshProfile"))); selection.HorizontalAlignment(HorizontalAlignment::Stretch);
+                ComboBoxItem empty; empty.Content(box_value(RS_(L"Transfers_SelectProfile"))); selection.Items().Append(empty);
+                int32_t selected = 0;
+                const auto reference = (*draft)[key]["profile"].asString();
+                for (size_t n = 0; n < profiles.size(); ++n)
+                {
+                    ComboBoxItem item; item.Content(box_value(profiles[n].Name())); selection.Items().Append(item);
+                    if (!reference.empty() && profiles[n].Guid() == winrt::guid{winrt::to_hstring(reference)}) { selected = static_cast<int32_t>(n + 1); }
+                }
+                if (!reference.empty() && selected == 0)
+                {
+                    ComboBoxItem missing; missing.Content(box_value(RS_(L"Transfers_MissingProfile"))); selection.Items().Append(missing);
+                    selected = static_cast<int32_t>(profiles.size() + 1);
+                }
+                selection.SelectedIndex(selected);
+                selection.SelectionChanged([draft, key, profiles, persist, refresh](const IInspectable& sender, auto&&) {
+                    const auto index = sender.as<ComboBox>().SelectedIndex();
+                    if (index >= 0 && static_cast<size_t>(index) <= profiles.size())
+                    { (*draft)[key]["profile"] = index == 0 ? "" : winrt::to_string(winrt::to_hstring(profiles[static_cast<size_t>(index-1)].Guid())); persist(); refresh(); }
+                });
+                card.Children().Append(selection);
+            }
+            refresh(); card.Children().Append(status);
+            // ThemeResource bindings in the template follow theme/high-contrast changes.
+            panel.Children().Append(border);
+        }
+        text(RS_(L"Transfers_PlannedSetup"));
+    }
+
 }

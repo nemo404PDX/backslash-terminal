@@ -78,7 +78,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void _FolderPropertyChanged(const IInspectable& sender, const Windows::UI::Xaml::Data::PropertyChangedEventArgs& args);
     };
 
-    struct FolderTreeViewEntry : FolderTreeViewEntryT<FolderTreeViewEntry>
+    struct FolderTreeViewEntry : FolderTreeViewEntryT<FolderTreeViewEntry>, ViewModelHelper<FolderTreeViewEntry>
     {
     public:
         FolderTreeViewEntry(Editor::FolderEntryViewModel folderEntry);
@@ -91,6 +91,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     private:
         Editor::FolderEntryViewModel _folderEntry;
+        Windows::UI::Xaml::Data::INotifyPropertyChanged::PropertyChanged_revoker _folderChangedRevoker;
     };
 
     struct NewTabMenuEntryViewModel : NewTabMenuEntryViewModelT<NewTabMenuEntryViewModel>, ViewModelHelper<NewTabMenuEntryViewModel>

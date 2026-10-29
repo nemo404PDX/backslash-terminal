@@ -324,6 +324,11 @@
     <Link>
       <AdditionalDependencies>%(AdditionalDependencies);user32.lib</AdditionalDependencies>
     </Link>
+    <!-- This resource-bearing static library must not infer its machine type. -->
+    <Lib>
+      <TargetMachine Condition="'$(Platform)'=='x64'">MachineX64</TargetMachine>
+      <TargetMachine Condition="'$(Platform)'=='ARM64'">MachineARM64</TargetMachine>
+    </Lib>
     <Reference>
       <Private>false</Private>
     </Reference>

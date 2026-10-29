@@ -1,56 +1,40 @@
 <br/>
-<img src="docs/images/backslash-hero.png" ><br/>
+<img src="docs/images/backslash-hero.png" alt="Backslash Terminal"><br/>
 
 ## Backslash Terminal
 
-Backslash is a Windows-focused fork of Microsoft Windows Terminal, adding saved terminal layouts, pinned destinations, SSH profile tools and optional CRT styling to its tabs and panes. It builds on the existing C++/Windows codebase and upstream terminal capabilities, including split panes, profiles, color schemes and Sixel output.
+Backslash is a Windows fork of Microsoft Windows Terminal with saved terminal layouts, pinned destinations, SSH profile tools and optional CRT styling. It includes the upstream tabs, split panes, profiles, color schemes and Sixel support.
 
-**Windows is the current target. Linux and macOS support are TBD.** The published unsigned portable preview is **v0.0.1-preview.1** at `05e47f6`. Later features in the current checkout are **uncommitted development work**, not included in that published ZIP. The user reports successfully launching the preview on a second Windows machine, with an unsigned-application warning. See [release and development status](docs/backslash/DEVELOPMENT-STATUS.md) for the exact candidate, verification and limits. This is portable delivery, not an installed production release. The source baseline is Windows Terminal **v1.25.2733.0**; see [upstream provenance](docs/backslash/UPSTREAM-SOURCE.md).
+**Experimental, unsigned Windows x64 preview.** Linux and macOS builds are not available. Compatibility and accessibility testing is incomplete; the preview has a known intermittent blank or transparent Settings-pane issue.
 
-## Implemented in development builds
+## Download and run
 
-- **Saved tab groups and startup:** save named tab/pane layouts with split ratios, profile references and focus; reopen them alongside existing tabs or select a group for initial startup. Manage groups in Settings > Startup, using profile-default folders or supported captured local folders. Groups launch fresh sessions; they do not preserve running processes or remote sessions. See [saved tab groups](docs/backslash/SAVED-TAB-GROUPS.md).
-- **Pinned destinations:** a per-portable-copy Pins catalog remembers fixed destinations separately from groups. Compact shortcuts launch lazily when selected, with Open here, Move here, Gather and Unpin operations. Live PowerShell 7 folder reporting supports **Pin current folder**; **Add a folder...** provides manual entry. Local, WSL and SSH launch support has explicit launcher/path limits. See [pinned destinations](docs/backslash/PINNED-TABS-IMPLEMENTATION.md), [current checkpoint](docs/backslash/PINNED-STATUS.md) and [live folder metadata](docs/backslash/LIVE-CWD-AND-SESSION-METADATA.md).
-- **CRT appearance:** saved per-profile glow, phosphor tint, scanline intensity, thickness and gap controls, with preview, inheritance and reset support. Rendering work includes opacity/tint corrections and suspension of hidden controls. See [CRT appearance](docs/backslash/CRT-APPEARANCE.md) and [rendering implementation and validation](docs/backslash/CRT-RENDERING-PLAN.md).
-- **Retro bezel and SVG badges:** size and color/finish presets, fullscreen aperture centering, an opaque surround, six badge placements and independent extra filler. Solid, Outline and CurrentColor artwork are supported; CurrentColor adds independent Lettering and Backing colors or transparent None. Muted retro red and warm mustard extend the finishes. See [bezel design](docs/backslash/BEZEL-DESIGN.md), [SVG badges](docs/backslash/BEZEL-BADGE-IMPLEMENTATION.md), [badge colors](docs/backslash/CURRENTCOLOR-BADGE-CONTROLS.md) and [added finishes](docs/backslash/BEZEL-FINISH-EXTENSIONS.md).
-- **Settings placement and close controls (uncommitted):** choose Tab, Side-by-side or Separate window. Repeated opens focus the existing editor; guarded pane close preserves neighboring terminals and prompts for unsaved Settings changes. A split tab's X now closes its last-focused leaf, while the context menu retains Close entire tab. The portable notice wraps above Save/Discard. See [focused close and footer behavior](docs/backslash/FOCUSED-PANE-CLOSE.md). Compact header/breadcrumb and app brand-accent changes are implemented, with visual QA pending. See [Settings placement](docs/backslash/SETTINGS-PLACEMENT.md) and [UI accent](docs/backslash/UI-ACCENT.md).
-- **SSH profiles, WSL and connection titles:** Settings > Add a new profile offers an explicit SSH scan and selectable imports. Save keeps only chosen connections after restart, with no startup scan or discovery toggle. Alias references use this computer's SSH configuration/authentication; resolved endpoint records remain supported. See [portable SSH behavior and restrictions](docs/backslash/SSH-PORTABLE-IMPORT.md) and [background lifetime / resident saved-group startup](docs/backslash/STARTUP-GROUP-REOPEN.md). Stable profile identities, selectable remote shells and modern WSL distro discovery remain. Connection identity appears in tab and Ctrl+Tab titles by default, with an Appearance opt-out. See [SSH/WSL behavior](docs/backslash/SSH-PROFILES.md) and [connection titles](docs/backslash/CONNECTION-TITLES.md).
-- **Portable isolation and curated defaults:** adjacent settings/state, separate Backslash local storage, disabled automatic upstream settings import and disabled external fragment discovery. Fresh defaults use an 80 x 28 grid, centered launch, 16-point font, filled-box cursor and hidden scrollbar; CRT effects and the bezel remain off until enabled. Existing explicit settings take precedence. See [portable implementation](docs/backslash/PORTABLE-IMPLEMENTATION.md) and [curated defaults](docs/backslash/CURATED-DEFAULTS.md).
+1. Choose a Windows x64 portable ZIP from [Releases](https://github.com/nemo404PDX/backslash-terminal/releases) and read that version's feature notes and known issues. Source builds may contain features absent from a released ZIP.
+2. Extract the complete ZIP into a writable folder. Keep `Backslash.exe`, `.portable` and the supporting files together.
+3. Run `Backslash.exe`. Windows may show an unsigned-application warning; the preview is not signed.
 
-The linked implementation records contain build, model, shader, composed-render and owned portable runtime evidence. Validation varies by feature: native interaction, accessibility, DPI/hardware-GPU coverage and real SSH/WSL checks remain incomplete. Some records describe earlier checkpoints; their artifact paths and test counts are historical evidence, not a claim that every check was rerun against the current checkout. Current Dev artwork/executable identity is present; independent installed-package identity, signing and broader release-readiness checks remain outstanding. The [current status](docs/backslash/DEVELOPMENT-STATUS.md) separates the latest verification from historical records.
+Portable settings and state are stored in an adjacent `settings` folder. Back up that folder before updating and keep it when moving the application. A normal local folder works; a USB drive is optional. Backslash does not automatically import Windows Terminal settings. See the [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) for storage and build details.
 
-## Planned and under investigation
+## Features
 
-- Richer SSH bookmarks and grouping, resumable remote sessions, and integrated file navigation/transfers.
-- Palette copy/fill tools and an opt-in curated font catalog.
-- Expanded inline graphics, local SSH command composition, completion and configurable shared history.
-- Further CRT/material effects, optional keyboard sounds, terminal status bars and reorganized settings navigation.
+- **Saved tab groups:** save named tab/pane layouts, split ratios, profile references and focus; reopen them or choose a group at startup. Groups start fresh sessions and do not preserve running processes. [Saved groups](docs/backslash/SAVED-TAB-GROUPS.md)
+- **Pinned destinations:** keep fixed local, WSL and SSH destinations separate from saved groups. Supported PowerShell 7 sessions can report their current folder for pinning; manual folder entry is also available. [Pins and supported launchers](docs/backslash/PINNED-TABS-IMPLEMENTATION.md)
+- **CRT and bezel appearance:** configure per-profile glow, phosphor tint, scanlines, bezel finishes, SVG badges and badge colors, with preview, inheritance and reset controls. Effects are off by default. [Appearance controls](docs/backslash/CRT-APPEARANCE.md)
+- **Settings placement:** open Settings in a tab, beside a terminal or in a separate window. A split tab's close button closes its focused pane; the context menu also offers Close entire tab. [Settings placement](docs/backslash/SETTINGS-PLACEMENT.md)
+- **SSH and WSL profiles:** explicitly scan and import selected SSH aliases, keep saved connections across restarts, and use local WSL distributions. SSH aliases require this computer's SSH configuration and authentication; keys and credentials are not bundled. [SSH import](docs/backslash/SSH-PORTABLE-IMPORT.md)
 
-These are design goals, not shipped features or a release schedule. The [roadmap](docs/backslash/ROADMAP.md) and [feature scope](docs/backslash/FEATURES.md) retain original planning text; use the implementation records above for delivered scope. See also the [file-transfer design](docs/backslash/FILE-TRANSFER-DESIGN.md), [SSH editor research](docs/backslash/SSH-LOCAL-EDITOR-RESEARCH.md) and [resumable-session design](docs/backslash/RESUMABLE-SESSIONS-DESIGN.md).
+Feature availability depends on the downloaded version. Integrated file browsing, transfer engines and resumable remote sessions are not available. Broader theme, DPI, accessibility and real SSH/WSL compatibility testing is still needed. See the [feature scope](docs/backslash/FEATURES.md) and [roadmap](docs/backslash/ROADMAP.md).
 
-## Repository layout
+## Build from source
 
-Application source, solutions and build tools are in [`backslash/`](backslash/README.md). Project documentation, screenshots and icon exports remain in [`docs/`](docs/README.md); GitHub workflows and community guides remain in [`.github/`](.github/). See the [layout and migration guide](docs/backslash/REPOSITORY-LAYOUT.md).
-
-## Build and run
-
-Use **PowerShell 7 on Windows** with an installed Visual Studio C++ toolchain, Windows SDK and the upstream packaging prerequisites. The recorded build configuration is **Release x64**. From the repository root:
+Use PowerShell 7 on Windows with Visual Studio C++ tools, the Windows SDK and the upstream packaging prerequisites. Release x64 is the validated build configuration:
 
 ```powershell
 pwsh -NoProfile -File .\backslash\tools\backslash\Build.ps1 -Preflight
 pwsh -NoProfile -File .\backslash\tools\backslash\Build.ps1
 ```
 
-Preflight checks source and tool paths; the build restores dependencies and writes a unique run directory under `artifacts/build`. To assemble and check an isolated portable distribution, replace the build-run placeholder with the successful run's directory:
-
-```powershell
-pwsh -NoProfile -File .\backslash\tools\backslash\New-PortableDistribution.ps1 -BuildRun '.\artifacts\build\<successful-run-directory>'
-pwsh -NoProfile -File .\backslash\tools\backslash\Test-PortableIsolation.ps1 -PortableDirectory '.\artifacts\portable\Backslash-Dev-<successful-run-directory>'
-```
-
-Launch `Backslash.exe` by its full path inside the generated Dev portable directory, keeping `.portable` and the complete distribution together. Older recorded artifacts use `WindowsTerminal.exe`. The unsigned MSIX build output is an intermediate payload with retained upstream package identity; use the portable distribution for development runs.
-
-The [Windows build guide](backslash/tools/backslash/README.md) covers prerequisites, overrides and logs. The [portable guide](docs/backslash/PORTABLE-IMPLEMENTATION.md) explains assembly, isolation and limitations. The [documentation entry point](docs/README.md) links detailed designs and validation records.
+The [Windows build guide](backslash/tools/backslash/README.md) covers prerequisites and portable assembly. The unsigned MSIX build output retains upstream package identity and is an intermediate payload; use the portable distribution for development runs. Source and solutions live in [backslash/](backslash/README.md); [documentation](docs/README.md) includes feature guides and contributor references.
 
 ## Screenshots
 

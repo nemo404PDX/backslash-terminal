@@ -20,10 +20,8 @@ Dirty or stale drafts offer Discard and close / Keep editing; busy operations an
 
 The outer grid owns the keyboard focus cycle, with local traversal inside NavigationView, so forward/reverse traversal can include the header controls. The normal and minimal NavigationView header margins both use `0,4,0,0`: this removes stale native hamburger compensation after moving the hamburger to its own row. Native breadcrumb overflow and ancestor navigation are retained; clipping does not hide unreachable labels.
 
-## Verification status
+## Known limitations
 
-The latest composite follow-up removed the redundant in-view Close UI while retaining ConfirmCloseSettings and all tab/pane/batch guards. Candidate `85e666ed` built with 0 errors and passed the complete isolated suite (331 passed, 2 optional real-shell cases skipped), 10 close-UI/scope source checks and 34 portable checks. See [current status](DEVELOPMENT-STATUS.md) for the current artifact and evidence. Counts below describe the earlier checkpoint.
+Historical build/test results are retained in [maintainer notes](../dev/HANDOFF.md).
 
-This is uncommitted development, not the published preview. The latest complete runtime exercises all 323 distinct settings cases (321 in the standard run and two optional shell cases separately). Twenty Settings placement test methods cover the policy/lifecycle helpers, minimum allocation and close rules. Thirty-three routing checks, ten footer checks, ten chrome checks and nine breadcrumb checks cover close wiring, header/focus boundaries and reserved footer layout. The final candidate and build evidence are in [current status](DEVELOPMENT-STATUS.md).
-
-Native visual placement, responsive resizing/localization/DPI, actual keyboard traversal, save/discard interactions and live tab transfer/rollback still need interactive QA. Source review accepted the focused fixes; this is not end-to-end GUI verification. The reported intermittent blank split remains unresolved and was not reproduced in subsequent user attempts. Earlier startup-only debugger smoke tests do not clear these interaction gates.
+Broader responsive layout/localization/DPI, keyboard traversal, save/discard interaction and live tab transfer/rollback testing is incomplete. An intermittent blank or transparent Settings split has been reported and remains unresolved.

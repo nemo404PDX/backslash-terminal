@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "HostSshVisibility.h"
 #include "WorkspaceSsh.h"
+#include "TransferBackendSettings.h"
 #include "GlobalAppSettings.h"
 #include "SavedTabGroups.h"
 #include <DefaultSettings.h>
@@ -67,6 +68,7 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::Copy() const
     globals->_defaultProfile = _defaultProfile;
     globals->_hostSshProfileVisibility = _hostSshProfileVisibility;
     globals->_workspaceSshConnections = _workspaceSshConnections;
+    globals->_transferBackends = _transferBackends;
     globals->_savedTabGroups = _savedTabGroups;
     globals->_actionMap = _actionMap->Copy();
     globals->_keybindingsWarnings = _keybindingsWarnings;
@@ -165,6 +167,8 @@ winrt::com_ptr<GlobalAppSettings> GlobalAppSettings::FromJson(const Json::Value&
 void GlobalAppSettings::LayerJson(const Json::Value& json, const OriginTag origin)
 {
     JsonUtils::GetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
+    if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember(::Microsoft::Terminal::Backslash::Transfers::SettingsKey))
+    { _transferBackends = json[::Microsoft::Terminal::Backslash::Transfers::SettingsKey]; }
     if ((origin == OriginTag::User || origin == OriginTag::None) && json.isMember(::Microsoft::Terminal::Backslash::HostSshVisibility::Key))
     {
         _hostSshProfileVisibility = json[::Microsoft::Terminal::Backslash::HostSshVisibility::Key];
@@ -362,6 +366,7 @@ Json::Value GlobalAppSettings::ToJson(bool preserveExplicit)
     JsonUtils::SetValueForKey(json, DefaultProfileKey, _UnparsedDefaultProfile);
     if (_hostSshProfileVisibility) { json[::Microsoft::Terminal::Backslash::HostSshVisibility::Key] = HostSshProfileVisibility(); }
     if (_workspaceSshConnections) { json["backslash.sshConnections"] = *_workspaceSshConnections; }
+    if (_transferBackends) { json[::Microsoft::Terminal::Backslash::Transfers::SettingsKey] = *_transferBackends; }
     if (_savedTabGroups) { json["backslash.savedTabGroups"] = *_savedTabGroups; }
 
 #define GLOBAL_SETTINGS_TO_JSON(type, name, jsonKey, ...) \
@@ -592,4 +597,13 @@ void GlobalAppSettings::WorkspaceSshConnectionsJson(const winrt::hstring& value)
 Json::Value GlobalAppSettings::HostSshProfileVisibility() const
 {
     return ::Microsoft::Terminal::Backslash::HostSshVisibility::Read(_hostSshProfileVisibility.value_or(Json::Value{ Json::objectValue }));
+}
+
+winrt::hstring GlobalAppSettings::TransferBackendsJson() const
+{
+    return winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, _transferBackends.value_or(::Microsoft::Terminal::Backslash::Transfers::Defaults())));
+}
+void GlobalAppSettings::TransferBackendsJson(const winrt::hstring& value)
+{
+    _transferBackends = ::Microsoft::Terminal::Backslash::Transfers::Parse(winrt::to_string(value));
 }

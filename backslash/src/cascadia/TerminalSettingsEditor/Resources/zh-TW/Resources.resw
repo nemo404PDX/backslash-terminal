@@ -2205,9 +2205,6 @@
     <value>關閉多個索引標籤時發出警告</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>停用「觸控式鍵盤和手寫面板服務」時發出警告</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>在貼上超過 5 KiB 時警告</value>
   </data>

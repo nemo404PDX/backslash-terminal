@@ -41,8 +41,9 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void NewTabMenu::OnNavigatedTo(const NavigationEventArgs& e)
     {
         const auto args = e.Parameter().as<Editor::NavigateToPageArgs>();
-        _ViewModel = args.ViewModel().as<Editor::NewTabMenuViewModel>();
+        ViewModel(args.ViewModel().as<Editor::NewTabMenuViewModel>());
         _weakWindowRoot = args.WindowRoot();
+        _PropertyChangedHandlers(*this, Windows::UI::Xaml::Data::PropertyChangedEventArgs{ L"WindowRoot" });
         BringIntoViewWhenLoaded(args.ElementToFocus());
 
         TraceLoggingWrite(

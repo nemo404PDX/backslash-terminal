@@ -54,6 +54,37 @@
 
     <StackPanel>
         <StackPanel Style="{StaticResource SettingsStackStyle}">
+            <TextBlock Text="Explorer integration" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,16,0,8" />
+            <Grid Style="{StaticResource NonExpanderGrid}" MinWidth="0" Padding="16,12" Margin="0,0,0,8">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Open Backslash here from a folder or its background." TextWrapping="Wrap" />
+                    <TextBlock x:Name="ExplorerStatus" Text="Checking modern integration…" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    <TextBlock x:Name="ExplorerError" Visibility="Collapsed" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               Foreground="{ThemeResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive" />
+                    <TextBlock x:Name="ExplorerResult" Visibility="Collapsed" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Style="{ThemeResource SecondaryTextBlockStyle}" />
+                    <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="150" ItemHeight="40">
+                        <Button x:Name="ExplorerEnable" Content="Enable" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
+                        <Button x:Name="ExplorerRepair" Content="Repair" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
+                        <Button x:Name="ExplorerRemove" Content="Remove" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
+                    </VariableSizedWrapGrid>
+                    <muxc:Expander x:Name="ExplorerDetails" Header="Details" IsExpanded="False"
+                                   HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                        <Border Padding="16" CornerRadius="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="Development helper • current user only. Changes apply immediately, independently of Save." TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
+                                <TextBlock x:Name="ExplorerDiagnostics" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                <TextBlock x:Name="ExplorerLegacy" TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
+                                <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="160" ItemHeight="40">
+                                    <Button x:Name="ExplorerCheckStatus" Content="Check status" Click="Explorer_Refresh" Margin="0,0,8,0" />
+                                    <Button x:Name="ExplorerNotify" Content="Refresh shell" Click="Explorer_Notify" Margin="0,0,8,0" />
+                                    <Button x:Name="ExplorerRestart" Content="Restart Explorer…" Click="Explorer_Restart" Margin="0,0,8,0" />
+                                </VariableSizedWrapGrid>
+                                <TextBlock Text="Refresh shell requests a shell update. Restart Explorer is optional and can disrupt the desktop, taskbar and File Explorer windows." TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </muxc:Expander>
+                </StackPanel>
+            </Grid>
             <!--  Default Profile  -->
             <local:SettingContainer x:Name="DefaultProfile"
                                     x:Uid="Globals_DefaultProfile">

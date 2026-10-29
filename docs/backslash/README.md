@@ -1,71 +1,27 @@
-> **Backslash-owned documentation.** [All documentation](../README.md) | [Inherited Windows Terminal references/history](../../backslash/doc/README.md)
->
-> **Current implementation:** [root overview](../../README.md), [saved groups](SAVED-TAB-GROUPS.md), [Pins checkpoint](PINNED-STATUS.md), [Pins implementation](PINNED-TABS-IMPLEMENTATION.md), [live folder metadata](LIVE-CWD-AND-SESSION-METADATA.md), [portable delivery](PORTABLE-IMPLEMENTATION.md), [SSH/WSL](SSH-PROFILES.md), [CRT controls](CRT-APPEARANCE.md) and [bezel implementation/evidence](BEZEL-DESIGN.md). Records include validation limits and earlier checkpoints.
->
-> **Future designs/research:** [optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md), [appearance recipes / named starting looks](APPEARANCE-RECIPES-DESIGN.md), [file transfer](FILE-TRANSFER-DESIGN.md), [resumable sessions](RESUMABLE-SESSIONS-DESIGN.md), [app commands](APP-COMMANDS-DESIGN.md), [status bars](TERMINAL-STATUS-BARS-DESIGN.md), [keyboard sounds](KEYBOARD-SOUNDS-DESIGN.md), [fonts](FONTS.md), [SSH editor](SSH-LOCAL-EDITOR-RESEARCH.md) and [settings layout](SETTINGS-LAYOUT-PROPOSAL.md). [Roadmap](ROADMAP.md) and [feature scope](FEATURES.md) retain planning text; use implementation records for completed scope.
->
-> **Historical evidence/completed planning stages:** [initial build](BUILD-BASELINE.md), [baseline research](BASELINE.md), [Pins plan](PINNED-TABS-PLAN.md), [frozen phosphor](PHOSPHOR-COLOR-REFERENCE-dc027cae.md), [frozen bezel](BEZEL-COLOR-REFERENCE-dc027cae.md) and [cross-build audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md). The [CRT rendering plan](CRT-RENDERING-PLAN.md) also contains implemented follow-ups. Keep artifact identities and evidence intact.
->
-> Older preparation notes and index descriptions below are retained as history. Pending badge/finish headings and the dated inventory can lag implementation. Per-record evidence and the root overview take precedence for delivered scope.
+# Backslash guides
 
-**Current release/development boundary:** [development status](DEVELOPMENT-STATUS.md) identifies published `v0.0.1-preview.1` separately from later uncommitted work and the latest verified candidate. Start there for verification limits, open issues and future-only scope. New implementation records: [SSH import](SSH-PORTABLE-IMPORT.md), [resident startup](STARTUP-GROUP-REOPEN.md), [Settings placement](SETTINGS-PLACEMENT.md), [focused close/footer](FOCUSED-PANE-CLOSE.md), [UI accent](UI-ACCENT.md), [scheme phosphor](PHOSPHOR-SCHEME-TONES.md) and [scanline color](SCANLINE-COLOR.md).
+Backslash is an experimental Windows terminal based on Microsoft Windows Terminal. Start with the [project overview and download instructions](../../README.md). Release notes describe the features included in each downloadable version; source documentation may also describe development features.
 
-# Backslash Terminal project
+## Using Backslash
 
-Current terminal-only tab-menu additions: [Split with profile and Relaunch with profile](PROFILE-PANE-ACTIONS.md), including scoped confirmation, sibling/layout preservation and saved Group identity behavior. Native interaction QA remains pending.
+- [Portable operation and storage](PORTABLE-IMPLEMENTATION.md)
+- [Saved tab groups](SAVED-TAB-GROUPS.md) and [startup groups](STARTUP-GROUP-REOPEN.md)
+- [Pinned destinations](PINNED-TABS-IMPLEMENTATION.md) and [supported folder reporting](LIVE-CWD-AND-SESSION-METADATA.md)
+- [Settings placement](SETTINGS-PLACEMENT.md) and [pane close behavior](FOCUSED-PANE-CLOSE.md)
+- [SSH import and authentication requirements](SSH-PORTABLE-IMPORT.md), [SSH/WSL profiles](SSH-PROFILES.md) and [connection titles](CONNECTION-TITLES.md)
+- [CRT appearance](CRT-APPEARANCE.md), [bezel and badges](BEZEL-DESIGN.md), [badge colors](CURRENTCOLOR-BADGE-CONTROLS.md) and [bezel finishes](BEZEL-FINISH-EXTENSIONS.md)
+- [Default appearance and geometry](CURATED-DEFAULTS.md)
 
-Display brand: **Backslash**. Repository/folder: **backslash-terminal**.
+Saved groups reopen layouts with fresh sessions. SSH aliases depend on each computer's configuration. Native transfer protocols and resumable remote sessions are not implemented. Read each guide's restrictions before relying on a feature.
 
-Backslash is a Windows-first fork of Microsoft Windows Terminal. The goal is approachable saved workspaces, useful inline terminal graphics, understandable palette editing, and optional configurable CRT styling. This is the existing C++/Windows source baseline, not a Rust rewrite or a cross-platform port.
+## Development and design references
 
-**Current status: isolated portable Backslash Dev builds with configurable CRT/bezel controls and SSH profile controls; modern WSL discovery is corrected.** See [portable implementation](PORTABLE-IMPLEMENTATION.md), [CRT evidence](CRT-APPEARANCE.md), [bezel evidence](BEZEL-DESIGN.md), and [SSH/WSL evidence](SSH-PROFILES.md) for completed scope and unrun visual checks. The unsigned portable delivery is not an installed production release. [Baseline build evidence](BUILD-BASELINE.md) records the earlier preparation stage. The baseline is stable [v1.25.2733.0](https://github.com/microsoft/terminal/releases/tag/v1.25.2733.0), commit `dc8ae365847d41f62d1ebca93815bb00959bc12f`. See [provenance](UPSTREAM-SOURCE.md).
+- [Build guide](../../backslash/tools/backslash/README.md), [repository layout](REPOSITORY-LAYOUT.md) and [documentation catalog](DOCUMENTATION.md)
+- [Feature scope](FEATURES.md), [roadmap](ROADMAP.md) and [file-transfer design](FILE-TRANSFER-DESIGN.md)
+- [Explorer integration](EXPLORER-INTEGRATION.md) (development feature; explicit opt-in)
+- [Transfers foundation](TRANSFERS-FOUNDATION.md) and [backend settings](TRANSFERS-BACKENDS.md) (development interfaces; no transfer engine)
+- [Rendering design and validation](CRT-RENDERING-PLAN.md), [Pins validation](../dev/PINS-VALIDATION.md) and [build baseline](BUILD-BASELINE.md)
+- [Maintainer handoff notes](../dev/HANDOFF.md) for machine-local artifacts, historical verification and operational context
+- [Upstream source provenance](UPSTREAM-SOURCE.md), [MIT license](../../LICENSE) and [third-party notices](../../NOTICE.md)
 
-## Read next
-
-- [Curated application defaults](CURATED-DEFAULTS.md): requested grid, font, CRT/bezel fallbacks, native centering and accepted usable-grid geometry.
-- [Clarified pre-pin/latest-pin phosphor comparison](PHOSPHOR-COMPARISON-13ebff74-35414271.md): resolved build identities, independent saved appearances and picker shortcut RGBs.
-- [Badge composed-render fix](BEZEL-BADGE-RENDER-FIX.md): corrected square, aperture-span anchors, actual app/preview evidence and latest portable.
-- [Implemented SVG bezel badge](BEZEL-BADGE-IMPLEMENTATION.md): six placements, independent filler, removed plate and fresh portable validation.
-- [Badge SVG assets](BACKSLASH-BADGE-ASSET.md): exact backups, conservative cleanup, currentColor/cutout validation and future integration constraints.
-- [Frozen phosphor reference](PHOSPHOR-COLOR-REFERENCE-dc027cae.md), [frozen bezel reference](BEZEL-COLOR-REFERENCE-dc027cae.md), and [cross-build color audit](PHOSPHOR-REGRESSION-AUDIT-960a9f9.md): literal backups, swatches and source/package evidence.
-
-- [Baseline build evidence](BUILD-BASELINE.md): verified source-copy artifact/logs, toolchain and runtime limits.
-
-- [Application identity plan](APP-IDENTITY.md): portable-first isolation and later package/alias/registration choices.
-
-- [Exact documentation inventory](DOCUMENTATION.md): paths and purposes.
-- [Implemented SSH profiles and modern WSL discovery](SSH-PROFILES.md): shell choices, explicit restoration, and validation evidence.
-- [Independent SSH editor audit](SSH-LOCAL-EDITOR-AUDIT.md): capability gates and source-confirmed gaps.
-- [SSH local editor research](SSH-LOCAL-EDITOR-RESEARCH.md): preferred inline composition feasibility, source seams and validation gates.
-- [Shell productivity setup](SHELL-PRODUCTIVITY.md): opt-in provider setup and access to older history matches.
-- [Saved tab groups](SAVED-TAB-GROUPS.md): implemented named terminal layouts, folder modes, management and validation limits.
-- [Connection identity titles](CONNECTION-TITLES.md): curated default and Appearance opt-out, explicit title precedence and safe launch metadata.
-- [Internal app commands](APP-COMMANDS-DESIGN.md): future dedicated command field, dispatch reuse, slash/collision rules and native pane actions.
-- [Resumable remote sessions](RESUMABLE-SESSIONS-DESIGN.md): future opt-in ownership, missed output/results, lifecycle and shared-session identity.
-- [Settings layout proposal](SETTINGS-LAYOUT-PROPOSAL.md) and [JSONC inventory](settings-layout.proposed.jsonc): reviewable task categories, actual controls, key/resource references and search gaps.
-- [Feature scope](FEATURES.md): requested behavior, proposed safeguards and open choices.
-- [Palette design](PALETTE.md): agreed copy behavior and precise color categories.
-- [Font catalog](FONTS.md): requested opt-in font discovery and download design.
-- [CRT Appearance design](CRT-APPEARANCE.md): controls, rendering constraints and quality requirements.
-- [CRT rendering plan and performance audit](CRT-RENDERING-PLAN.md): visibility/resource findings, isolated measurements, implemented tint/scanline controls and acceptance gates.
-- [Bezel implementation and future material design](BEZEL-DESIGN.md): implemented frame controls, corner/centering fixes, validation and remaining visual checks.
-- [Keyboard sounds design](KEYBOARD-SOUNDS-DESIGN.md): future optional coherent press/release audio, three sound profiles, overall Weight and silent paste/output.
-- [Terminal status bars design](TERMINAL-STATUS-BARS-DESIGN.md): optional top/bottom rows, four anchored slots, reserved layout space and metadata limits; not implemented.
-- [Phased roadmap](ROADMAP.md): bounded future tasks with acceptance checks.
-- [Baseline evidence](BASELINE.md): reused capabilities, source paths and upstream research.
-- [Brand concept](../../backslash/branding/concepts/README.md): approved visual direction and exact image transfer status.
-- [Main project README](../../README.md): concise Backslash introduction, implemented features and planned additions.
-- [MIT license](../../LICENSE) and [upstream notices](../../NOTICE.md).
-
-“Requested” describes agreed product scope, “proposed” describes recommendations awaiting design decisions, and “open” describes choices still to resolve. None of these labels means implemented.
-
-## Historical preparation boundaries
-
-The following paragraph records the original preparation scope, before the separately authorized implementation slices linked above.
-
-This preparation authorizes the folder rename, documentation and concept asset retrieval. It does not authorize code changes, builds, package restoration, installations, Git initialization, remotes, commits, pushes or publication. The user will configure their own remote later. Future implementation should start with a concrete, separately authorized slice of the roadmap.
-
-## Implemented badge colors and finishes
-
-- [CurrentColor Lettering and Backing controls](CURRENTCOLOR-BADGE-CONTROLS.md): independent RGB/None choices using existing profile and picker patterns; supplied artwork is unchanged.
-- [Appended bezel finishes](BEZEL-FINISH-EXTENSIONS.md): muted retro red and warm mustard, exact RGB/material values, with original palette baselines unchanged.
+Technical validation records are dated contributor references. Their test results apply to the identified builds and do not guarantee compatibility for every release or machine. Plans describe proposed behavior and are not release commitments.

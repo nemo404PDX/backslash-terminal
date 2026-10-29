@@ -1,5 +1,9 @@
 > **Inherited Microsoft Windows Terminal document.** Original text below is preserved for provenance. Microsoft workflows, CLA requirements, contacts and response commitments describe upstream; they have not been established as Backslash policy or support. See [Backslash documentation](../docs/README.md) and [inherited references](../backslash/doc/README.md). Upstream private security-reporting guidance remains relevant to upstream vulnerabilities; a separate Backslash reporting contact is not established here. Avoid publishing vulnerability details in public issues.
 
+## Backslash documentation guidance
+
+Write the README, download/run instructions and feature guides for the people using Backslash. Describe available behavior, version-specific limitations and supported platforms plainly. Put agent/task narration, authorization or commit state, user-reported acceptance and machine-local handoffs in [maintainer handoff notes](../docs/dev/HANDOFF.md). Keep useful reproducible build/test details in contributor references. Do not copy internal status paragraphs into product introductions or alter published release notes/assets to update internal progress.
+
 # Terminal Contributor's Guide
 
 Below is our guidance for how to report issues, propose new features, and submit contributions via Pull Requests (PRs).

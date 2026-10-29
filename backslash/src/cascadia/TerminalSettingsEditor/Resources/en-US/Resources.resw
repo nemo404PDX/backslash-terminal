@@ -5998,4 +5998,15 @@ Preferences supplied (each matching value or section is replaced; omitted prefer
   <data name="Globals_ConfirmPaneRelaunch.Header" xml:space="preserve"><value>Confirm before relaunching a pane</value></data>
   <data name="Globals_ConfirmPaneRelaunch.HelpText" xml:space="preserve"><value>Warn before replacing a terminal session with another profile. Other close warnings are independent.</value></data>
   <data name="Profile_HostSshAdvancedHelp.Text" xml:space="preserve"><value>Use the shell selector above to choose the remote shell. Import into workspace above Command line to edit advanced command lines or environment variables. Visibility and appearance save directly for discovered profiles. Existing advanced edits are kept in your draft; Save will explain if import is required.</value></data>
+  <data name="Nav_Transfers.Content" xml:space="preserve"><value>Transfers</value></data>
+  <data name="Transfers_Backends" xml:space="preserve"><value>Backends</value></data>
+  <data name="Transfers_BackendsNotice" xml:space="preserve"><value>Optional transfer backends. Save or Discard uses this Settings draft. Enabling a backend permits future submissions; it does not install software or stop existing jobs. No transfer engine is implemented yet.</value></data>
+  <data name="Transfers_InvalidConfiguration" xml:space="preserve"><value>Backend settings are invalid or use an unsupported version. Correct backslash.transferBackends in JSON. Existing configuration is preserved; backend controls are unavailable.</value></data>
+  <data name="Transfers_Disabled" xml:space="preserve"><value>Disabled — no new jobs accepted.</value></data>
+  <data name="Transfers_Unconfigured" xml:space="preserve"><value>Unconfigured — configuration is still required. No engine is implemented.</value></data>
+  <data name="Transfers_Unavailable" xml:space="preserve"><value>Unavailable — profile selected, but no transfer adapter is implemented or verified.</value></data>
+  <data name="Transfers_SshProfile" xml:space="preserve"><value>Saved SSH profile</value></data>
+  <data name="Transfers_SelectProfile" xml:space="preserve"><value>Select a saved SSH profile</value></data>
+  <data name="Transfers_MissingProfile" xml:space="preserve"><value>Saved profile missing — select a replacement or clear the reference</value></data>
+  <data name="Transfers_PlannedSetup" xml:space="preserve"><value>Planned: SFTP upload/download; SABnzbd NZB; aria2 downloads/torrents; rclone files/cloud. Install locally, use an existing installation, and connect to a server will appear only where supported by a tested adapter. Remote jobs must identify their owning machine and destination.</value></data>
 </root>

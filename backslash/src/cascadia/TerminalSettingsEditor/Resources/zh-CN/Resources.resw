@@ -2205,9 +2205,6 @@
     <value>关闭多个选项卡时发出警告</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>禁用“触摸键盘和手写面板服务”时发出警告</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>粘贴超过 5 KiB 时发出警告</value>
   </data>

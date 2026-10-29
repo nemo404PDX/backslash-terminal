@@ -247,6 +247,7 @@ namespace Microsoft.Terminal.Settings.Model
 
 
         String WorkspaceSshConnectionsJson;
+        String TransferBackendsJson;
         String SavedTabGroupsJson;
 
         Boolean ShouldUsePersistedLayout();

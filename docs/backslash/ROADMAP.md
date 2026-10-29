@@ -2,7 +2,7 @@
 
 ## Current position (2026-10-26)
 
-The original phase sequence below is historical planning, not a current execution checklist. A published unsigned portable preview exists at `v0.0.1-preview.1`; later SSH import, resident startup, Settings placement/close and rendering/accent changes remain uncommitted. See [current status](DEVELOPMENT-STATUS.md) for verification and open issues.
+The original phase sequence below is historical planning, not a current execution checklist. Feature availability varies by release; consult the release notes for a downloaded version. [Maintainer notes](../dev/HANDOFF.md) retain dated verification and operational history.
 
 Next bounded work is validation and review of current development, including visual Settings/contrast/focus/width checks and the unresolved intermittent blank-tab report. App/Data relocation and safe reconnection, SFTP UI/engine selection, optional tool management, WebView/MCP views and CRT open/close animations remain future designs. No transfer architecture is selected. The recommended research prototype is one native local+SFTP workspace. Optional native and TUI frontends over a shared backend/live worker are a newer proposed direction, with a conditional WebView hosting spike; see [file transfer](FILE-TRANSFER-DESIGN.md).
 
@@ -10,13 +10,11 @@ Next bounded work is validation and review of current development, including vis
 
 [Project entry point](README.md) · [Feature scope](FEATURES.md)
 
-This is a proposed implementation sequence. Source/documentation preparation and an unchanged upstream source-copy build are completed; see [build evidence](BUILD-BASELINE.md). Future changed-source builds/implementation and launch/install actions require their own authorization. Each phase should be a small reviewable vertical slice, with focused tests and no claim that the full roadmap is delivered.
+This is a proposed implementation sequence. Source/documentation preparation and an unchanged upstream source-copy build are completed; see [build evidence](BUILD-BASELINE.md). Each phase should be a small reviewable vertical slice, with focused tests and no claim that the full roadmap is delivered.
 
 ## Phase 0 — prepared source and decisions
 
 Completed: stable archive source, provenance, no upstream Git history, folder organization, project docs and a successful unchanged source-copy Release|x64 unsigned package build. [Build evidence](BUILD-BASELINE.md) is not runtime or Backslash identity proof. That checkpoint's concept-materialization blocker was later resolved by user-supplied local assets; current Dev builds use supplied artwork. See the [brand record](../../backslash/branding/concepts/README.md) for the historical sequence.
-
-Next agent: read provenance and this doc; verify instructions; choose one next slice with the user. Resolve identity strings before editing them. Maintain a decision record for schema, controls and scope decisions. Do not initialize Git or add a remote on the user's behalf.
 
 ## Phase 1 — independent identity and coexistence
 
@@ -24,7 +22,7 @@ Read the [source-grounded application identity plan](APP-IDENTITY.md). Portable-
 
 Task: audit package identity/publisher, executable/app aliases, app IDs, resources, shortcuts, settings/cache locations, activation/default-terminal registration, update/release paths and attribution. Produce an explicit migration map; exact identifiers and signing/distribution model are open.
 
-After separately authorized implementation/build: produce an independently identified Backslash build that coexists with installed Windows Terminal. Acceptance: launch each separately, isolated settings/activation/aliases, no accidental upgrade/replacement, preserved notices and correct upstream attribution. Folder naming alone does not accomplish this.
+Implementation acceptance: produce an independently identified Backslash build that coexists with installed Windows Terminal. Acceptance: launch each separately, isolated settings/activation/aliases, no accidental upgrade/replacement, preserved notices and correct upstream attribution. Folder naming alone does not accomplish this.
 
 ## Phase 2 — first saved workspace slice
 
@@ -78,13 +76,11 @@ Task: research specific font versions, ligature/patched glyph coverage and licen
 
 ## Release-readiness update (2026-10-15)
 
-User-confirmed checks: group creation, startup and saving while Settings is open work. This is user-reported interactive evidence, not a substitute for remaining automated/native verification. The user subsequently confirmed background opacity and phosphor tint passed after the hue-retaining correction; see CRT-RENDERING-PLAN.md. Branding must be fixed before any preview release. Version and tag remain undecided; no release, tag or publication is authorized by this note.
-
 [Terminal status bars](TERMINAL-STATUS-BARS-DESIGN.md) remain a separate future design: optional top/bottom rows reserve space inside the screen/bezel, with two anchored items per row. Path/host/user/time first and folder counts later are proposals, not implemented scope.
 
 ## Phase 7 — release readiness
 
-Only after authorized builds and implementation: test upgrades/migrations, accessibility, packaging/signing, coexistence, graphics/performance and recovery; finalize vector/ICO assets and typeface rights, review name/trademark clearance, licenses and notices. Publication, remote setup and installs remain separately authorized actions.
+Release-readiness checks: test upgrades/migrations, accessibility, packaging/signing, coexistence, graphics/performance and recovery; finalize vector/ICO assets and typeface rights, review name/trademark clearance, licenses and notices.
 
 
 ## Follow-up designs: commands, session ownership and settings navigation
@@ -99,10 +95,10 @@ The settings proposal places Workspaces, Connections and Retro Appearance promin
 These are documentation-only future items, outside the current full setup export/import and About/version implementation slices. No recipe UI or Explorer registration is delivered by recording them.
 
 - [ ] [Appearance recipes: named starting looks](APPEARANCE-RECIPES-DESIGN.md): coherent editable looks to avoid starting from scratch; baseline defaults with explicit profile overrides in either direction. Keep recipe scope distinct from full setup transfer.
-- [ ] [Optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md): portable-compatible, explicit machine-local opt-in, distinct from Open in Terminal; cover moved executable paths, same/new-location updates, multiple copies, repair and owned unregister. No registry changes in this pass.
+- [ ] [Optional Explorer Open in Backslash integration](EXPLORER-INTEGRATION-DESIGN.md): portable-compatible, explicit machine-local opt-in, distinct from Open in Terminal; cover moved executable paths, same/new-location updates, multiple copies, repair and owned unregister. Explicit opt-in and safe removal are required; see the [implementation](EXPLORER-INTEGRATION.md).
 
 ## Transfers follow-up after the documentation sync
 
-The native [Transfers management foundation](TRANSFERS-FOUNDATION.md) is implemented in uncommitted development: dropdown entry, combined search/status filter, independent tab/split/window preference, repeated-view focus and own-view close backed by process-owned records. It has no transfer backend or real production jobs; native interaction QA is pending. See [current candidate and evidence](DEVELOPMENT-STATUS.md).
+The native [Transfers management foundation](TRANSFERS-FOUNDATION.md) is implemented in source: dropdown entry, combined search/status filter, independent tab/split/window preference, repeated-view focus and own-view close backed by process-owned records. It has no transfer backend or real production jobs; native interaction QA is pending. See [current candidate and evidence](../dev/HANDOFF.md).
 
-The consolidated [file-transfer delivery slices](FILE-TRANSFER-DESIGN.md#accepted-direction-and-delivery-slices-2026-10-26) prioritize local/remote identity and navigation, conflict review and safe interrupted/replacement behavior before visual extras. Later slices add completion actions and an independently placed image Preview (new window by default, next/previous navigation), with PDF rendering later. Shared native/TUI libraries are distinct from a common live worker. Records-only history clearing, undecided retention and failed/interrupted cleanup policy remain explicit design work. Separate Background sessions and Help are future scope, not automatic detection of arbitrary shell work. This targeted follow-up builds on the prior 17-file documentation sync; it does not relabel the broader roadmap as completed.
+The consolidated [file-transfer delivery slices](FILE-TRANSFER-DESIGN.md#accepted-direction-and-delivery-slices-2026-10-26) prioritize local/remote identity and navigation, conflict review and safe interrupted/replacement behavior before visual extras. Later slices add completion actions and an independently placed image Preview (new window by default, next/previous navigation), with PDF rendering later. Shared native/TUI libraries are distinct from a common live worker. Records-only history clearing, undecided retention and failed/interrupted cleanup policy remain explicit design work. Separate Background sessions and Help are future scope, not automatic detection of arbitrary shell work. These delivery slices do not imply that the broader roadmap is complete.

@@ -1,6 +1,6 @@
 # Focused-pane close and Settings footer
 
-Implemented in uncommitted development, not the published preview. The candidate is `artifacts/portable/Backslash-Dev-20261026-172834-023-Release-x64-687a34d6/Backslash.exe`. See [release/development status](DEVELOPMENT-STATUS.md).
+Implemented in uncommitted development, not the published preview. The candidate is `artifacts/portable/Backslash-Dev-20261026-172834-023-Release-x64-687a34d6/Backslash.exe`. See [maintainer handoff](../dev/HANDOFF.md).
 
 ## Visible X versus explicit whole-tab closure
 

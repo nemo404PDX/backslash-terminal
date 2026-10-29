@@ -5,7 +5,7 @@ import "ProfileViewModel.idl";
 
 namespace Microsoft.Terminal.Settings.Editor
 {
-    [default_interface] runtimeclass FolderTreeViewEntry
+    [default_interface] runtimeclass FolderTreeViewEntry : Windows.UI.Xaml.Data.INotifyPropertyChanged
     {
         FolderTreeViewEntry(FolderEntryViewModel folderEntry);
 

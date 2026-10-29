@@ -5,6 +5,7 @@
 
 #include "Launch.g.h"
 #include "Utils.h"
+#include "../inc/ModernExplorerPolicy.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
@@ -14,6 +15,16 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Launch();
 
         void OnNavigatedTo(const winrt::Windows::UI::Xaml::Navigation::NavigationEventArgs& e);
+        void Explorer_Refresh(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        winrt::fire_and_forget Explorer_Change(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        winrt::fire_and_forget _RefreshExplorer();
+        void Explorer_Notify(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        winrt::fire_and_forget Explorer_Restart(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
+        void _RenderExplorer(const ::Backslash::ModernExplorer::Management::State&);
+        void _ExplorerControls(bool enabled);
+        void _ExplorerError(const std::wstring&);
+        ::Backslash::ModernExplorer::Management::State _explorerState;
+        bool _explorerBusy{ false };
 
         void SavedGroups_SelectionChanged(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::Controls::SelectionChangedEventArgs&);
         void SavedGroups_Update(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);

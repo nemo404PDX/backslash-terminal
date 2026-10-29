@@ -93,6 +93,8 @@ static X::Controls::Button FindButton(X::DependencyObject const& parent, std::ws
     for(int i=0;i<X::Media::VisualTreeHelper::GetChildrenCount(parent);++i)if(auto result=FindButton(X::Media::VisualTreeHelper::GetChild(parent,i),caption))return result;
     return nullptr;
 }
+#include "NewTabMenuNavigationTests.h"
+#include "TransferBackendsPageTests.h"
 int wmain(int argc,wchar_t**argv)
 {
     const wchar_t* stage=L"fixture isolation";
@@ -130,6 +132,34 @@ int wmain(int argc,wchar_t**argv)
         // LoadDefaults reads the compiled inbox only: no user settings or host
         // discovery. Its built-in schemes are required by the real profile UI.
         const Settings settings=Settings::LoadDefaults();
+        // Mutable folder-picker rows must notify without replacing the cached row.
+        // This also catches the original WMC1506 boundary at runtime.
+        {
+            using ModelFolder = winrt::Microsoft::Terminal::Settings::Model::FolderEntry;
+            E::FolderEntryViewModel folder{ModelFolder{L"before"}, settings};
+            E::FolderTreeViewEntry row{folder};
+            auto notifier = row.try_as<X::Data::INotifyPropertyChanged>();
+            Require(static_cast<bool>(notifier), L"Folder tree row exposes notifications");
+            int names = 0, icons = 0;
+            auto subscription = notifier.PropertyChanged(winrt::auto_revoke, [&](auto&&, auto const& args) {
+                if (args.PropertyName() == L"Name") ++names;
+                if (args.PropertyName() == L"Icon") ++icons;
+            });
+            folder.Name(L"after");
+            Require(names > 0 && row.Name() == L"after", L"Cached folder name updates and notifies");
+            folder.Icon(L"test-icon");
+            Require(icons > 0 && row.Icon() == L"test-icon", L"Cached folder icon updates and notifies");
+            E::FolderTreeViewEntry root{E::FolderEntryViewModel{nullptr}};
+            Require(!root.Name().empty() && root.Icon().empty(), L"Root row retains localized name and no icon");
+            winrt::weak_ref<E::FolderTreeViewEntry> weak = row;
+            subscription.revoke(); notifier = nullptr; row = nullptr;
+            Require(!weak.get(), L"Folder subscription does not retain discarded row");
+            folder.Name(L"after-release");
+            E::NewTabMenu page;
+            Require(static_cast<bool>(page.try_as<X::Data::INotifyPropertyChanged>()), L"Page exposes navigation-time WindowRoot notifications");
+            std::wcout << L"PASS folder-picker name/icon notifications, root and weak lifetime; page notification interface" << std::endl;
+        }
+
         const auto sourceProfileCount=settings.AllProfiles().Size();
         Require(sourceProfileCount>0&&settings.GlobalSettings().ColorSchemes().Size()>0,L"Compiled inbox supplies complete profile-page defaults");
         const auto before=settings.DraftComparisonJson();
@@ -157,6 +187,7 @@ int wmain(int argc,wchar_t**argv)
         E::MainPage owner{settings};owner.SetHostingWindow(reinterpret_cast<uint64_t>(hwnd));
         X::Hosting::DesktopWindowXamlSource island;auto native=island.as<IDesktopWindowXamlSourceNative>();winrt::check_hresult(native->AttachToWindow(hwnd));island.Content(owner);
         HWND child{};winrt::check_hresult(native->get_WindowHandle(&child));SetWindowPos(child,nullptr,0,0,1024,768,SWP_NOACTIVATE|SWP_NOZORDER|SWP_SHOWWINDOW);ShowWindow(hwnd,SW_SHOWNOACTIVATE);
+        stage=L"NewTabMenu A/B navigation"; TestNewTabMenuNavigation(island,hwnd,settings); stage=L"Transfers Backends navigation"; TestTransferBackendsPage(island,hwnd,settings); island.Content(owner); stage=L"production Add Profile navigation";
         owner.Measure({1024,768});owner.Arrange({0,0,1024,768});owner.UpdateLayout();Pump(250);
         Require(owner.Breadcrumbs().Size()>0,L"Production owner initialized navigation");
         auto crumb=owner.Breadcrumbs().GetAt(0).as<E::Breadcrumb>();crumb.Tag(winrt::box_value(L"AddProfile"));crumb.SubPage(E::BreadcrumbSubPage::None);
@@ -284,6 +315,7 @@ int wmain(int argc,wchar_t**argv)
             Require(!std::filesystem::exists(fixture/L"settings"/L"settings.json"),L"Multi-import remains an unsaved fixture draft");
             std::wcout<<L"PASS multi: selected=2, owners=2, records=2, stale selections after rescan=0, post-import candidates=0"<<std::endl;
 
+            stage=L"Transfers backend acceptance";TestTransferBackendAcceptance(island,hwnd,settings,fixture);
             Require(failures==0,L"No unhandled XAML error");
             std::wcout<<L"PASS: projected production scan, XAML rows/template, repeated/empty/error/recovery scans, one selected import, clean source and HRESULT diagnostics"<<std::endl;
         }

@@ -3,6 +3,7 @@
 #include "pch.h"
 #include <thread>
 #include "../inc/TransferJobs.h"
+#include "../TerminalSettingsModel/TransferBackendSettings.h"
 #include "../inc/SettingsPlacementGeometry.h"
 #include "../inc/SettingsClosePolicy.h"
 #include "../TerminalApp/SettingsViewHost.h"
@@ -18,6 +19,10 @@ namespace SettingsModelUnitTests
     {
         BEGIN_TEST_CLASS(TransfersTests)
         END_TEST_CLASS()
+        TEST_METHOD(BackendPersistenceRoundTrip);
+        TEST_METHOD(BackendInvalidConfigurationPreserved);
+        TEST_METHOD(BackendStateAndCapabilities);
+        TEST_METHOD(BackendNavigationRequestReusesOwner);
         TEST_METHOD(SearchAndStatusCombine);
         TEST_METHOD(ActiveIncludesPendingAndCancellation);
         TEST_METHOD(JobSnapshotsAndObservers);
@@ -151,5 +156,87 @@ namespace SettingsModelUnitTests
         VERIFY_IS_TRUE(B::SettingsFitsRightSplit(1000,400,360,300));
         VERIFY_IS_TRUE(B::SettingsClosePolicy::ProtectTabClose(true,2));
         VERIFY_IS_FALSE(B::SettingsClosePolicy::ProtectTabClose(true,1));
+    }
+    void TransfersTests::BackendPersistenceRoundTrip()
+    {
+        namespace I = winrt::Microsoft::Terminal::Settings::Model::implementation;
+        auto globals = winrt::make_self<I::GlobalAppSettings>();
+        auto value = T::Parse(winrt::to_string(globals->TransferBackendsJson()));
+        for (auto key : T::Keys) { VERIFY_IS_FALSE(value[key]["enabled"].asBool()); }
+        value["sftp"]["profile"] = "{d181f01e-85a3-48bb-aa65-515b7c19c468}";
+        for (const bool enabled : {true, false, true})
+        {
+            for (auto key : T::Keys) { value[key]["enabled"] = enabled; }
+            globals->TransferBackendsJson(winrt::to_hstring(Json::writeString(Json::StreamWriterBuilder{}, value)));
+            const auto copied = globals->Copy();
+            const auto reloaded = I::GlobalAppSettings::FromJson(copied->ToJson());
+            VERIFY_IS_TRUE(value == T::Parse(winrt::to_string(reloaded->TransferBackendsJson())));
+            VERIFY_ARE_EQUAL(std::string{"{d181f01e-85a3-48bb-aa65-515b7c19c468}"}, value["sftp"]["profile"].asString());
+        }
+    }
+    void TransfersTests::BackendInvalidConfigurationPreserved()
+    {
+        namespace I = winrt::Microsoft::Terminal::Settings::Model::implementation;
+        for (const std::string invalid : {"null", "{}", "[]", "{\"version\":2}", "{\"version\":1,\"version\":1}"})
+        { VERIFY_THROWS(T::Parse(invalid), std::invalid_argument); }
+        auto valid = T::Defaults();
+        for (auto key : T::Keys)
+        {
+            auto invalid = valid; invalid[key]["enabled"] = "true";
+            VERIFY_THROWS(T::Validate(invalid), std::invalid_argument);
+        }
+        auto invalid = valid; invalid["sftp"]["profile"] = "not-a-guid";
+        VERIFY_THROWS(T::Validate(invalid), std::invalid_argument);
+        invalid = valid; invalid["sftp"]["password"] = "must-not-be-supported";
+        VERIFY_THROWS(T::Validate(invalid), std::invalid_argument);
+        Json::Value json{Json::objectValue}; json[T::SettingsKey] = invalid;
+        const auto globals = I::GlobalAppSettings::FromJson(json);
+        VERIFY_IS_TRUE(globals->Copy()->ToJson()[T::SettingsKey] == invalid);
+        const auto before = globals->TransferBackendsJson();
+        VERIFY_THROWS(globals->TransferBackendsJson(L"{}"), std::invalid_argument);
+        VERIFY_ARE_EQUAL(before, globals->TransferBackendsJson());
+    }
+    void TransfersTests::BackendStateAndCapabilities()
+    {
+        const T::RuntimeAvailability ready{true, true, T::Capability::Download};
+        VERIFY_IS_TRUE(T::Evaluate(false, true, ready) == T::Availability::Disabled);
+        VERIFY_IS_TRUE(T::Evaluate(true, false, ready) == T::Availability::Unconfigured);
+        VERIFY_IS_TRUE(T::Evaluate(true, true) == T::Availability::Unavailable);
+        VERIFY_IS_TRUE(T::Evaluate(true, true, {true,false,T::Capability::Download}) == T::Availability::Unavailable);
+        VERIFY_IS_TRUE(T::Evaluate(true, true, ready) == T::Availability::Ready);
+        for (const auto state : {T::Availability::Disabled,T::Availability::Unconfigured,T::Availability::Unavailable})
+        { VERIFY_IS_FALSE(T::CanSubmit(state, ready.capabilities, T::Capability::Download)); }
+        VERIFY_IS_TRUE(T::CanSubmit(T::Availability::Ready, ready.capabilities, T::Capability::Download));
+        VERIFY_IS_FALSE(T::CanSubmit(T::Availability::Ready, ready.capabilities, T::Capability::Upload));
+        VERIFY_IS_FALSE(T::CanSubmit(T::Availability::Ready, ready.capabilities, T::Capability::None));
+        T::Store jobs; jobs.Upsert({L"active",L"name",L"source",L"destination",T::Status::Running,L""});
+        (void)T::Evaluate(false,true,ready);
+        VERIFY_IS_TRUE(jobs.Snapshot()[0].status == T::Status::Running);
+    }
+    void TransfersTests::BackendNavigationRequestReusesOwner()
+    {
+        using Host = winrt::TerminalApp::implementation::SettingsViewHost;
+        auto& host = Host::Instance();
+        const auto lease = host.Request(); VERIFY_IS_TRUE(lease != 0);
+        host.RequestTransferBackends();
+        VERIFY_ARE_EQUAL(uint64_t{0}, host.Request()); // Coalesces while creation is pending.
+        VERIFY_IS_TRUE(host.ClaimCreation(lease));
+        int focused = 0;
+        VERIFY_IS_TRUE(host.Ready(lease, [&] { ++focused; }));
+        VERIFY_IS_TRUE(host.TakeTransferBackendsRequest());
+        VERIFY_IS_FALSE(host.TakeTransferBackendsRequest());
+        for (int n = 0; n != 3; ++n)
+        {
+            host.RequestTransferBackends(); VERIFY_ARE_EQUAL(uint64_t{0}, host.Request());
+            VERIFY_IS_TRUE(host.TakeTransferBackendsRequest());
+            VERIFY_ARE_EQUAL(lease, host.Owner());
+        }
+        VERIFY_ARE_EQUAL(3, focused);
+        host.Release(lease);
+        host.RequestTransferBackends();
+        const auto failed = host.Request(); VERIFY_IS_TRUE(failed != 0);
+        VERIFY_IS_TRUE(host.FailUnclaimedCreation(failed));
+        VERIFY_IS_FALSE(host.TakeTransferBackendsRequest());
+        const auto reopened = host.Request(); VERIFY_IS_TRUE(reopened != 0); host.Release(reopened);
     }
 }

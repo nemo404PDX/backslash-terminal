@@ -13,6 +13,7 @@ namespace winrt::TerminalApp::implementation
         explicit TransfersPaneContent(const Microsoft::Terminal::Settings::Model::CascadiaSettings& settings);
         ~TransfersPaneContent();
         static bool IsContent(const IPaneContent& content) { return content && content.GetRoot().Name() == L"BackslashTransfersView"; }
+        std::function<void()> OpenBackendSettings;
         void OwnershipLease(uint64_t lease) noexcept { _lease = lease; }
         Windows::UI::Xaml::UIElement::KeyDown_revoker KeyDownRevoker;
         Windows::UI::Xaml::FrameworkElement GetRoot() { return _root; }

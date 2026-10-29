@@ -1017,9 +1017,6 @@ namespace winrt::TerminalApp::implementation
                 _SetAcceleratorForMenuItem(settingsItem, settingsKeyChord);
             }
 
-            // Temporarily hidden for v0.0.1-preview.2: Transfers has no backend.
-            // Restore this menu block only in a subsequent development commit after release.
-            /*
             auto transfersItem = WUX::Controls::MenuFlyoutItem{};
             transfersItem.Text(RS_(L"Transfers_Title"));
             WUX::Controls::FontIcon transfersIcon;
@@ -1029,7 +1026,6 @@ namespace winrt::TerminalApp::implementation
             Automation::AutomationProperties::SetHelpText(transfersItem, RS_(L"Transfers_OpenHelp"));
             transfersItem.Click([weak = get_weak()](auto&&, auto&&) { if (const auto page = weak.get()) { page->_OpenTransfersUI(); } });
             newTabFlyout.Items().Append(transfersItem);
-            */
 
             // Create the command palette button.
             auto commandPaletteFlyout = WUX::Controls::MenuFlyoutItem{};
@@ -4768,6 +4764,7 @@ namespace winrt::TerminalApp::implementation
         auto weakEditor = winrt::make_weak(sui);
         auto dispatcher = sui.Dispatcher();
         sui.Loaded([weakPage = get_weak(), weakEditor, dispatcher, lease](auto&&, auto&&) {
+            if (const auto editor = weakEditor.get(); editor && SettingsViewHost::Instance().TakeTransferBackendsRequest()) { editor.OpenTransferBackends(); }
             SettingsViewHost::Instance().Ready(lease, [weakPage, weakEditor, dispatcher] {
                 dispatcher.RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal, [weakPage, weakEditor] {
                     if (const auto page = weakPage.get())
@@ -4900,6 +4897,7 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::_FocusSettingsEditor(const winrt::Microsoft::Terminal::Settings::Editor::MainPage& editor)
     {
+        if (SettingsViewHost::Instance().TakeTransferBackendsRequest()) { editor.OpenTransferBackends(); }
         for (const auto& tab : _tabs)
         {
             const auto impl = _GetTabImpl(tab);
@@ -4954,6 +4952,9 @@ namespace winrt::TerminalApp::implementation
         if (!ownershipLease || !host.ClaimCreation(ownershipLease)) { return nullptr; }
         const auto failed = wil::scope_exit([&] { if (ownershipLease) { host.Release(ownershipLease); } });
         auto content = winrt::make_self<TransfersPaneContent>(_settings);
+        content->OpenBackendSettings = [weak = get_weak()] {
+            if (const auto page = weak.get()) { SettingsViewHost::Instance().RequestTransferBackends(); page->OpenSettingsUI(); }
+        };
         content->OwnershipLease(ownershipLease);
         const auto view = content->GetRoot();
         content->KeyDownRevoker = view.KeyDown(winrt::auto_revoke, {get_weak(), &TerminalPage::_KeyDownHandler});

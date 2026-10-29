@@ -60,6 +60,7 @@
                     <!-- Keep the header/chrome area available for future controls. -->
                     <Grid x:Name="TransfersHeader" MinHeight="40" ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <Button x:Name="BackendSettings" Grid.Column="1" Width="40" Height="40"><FontIcon Glyph="&#xE713;" FontSize="16" /></Button>
                         <TextBlock x:Name="Heading" FontSize="24" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.HeadingLevel="Level1" />
                     </Grid>
                     <Border x:Name="FiltersCard" Grid.Row="1" Padding="16"

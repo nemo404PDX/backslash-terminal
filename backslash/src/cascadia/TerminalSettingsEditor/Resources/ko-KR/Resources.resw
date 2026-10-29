@@ -2205,9 +2205,6 @@
     <value>두 개 이상의 탭을 닫을 때 경고</value>
     <comment>Header for a control to toggle whether to show a confirm dialog box when closing the application with multiple tabs open.</comment>
   </data>
-  <data name="Globals_InputServiceWarning.Header" xml:space="preserve">
-    <value>"터치 키보드 및 필기 패널 서비스"를 사용할 수 없는 경우 경고</value>
-  </data>
   <data name="Globals_WarnAboutLargePaste.Header" xml:space="preserve">
     <value>붙여넣기가 5KiB를 초과하는 경우 경고</value>
   </data>

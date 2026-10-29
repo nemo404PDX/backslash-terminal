@@ -11,6 +11,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 {
     inline constexpr std::wstring_view openJsonTag{ L"OpenJson_Nav" };
     inline constexpr std::wstring_view launchTag{ L"Launch_Nav" };
+    inline constexpr std::wstring_view transfersTag{ L"Transfers_Nav" };
     inline constexpr std::wstring_view interactionTag{ L"Interaction_Nav" };
     inline constexpr std::wstring_view renderingTag{ L"Rendering_Nav" };
     inline constexpr std::wstring_view compatibilityTag{ L"Compatibility_Nav" };
@@ -25,6 +26,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // Map from navigation tags to Segoe MDL2 Assets icon glyphs
     inline constexpr til::static_map NavTagIconMap{
         std::pair{ launchTag, L"\xE7B5" }, /* Set Lock Screen */
+        std::pair{ transfersTag, L"\xE8AB" }, /* Transfers */
         std::pair{ interactionTag, L"\xE7C9" }, /* Touch Pointer */
         std::pair{ globalAppearanceTag, L"\xE771" }, /* Personalize */
         std::pair{ colorSchemesTag, L"\xE790" }, /* Color */

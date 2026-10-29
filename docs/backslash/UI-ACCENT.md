@@ -1,6 +1,6 @@
 # Backslash application accent
 
-Implemented in the uncommitted development checkout; not part of the published `v0.0.1-preview.1` tag. See [current status and validation](DEVELOPMENT-STATUS.md).
+Implemented in the uncommitted development checkout; not part of the published `v0.0.1-preview.1` tag. See [current status and validation](../dev/HANDOFF.md).
 
 The source anchor is the existing Backslash color scheme's cursor and bright cyan, `#14FFCA`, in [defaults.json](../../backslash/src/cascadia/TerminalSettingsModel/defaults.json). The supplied [icon export](../images/icon-exports/100.png) has a related mint-green gradient; the older approximate concept green and CRT phosphor default are separate colors.
 

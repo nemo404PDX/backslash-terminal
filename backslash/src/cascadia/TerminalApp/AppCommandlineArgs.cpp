@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "AppCommandlineArgs.h"
+#include "../inc/ExplorerIntegration.h"
 #include "../types/inc/utils.hpp"
 #include "TerminalSettingsModel/ModelSerializationHelpers.h"
 
@@ -1072,6 +1073,28 @@ std::optional<til::size> AppCommandlineArgs::GetSize() const noexcept
 // - 0 if the commandline was successfully parsed
 int AppCommandlineArgs::ParseArgs(winrt::array_view<const winrt::hstring> args)
 {
+    if (args.size() > 1 && args[1] == ::Microsoft::Terminal::Backslash::ExplorerIntegration::Flag)
+    {
+        // Explorer paths are data, never a CLI action sequence. In particular, do
+        // not send them through BuildCommands or Commandline::AddArg (\; escaping).
+        try
+        {
+            if (args.size() != 3) { throw std::runtime_error("Open in Backslash expects exactly one folder argument."); }
+            const auto folder = ::Microsoft::Terminal::Backslash::ExplorerIntegration::ValidateFolder(std::wstring{ args[2] });
+            NewTerminalArgs terminal;
+            terminal.StartingDirectory(folder);
+            _startupActions.emplace_back(ShortcutAction::NewTab, NewTabArgs{ terminal });
+            _windowTarget = "new";
+            return 0;
+        }
+        catch (const std::exception& error)
+        {
+            _exitMessage = error.what();
+            _shouldExitEarly = true;
+            return 1;
+        }
+    }
+
     if (args.size() == 2 && args[1] == L"-Embedding")
     {
         return 0;

@@ -54,6 +54,7 @@ namespace Microsoft.Terminal.Settings.Editor
         Boolean CanSavePaneRelaunchPreference();
         Windows.Foundation.IAsyncOperation<Boolean> ConfirmCloseSettings();
         void UpdateSettings(Microsoft.Terminal.Settings.Model.CascadiaSettings settings);
+        void OpenTransferBackends();
         String SavedGroupAppendError(String before, String after);
         event Windows.Foundation.EventHandler<Object> HostSshDiscoveryChanged;
         event Windows.Foundation.TypedEventHandler<Object, Microsoft.Terminal.Settings.Model.SettingsTarget> OpenJson;

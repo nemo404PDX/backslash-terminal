@@ -14,7 +14,7 @@ A newer proposed direction supports optional native and terminal frontends over 
 
 Proposed job lifetime: an app command could enqueue a backend-owned transfer and return a job ID. A native or TUI view could then hide/close and later reopen progress, cancellation and results for that job. Closing a view is distinct from quitting Backslash. Application exit still needs an explicit warn / keep a worker / cancel policy; no always-on service is implied. This scope covers transfer-manager jobs, not automatic supervision of arbitrary shell commands.
 
-No runtime, UI, protocol library or add-on distribution choice has been selected or installed. Current implementation/verification boundaries are in [development status](DEVELOPMENT-STATUS.md).
+No runtime, UI, protocol library or add-on distribution choice has been selected or installed. Current implementation/verification boundaries are in [maintainer handoff](../dev/HANDOFF.md).
 
 [Project entry point](README.md) · [Feature scope](FEATURES.md) · [Shell/session design](SHELL-PRODUCTIVITY.md)
 
@@ -99,7 +99,7 @@ Remote preview begins only after an explicit request, uses a bounded fetch and s
 
 ## Accepted direction and delivery slices (2026-10-26)
 
-This follow-up consolidates the latest discussion after the prior documentation sync. The [current development status](DEVELOPMENT-STATUS.md) separates the published preview from uncommitted work. The [Transfers foundation](TRANSFERS-FOUNDATION.md) is implemented and built; its native interaction QA is pending. Real transfer protocols, the local/remote file browser, previews, history cleanup and Background sessions below are later slices, not current capabilities.
+This follow-up consolidates the latest discussion after the prior documentation sync. The [maintainer handoff](../dev/HANDOFF.md) separates the published preview from uncommitted work. The [Transfers foundation](TRANSFERS-FOUNDATION.md) is implemented and built; its native interaction QA is pending. Real transfer protocols, the local/remote file browser, previews, history cleanup and Background sessions below are later slices, not current capabilities.
 
 ### Implemented management foundation
 

@@ -149,10 +149,6 @@
   <data name="SettingsValidateErrorTitle" xml:space="preserve">
     <value>Наишло се на грешке током учитавања корисничких подешавања</value>
   </data>
-  <data name="KeyboardServiceWarningText" xml:space="preserve">
-    <value>„{0}” се не извршава на вашој машини. Због тога Терминал можда неће моћи да прима улаз са тастатуре.</value>
-    <comment>{0} will be replaced with the OS-localized name of the TabletInputService</comment>
-  </data>
   <data name="Ok" xml:space="preserve">
     <value>ОК</value>
   </data>
@@ -668,9 +664,6 @@
   </data>
   <data name="UnsupportedSchemeText" xml:space="preserve">
     <value>Тренутно се не подржава овај тип линка:</value>
-  </data>
-  <data name="CouldNotOpenUriDialog.PrimaryButtonText" xml:space="preserve">
-    <value>Откажи</value>
   </data>
   <data name="SettingsTab" xml:space="preserve">
     <value>Подешавања</value>

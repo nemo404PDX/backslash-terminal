@@ -5,6 +5,7 @@
 #include <functional>
 #include <mutex>
 #include <memory>
+#include <utility>
 
 class Pane;
 
@@ -34,6 +35,8 @@ namespace winrt::TerminalApp::implementation
             { std::scoped_lock lock{_mutex}; if (_state.Pending()) { return false; } if (!_state.Owner()) { return true; } guard = _preferenceWriteGuard; }
             return !guard || guard();
         }
+        void RequestTransferBackends() { std::scoped_lock lock{_mutex}; _transferBackendsRequested = true; }
+        bool TakeTransferBackendsRequest() { std::scoped_lock lock{_mutex}; return std::exchange(_transferBackendsRequested, false); }
         uint64_t Request()
         {
             std::function<void()> focus;
@@ -57,7 +60,9 @@ namespace winrt::TerminalApp::implementation
         {
             std::scoped_lock lock{_mutex};
             if (!lease || _transferPane || _creationClaimed || lease != _state.Pending() || _state.Owner()) { return false; }
-            return _state.Failed(lease);
+            const auto failed = _state.Failed(lease);
+            if (failed) { _transferBackendsRequested = false; }
+            return failed;
         }
         uint64_t Pending() { std::scoped_lock lock{_mutex}; return _state.Pending(); }
         bool Ready(uint64_t lease, std::function<void()> focus)
@@ -127,14 +132,15 @@ namespace winrt::TerminalApp::implementation
         void Release(uint64_t lease)
         {
             std::scoped_lock lock{_mutex};
-            if (_state.Failed(lease)) { if (!_state.Owner()) { _focus = {}; } }
-            else if (_state.Close(lease)) { _focus = {}; }
+            if (_state.Failed(lease)) { if (!_state.Owner()) { _focus = {}; _transferBackendsRequested = false; } }
+            else if (_state.Close(lease)) { _focus = {}; _transferBackendsRequested = false; }
         }
     private:
         using Lifecycle = ::Microsoft::Terminal::Backslash::SettingsViewLifecycle;
         std::mutex _mutex;
         Lifecycle _state;
         bool _creationClaimed = false;
+        bool _transferBackendsRequested = false;
         std::function<void()> _focus;
         std::function<bool()> _preferenceWriteGuard;
         std::shared_ptr<Pane> _transferPane;
