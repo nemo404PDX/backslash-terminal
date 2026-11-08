@@ -24,6 +24,9 @@
         tab row.
     -->
 
+    <Grid>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <Grid x:Name="TabsViewport" MinWidth="0" SizeChanged="OnTabsViewportSizeChanged">
     <mux:TabView x:Name="TabView"
                  VerticalAlignment="Bottom"
                  HorizontalContentAlignment="Stretch"
@@ -45,8 +48,11 @@
                       Visibility="{x:Bind ShowElevationShield, Mode=OneWay}" />
         </mux:TabView.TabStripHeader>
 
-        <mux:TabView.TabStripFooter>
-            <Grid>
+
+
+    </mux:TabView>
+        </Grid>
+            <Grid x:Name="TabActions" Grid.Column="1" Margin="0,0,4,0">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <!--  Remove this border after WinUI 2.8  -->
                 <Border Grid.ColumnSpan="2" Height="1"
@@ -140,18 +146,16 @@
                               Fill="{Binding Foreground, ElementName=GroupsButton}"
                               Data="F0 M10.034,0.667c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l-0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm-6.6,-0.711c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm6.6,5.789c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l-0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Zm-6.6,-0.711c0.522,-0 1.022,0.207 1.39,0.575c0.369,0.369 0.576,0.869 0.576,1.391l0,2.2l-5.4,0l0,-2.166c0,-1.105 0.895,-2 2,-2l1.434,-0Zm0,0.711l-1.434,-0c-0.712,-0 -1.289,0.577 -1.289,1.289l0,1.455l3.978,0l-0,-1.489c-0,-0.333 -0.132,-0.652 -0.368,-0.888c-0.235,-0.235 -0.554,-0.367 -0.887,-0.367Z"
                               AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="SavedGroups_ButtonLabel" VerticalAlignment="Center" />
+                        <TextBlock x:Name="GroupsButtonLabel" x:Uid="SavedGroups_ButtonLabel" VerticalAlignment="Center" />
                     </StackPanel>
                 </mux:DropDownButton>
                 <mux:DropDownButton x:Name="PinsButton" x:Uid="Pins_Button" Grid.Column="2" Height="24" Margin="4,4,0,4" Padding="8,0" AutomationProperties.AccessibilityView="Control">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE718;" AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock x:Uid="Pins_ButtonLabel" VerticalAlignment="Center" />
+                        <TextBlock x:Name="PinsButtonLabel" x:Uid="Pins_ButtonLabel" VerticalAlignment="Center" />
                     </StackPanel>
                 </mux:DropDownButton>
             </Grid>
-        </mux:TabView.TabStripFooter>
-
-    </mux:TabView>
+    </Grid>
 
 </ContentPresenter>

@@ -3,6 +3,8 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include "../inc/SftpNativeSession.h"
+#include "../inc/SftpExit.h"
 #include "TerminalPage.h"
 
 #include <TerminalCore/ControlKeyStates.hpp>
@@ -24,6 +26,7 @@
 #include "SettingsViewHost.h"
 #include "../inc/PaneProfilePolicy.h"
 #include "../inc/SettingsPlacementGeometry.h"
+#include "../inc/BuiltinViewWindowActivation.h"
 #include "TerminalPaneContent.h"
 #include "../TerminalSettingsModel/SavedTabGroups.h"
 #include <filesystem>
@@ -920,7 +923,11 @@ namespace winrt::TerminalApp::implementation
     //   when this is called, nothing happens. See _ShowDialog for details
     winrt::Windows::Foundation::IAsyncOperation<ContentDialogResult> TerminalPage::_ShowQuitDialog()
     {
-        return _ShowDialogHelper(L"QuitDialog");
+        if(::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().HasPendingWork()){
+            if(const auto presenter=_dialogPresenter.get())co_return co_await presenter.ShowDialog(::Microsoft::Terminal::Backslash::Transfers::Sftp::ExitDialog(true));
+            co_return ContentDialogResult::None;
+        }
+        co_return co_await _ShowDialogHelper(L"QuitDialog");
     }
 
     // Method Description:
@@ -930,6 +937,14 @@ namespace winrt::TerminalApp::implementation
     //   all the tabs and shut down and app. If cancel is clicked, the dialog will close
     // - Only one dialog can be visible at a time. If another dialog is visible
     //   when this is called, nothing happens. See _ShowDialog for details
+    winrt::Windows::Foundation::IAsyncOperation<bool> TerminalPage::_ConfirmSftpWindowClose()
+    {
+        if(!::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().HasPendingWork())co_return true;
+        if(_displayingCloseDialog)co_return false;
+        const auto lifetime=get_strong();_displayingCloseDialog=true;const auto reset=wil::scope_exit([&]{_displayingCloseDialog=false;});
+        if(const auto presenter=_dialogPresenter.get())co_return co_await presenter.ShowDialog(::Microsoft::Terminal::Backslash::Transfers::Sftp::ExitDialog(false))==ContentDialogResult::Primary;
+        co_return false;
+    }
     winrt::Windows::Foundation::IAsyncOperation<ContentDialogResult> TerminalPage::_ShowCloseWarningDialog()
     {
         return _ShowDialogHelper(L"CloseAllDialog");
@@ -2469,6 +2484,7 @@ namespace winrt::TerminalApp::implementation
     {
         for (const auto& tab : _tabs) { if (_GetTabImpl(tab)->SettingsTransferPending()) { co_return; } }
         if (_pinsClosing || _displayingCloseDialog) { co_return; }
+        if (!(co_await _ConfirmSftpWindowClose())) { co_return; }
         if (_HasMultipleTabs() &&
             _settings.GlobalSettings().ConfirmCloseAllTabs() &&
             !_displayingCloseDialog)
@@ -4914,7 +4930,7 @@ namespace winrt::TerminalApp::implementation
                 return false;
             }))
             {
-                if (_hostingHwnd) { ::ShowWindow(*_hostingHwnd, SW_RESTORE); ::SetForegroundWindow(*_hostingHwnd); }
+                if (_hostingHwnd) { ::Microsoft::Terminal::Backslash::ActivateBuiltinViewWindow(*_hostingHwnd); }
                 return;
             }
         }
@@ -4938,7 +4954,7 @@ namespace winrt::TerminalApp::implementation
                 return false;
             }))
             {
-                if (_hostingHwnd) { ::ShowWindow(*_hostingHwnd, SW_RESTORE); ::SetForegroundWindow(*_hostingHwnd); }
+                if (_hostingHwnd) { ::Microsoft::Terminal::Backslash::ActivateBuiltinViewWindow(*_hostingHwnd); }
                 return;
             }
         }
@@ -4975,7 +4991,7 @@ namespace winrt::TerminalApp::implementation
         return *content;
     }
 
-    void TerminalPage::_OpenTransfersUI()
+    void TerminalPage::_OpenTransfersUI(bool forceTab)
     {
         namespace B = ::Microsoft::Terminal::Backslash;
         auto& host = SettingsViewHost::Instance(B::BuiltinViewId::Transfers);
@@ -4983,7 +4999,7 @@ namespace winrt::TerminalApp::implementation
         if (!lease) { return; }
         try
         {
-            const auto mode = _settings.GlobalSettings().TransfersLaunchMode();
+            const auto mode = forceTab ? SettingsLaunchMode::Tab : _settings.GlobalSettings().TransfersLaunchMode();
             if (mode == SettingsLaunchMode::SeparateWindow)
             {
                 Windows::UI::Xaml::DispatcherTimer timer;

@@ -15,6 +15,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Launch();
 
         void OnNavigatedTo(const winrt::Windows::UI::Xaml::Navigation::NavigationEventArgs& e);
+        void ExplorerActions_SizeChanged(const Windows::Foundation::IInspectable& sender, const Windows::UI::Xaml::SizeChangedEventArgs& args);
         void Explorer_Refresh(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
         winrt::fire_and_forget Explorer_Change(const Windows::Foundation::IInspectable&, const Windows::UI::Xaml::RoutedEventArgs&);
         winrt::fire_and_forget _RefreshExplorer();

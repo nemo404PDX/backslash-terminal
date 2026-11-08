@@ -595,6 +595,14 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     // - args - additional event info from invoking the NavViewItem
     // Return Value:
     // - <none>
+    void MainPage::SettingsContent_SizeChanged(const IInspectable&, const SizeChangedEventArgs&)
+    {
+        const auto padding=contentFrame().Padding();
+        const auto width=std::max(0.0,contentFrame().ActualWidth()-padding.Left-padding.Right);
+        const auto limit=unbox_value<double>(Resources().Lookup(box_value(L"StandardControlMaxWidth")));
+        SettingsBreadcrumbHost().Width(std::min(width,limit));
+    }
+
     void MainPage::SettingsNav_ItemInvoked(const MUX::Controls::NavigationView&, const MUX::Controls::NavigationViewItemInvokedEventArgs& args)
     {
         if (const auto clickedItemContainer = args.InvokedItemContainer())
@@ -1722,7 +1730,7 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
 
     winrt::Windows::UI::Xaml::Media::Brush MainPage::BackgroundBrush()
     {
-        return SettingsNav().Background();
+        return Resources().Lookup(box_value(L"NavigationViewContentBackground")).as<winrt::WUX::Media::Brush>();
     }
 
     // If the theme asks for Mica, then drop out our background, so that we
@@ -1781,7 +1789,13 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         // currently requested theme.
         if (const auto bgColor = ThemeLookup(Resources(), requestedTheme, winrt::box_value(bgKey)))
         {
-            SettingsNav().Background(winrt::WUX::Media::SolidColorBrush(winrt::unbox_value<Windows::UI::Color>(bgColor)));
+            const auto contentBrush=Resources().Lookup(box_value(L"NavigationViewContentBackground")).as<winrt::WUX::Media::SolidColorBrush>();
+            contentBrush.Color(winrt::unbox_value<Windows::UI::Color>(bgColor));
+            // Keep the opaque navigation backdrop behind the content corner;
+            // retain the transparent host-backdrop path when Mica is requested.
+            SettingsNav().Background((theme.Window()!=nullptr&&theme.Window().UseMica()&&actuallyUseMica)?
+                winrt::WUX::Media::Brush{winrt::WUX::Media::SolidColorBrush{Windows::UI::Colors::Transparent()}}:
+                Resources().Lookup(box_value(L"SettingsNavigationBackground")).as<winrt::WUX::Media::Brush>());
         }
     }
 
@@ -1924,7 +1938,8 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     void MainPage::_BuildTransferBackends()
     {
         namespace T = ::Microsoft::Terminal::Backslash::Transfers;
-        StackPanel panel; panel.Spacing(16); panel.Margin({24, 12, 24, 24});
+        StackPanel panel; panel.Spacing(16); panel.Margin({0, 12, 0, 24});
+        panel.Style(Resources().Lookup(box_value(L"SettingsStackStyle")).as<Windows::UI::Xaml::Style>());
         TextBlock heading; heading.Text(RS_(L"Transfers_Backends")); heading.FontSize(24);
         Automation::AutomationProperties::SetHeadingLevel(heading, Automation::Peers::AutomationHeadingLevel::Level1);
         panel.Children().Append(heading);

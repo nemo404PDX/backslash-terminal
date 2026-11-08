@@ -41,6 +41,29 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         Automation::AutomationProperties::SetHelpText(CenterOnLaunchToggle(), RS_(L"Globals_CenterOnLaunch/[using:Windows.UI.Xaml.Controls]ToolTipService/ToolTip"));
     }
 
+    void Launch::ExplorerActions_SizeChanged(const IInspectable& sender, const SizeChangedEventArgs&)
+    {
+        const auto element=sender.as<FrameworkElement>();
+        const auto panel=element.try_as<Controls::Grid>()?element.as<Controls::Grid>():element.Parent().try_as<Controls::Grid>();
+        if(!panel||panel.Children().Size()!=3||panel.ActualWidth()<=0)return;
+        double widths[3]{};
+        for(uint32_t i=0;i<3;++i){
+            const auto button=panel.Children().GetAt(i).as<FrameworkElement>();
+            button.Measure({std::numeric_limits<float>::infinity(),std::numeric_limits<float>::infinity()});
+            widths[i]=button.DesiredSize().Width;
+            button.HorizontalAlignment(HorizontalAlignment::Left);
+        }
+        const auto available=std::isfinite(panel.Width())?panel.Width():panel.Parent().as<FrameworkElement>().ActualWidth();
+        if(available<=0)return;
+        const int columns=widths[0]+widths[1]+widths[2]+16<=available?3:widths[0]+widths[1]+8<=available?2:1;
+        if(panel.ColumnDefinitions().Size()!=static_cast<uint32_t>(columns)){
+            panel.ColumnDefinitions().Clear();panel.RowDefinitions().Clear();
+            for(int i=0;i<columns;++i){Controls::ColumnDefinition c;c.Width(GridLengthHelper::Auto());panel.ColumnDefinitions().Append(c);}
+            for(int i=0;i<(3+columns-1)/columns;++i){Controls::RowDefinition r;r.Height(GridLengthHelper::Auto());panel.RowDefinitions().Append(r);}
+        }
+        for(int i=0;i<3;++i){const auto child=panel.Children().GetAt(i).as<FrameworkElement>();Controls::Grid::SetColumn(child,i%columns);Controls::Grid::SetRow(child,i/columns);Controls::Grid::SetColumnSpan(child,columns==2&&i==2?2:1);}
+    }
+
     void Launch::OnNavigatedTo(const NavigationEventArgs& e)
     {
         const auto args = e.Parameter().as<Editor::NavigateToPageArgs>();

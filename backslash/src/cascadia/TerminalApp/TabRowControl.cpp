@@ -3,6 +3,11 @@
 
 #include "pch.h"
 #include "TabRowControl.h"
+#include <winrt/Windows.UI.Xaml.Automation.h>
+#include <winrt/Windows.UI.Xaml.Media.h>
+#include <algorithm>
+#include <cmath>
+#include <limits>
 
 #include "TabRowControl.g.cpp"
 
@@ -23,6 +28,47 @@ namespace winrt::TerminalApp::implementation
     TabRowControl::TabRowControl()
     {
         InitializeComponent();
+        LayoutUpdated([weak=get_weak()](auto&&,auto&&){if(const auto self=weak.get())self->_UpdateActionsLayout();});
+    }
+
+    void TabRowControl::OnTabsViewportSizeChanged(const IInspectable&, const WUX::SizeChangedEventArgs& args)
+    {
+        WUX::Media::RectangleGeometry clip;clip.Rect({0,0,args.NewSize().Width,args.NewSize().Height});TabsViewport().Clip(clip);
+    }
+
+    void TabRowControl::_UpdateActionsLayout()
+    {
+        if(_measuringActions)return;
+        auto parent=WUX::Media::VisualTreeHelper::GetParent(*this).try_as<WUX::FrameworkElement>();if(!parent)return;
+        auto available=parent.ActualWidth();
+        // TitlebarControl constrains its content with MaxWidth. Read that
+        // allocation, rather than the toolbar's potentially clipped desired size.
+        for(auto owner=parent;owner;owner=WUX::Media::VisualTreeHelper::GetParent(owner).try_as<WUX::FrameworkElement>())
+            if(std::isfinite(owner.MaxWidth())){available=owner.MaxWidth();break;}
+        if(available<=0)return;
+        const auto scale=_uiSettings.TextScaleFactor();const auto raster=XamlRoot()?XamlRoot().RasterizationScale():0;
+        const auto groupsText=GroupsButtonLabel().Text(),pinsText=PinsButtonLabel().Text();
+        const auto groupsFont=GroupsButtonLabel().FontSize(),pinsFont=PinsButtonLabel().FontSize();
+        if(available==_actionsBudget&&scale==_actionsScale&&raster==_actionsRasterScale&&groupsText==_groupsText&&pinsText==_pinsText&&groupsFont==_groupsFontSize&&pinsFont==_pinsFontSize)return;
+        _actionsBudget=available;_actionsScale=scale;_actionsRasterScale=raster;_groupsText=groupsText;_pinsText=pinsText;_groupsFontSize=groupsFont;_pinsFontSize=pinsFont;
+        if(!groupsText.empty()){
+            if(WUX::Automation::AutomationProperties::GetName(GroupsButton()).empty())WUX::Automation::AutomationProperties::SetName(GroupsButton(),groupsText);
+            if(!WUX::Controls::ToolTipService::GetToolTip(GroupsButton()))WUX::Controls::ToolTipService::SetToolTip(GroupsButton(),box_value(groupsText));
+        }
+        if(!pinsText.empty()){
+            if(WUX::Automation::AutomationProperties::GetName(PinsButton()).empty())WUX::Automation::AutomationProperties::SetName(PinsButton(),pinsText);
+            if(!WUX::Controls::ToolTipService::GetToolTip(PinsButton()))WUX::Controls::ToolTipService::SetToolTip(PinsButton(),box_value(pinsText));
+        }
+        _measuringActions=true;const auto reset=wil::scope_exit([&]{_measuringActions=false;});
+        GroupsButtonLabel().Visibility(WUX::Visibility::Visible);PinsButtonLabel().Visibility(WUX::Visibility::Visible);
+        const Windows::Foundation::Size unbounded{std::numeric_limits<float>::infinity(),std::numeric_limits<float>::infinity()};
+        TabActions().Measure(unbounded);
+        // Leave the tab strip the measured footprint of one new-tab control.
+        const bool compact=TabActions().DesiredSize().Width+NewTabButton().DesiredSize().Width>available;
+        GroupsButtonLabel().Visibility(compact?WUX::Visibility::Collapsed:WUX::Visibility::Visible);
+        PinsButtonLabel().Visibility(compact?WUX::Visibility::Collapsed:WUX::Visibility::Visible);
+        TabActions().Measure(unbounded);
+        TabsViewport().MaxWidth(std::max(0.0,available-TabActions().DesiredSize().Width));
     }
 
     // Method Description:

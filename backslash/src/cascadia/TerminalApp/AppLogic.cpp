@@ -3,6 +3,7 @@
 
 #include "pch.h"
 #include "AppLogic.h"
+#include "../inc/SftpNativeSession.h"
 #include "AppLogic.g.cpp"
 #include "SettingsLoadEventArgs.h"
 
@@ -533,4 +534,12 @@ namespace winrt::TerminalApp::implementation
         auto folderPath = path.substr(0, path.find_last_of(L"\\"));
         SetEnvironmentVariableW(L"WT_SETTINGS_DIR", folderPath.c_str());
     }
+    Windows::Foundation::IAsyncAction AppLogic::BeginTransferShutdown()
+    {
+        const auto lifetime=get_strong();co_await winrt::resume_background();
+        ::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().BeginShutdown(false);
+    }
+    bool AppLogic::TransferShutdownComplete(){return ::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().TryDrainComplete();}
+    winrt::hstring AppLogic::TransferShutdownStatus(){return winrt::hstring(::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().ShutdownStatus());}
+    void AppLogic::MarkTransferShutdownTimeout(){::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().MarkShutdownTimeout();}
 }

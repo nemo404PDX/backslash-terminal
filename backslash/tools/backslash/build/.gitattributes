@@ -1,0 +1,2 @@
+# Preserve the reviewed byte hash across fresh checkouts.
+SerialTerminalApp.targets -text

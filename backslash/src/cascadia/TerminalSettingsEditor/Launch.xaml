@@ -62,11 +62,11 @@
                     <TextBlock x:Name="ExplorerError" Visibility="Collapsed" TextWrapping="Wrap" IsTextSelectionEnabled="True"
                                Foreground="{ThemeResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive" />
                     <TextBlock x:Name="ExplorerResult" Visibility="Collapsed" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" Style="{ThemeResource SecondaryTextBlockStyle}" />
-                    <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="150" ItemHeight="40">
-                        <Button x:Name="ExplorerEnable" Content="Enable" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
-                        <Button x:Name="ExplorerRepair" Content="Repair" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
-                        <Button x:Name="ExplorerRemove" Content="Remove" Click="Explorer_Change" IsEnabled="False" Margin="0,0,8,0" />
-                    </VariableSizedWrapGrid>
+                    <Grid x:Name="ExplorerActions" ColumnSpacing="8" RowSpacing="8" SizeChanged="ExplorerActions_SizeChanged">
+                        <Button x:Name="ExplorerEnable" SizeChanged="ExplorerActions_SizeChanged" Content="Enable" Click="Explorer_Change" IsEnabled="False" />
+                        <Button x:Name="ExplorerRepair" SizeChanged="ExplorerActions_SizeChanged" Content="Repair" Click="Explorer_Change" IsEnabled="False" />
+                        <Button x:Name="ExplorerRemove" SizeChanged="ExplorerActions_SizeChanged" Content="Remove" Click="Explorer_Change" IsEnabled="False" />
+                    </Grid>
                     <muxc:Expander x:Name="ExplorerDetails" Header="Details" IsExpanded="False"
                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                         <Border Padding="16" CornerRadius="4" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
@@ -74,11 +74,11 @@
                                 <TextBlock Text="Development helper • current user only. Changes apply immediately, independently of Save." TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
                                 <TextBlock x:Name="ExplorerDiagnostics" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
                                 <TextBlock x:Name="ExplorerLegacy" TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
-                                <VariableSizedWrapGrid Orientation="Horizontal" ItemWidth="160" ItemHeight="40">
-                                    <Button x:Name="ExplorerCheckStatus" Content="Check status" Click="Explorer_Refresh" Margin="0,0,8,0" />
-                                    <Button x:Name="ExplorerNotify" Content="Refresh shell" Click="Explorer_Notify" Margin="0,0,8,0" />
-                                    <Button x:Name="ExplorerRestart" Content="Restart Explorer…" Click="Explorer_Restart" Margin="0,0,8,0" />
-                                </VariableSizedWrapGrid>
+                                <Grid x:Name="ExplorerDiagnosticActions" ColumnSpacing="8" RowSpacing="8" SizeChanged="ExplorerActions_SizeChanged">
+                                    <Button x:Name="ExplorerCheckStatus" SizeChanged="ExplorerActions_SizeChanged" Content="Check status" Click="Explorer_Refresh" />
+                                    <Button x:Name="ExplorerNotify" SizeChanged="ExplorerActions_SizeChanged" Content="Refresh shell" Click="Explorer_Notify" />
+                                    <Button x:Name="ExplorerRestart" SizeChanged="ExplorerActions_SizeChanged" Content="Restart Explorer…" Click="Explorer_Restart" />
+                                </Grid>
                                 <TextBlock Text="Refresh shell requests a shell update. Restart Explorer is optional and can disrupt the desktop, taskbar and File Explorer windows." TextWrapping="Wrap" Style="{ThemeResource SecondaryTextBlockStyle}" />
                             </StackPanel>
                         </Border>

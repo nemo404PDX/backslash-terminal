@@ -19,6 +19,7 @@
 #include <winrt/Windows.UI.Xaml.Media.h>
 #include <winrt/Windows.UI.Xaml.Media.Imaging.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Microsoft.Terminal.Settings.Editor.h>
 #include <winrt/Microsoft.Terminal.Settings.Model.h>
 #include <winrt/Microsoft.Terminal.Control.h>
@@ -30,6 +31,7 @@
 #include <vector>
 #include <filesystem>
 #include <array>
+#include <algorithm>
 #include <cmath>
 #include <wincodec.h>
 #include <wrl/client.h>
@@ -65,6 +67,7 @@ static Mux::BreadcrumbBarItem FindInvokableBreadcrumb(X::DependencyObject const&
 struct ProbeApp : X::ApplicationT<ProbeApp,X::Markup::IXamlMetadataProvider>
 {
     std::vector<X::Markup::IXamlMetadataProvider> providers;
+    X::Markup::IXamlMetadataProvider winui{nullptr};
     X::Hosting::WindowsXamlManager manager{nullptr};
     ProbeApp()
     {
@@ -72,7 +75,7 @@ struct ProbeApp : X::ApplicationT<ProbeApp,X::Markup::IXamlMetadataProvider>
         providers.push_back(winrt::get_activation_factory<winrt::TerminalApp::XamlMetaDataProvider>().ActivateInstance<winrt::TerminalApp::XamlMetaDataProvider>());
         providers.push_back(E::XamlMetaDataProvider{});
         providers.push_back(winrt::Microsoft::Terminal::Control::XamlMetaDataProvider{});
-        providers.push_back(winrt::Microsoft::UI::Xaml::XamlTypeInfo::XamlControlsXamlMetaDataProvider{});
+        winui=winrt::Microsoft::UI::Xaml::XamlTypeInfo::XamlControlsXamlMetaDataProvider{};providers.push_back(winui);
         UnhandledException([](auto const&,auto const& args){std::wcerr<<L"app-init XAML "<<args.Message().c_str()<<std::endl;args.Handled(true);});
         std::wcout<<L"app: manager"<<std::endl;
         manager=X::Hosting::WindowsXamlManager::InitializeForCurrentThread();
@@ -81,7 +84,7 @@ struct ProbeApp : X::ApplicationT<ProbeApp,X::Markup::IXamlMetadataProvider>
         std::wcout<<L"app: ready"<<std::endl;
     }
     X::Markup::IXamlType GetXamlType(X::Interop::TypeName const& type){return GetXamlType(type.Name);}
-    X::Markup::IXamlType GetXamlType(winrt::hstring const& type){if(type.starts_with(L"Windows."))return nullptr;for(auto const& p:providers){if(auto t=p.GetXamlType(type))return t;}return nullptr;}
+    X::Markup::IXamlType GetXamlType(winrt::hstring const& type){if(type.starts_with(L"Windows."))return nullptr;if(type.starts_with(L"Microsoft.UI.Xaml.")&&winui)return winui.GetXamlType(type);for(auto const& p:providers){if(auto t=p.GetXamlType(type))return t;}return nullptr;}
     winrt::com_array<X::Markup::XmlnsDefinition> GetXmlnsDefinitions(){return {};}
 };
 static X::Controls::Button FindButton(X::DependencyObject const& parent, std::wstring_view caption)
@@ -94,6 +97,16 @@ static X::Controls::Button FindButton(X::DependencyObject const& parent, std::ws
     return nullptr;
 }
 #include "NewTabMenuNavigationTests.h"
+template<typename T> auto AwaitSettings(T operation) { while(operation.Status()==winrt::Windows::Foundation::AsyncStatus::Started) Pump(10); return operation.GetResults(); }
+static void CaptureSettings(X::UIElement const& owner,std::filesystem::path const& path) {
+        X::Media::Imaging::RenderTargetBitmap bitmap;AwaitSettings(bitmap.RenderAsync(owner));auto pixels=AwaitSettings(bitmap.GetPixelsAsync());std::vector<uint8_t> bytes(pixels.Length());winrt::Windows::Storage::Streams::DataReader::FromBuffer(pixels).ReadBytes(bytes);
+        winrt::Windows::Storage::Streams::InMemoryRandomAccessStream stream;
+        using namespace winrt::Windows::Graphics::Imaging;
+        auto encoder=AwaitSettings(BitmapEncoder::CreateAsync(BitmapEncoder::PngEncoderId(),stream));encoder.SetPixelData(BitmapPixelFormat::Bgra8,BitmapAlphaMode::Premultiplied,bitmap.PixelWidth(),bitmap.PixelHeight(),96,96,bytes);AwaitSettings(encoder.FlushAsync());stream.Seek(0);
+        winrt::Windows::Storage::Streams::DataReader reader{stream};AwaitSettings(reader.LoadAsync(static_cast<uint32_t>(stream.Size())));std::vector<uint8_t> encoded(static_cast<size_t>(stream.Size()));reader.ReadBytes(encoded);std::ofstream output(path,std::ios::binary);output.write(reinterpret_cast<const char*>(encoded.data()),static_cast<std::streamsize>(encoded.size()));output.close();
+}
+#include "TabStripLayoutTests.h"
+#include "NavigationPaneTests.h"
 #include "TransferBackendsPageTests.h"
 int wmain(int argc,wchar_t**argv)
 {
@@ -129,6 +142,12 @@ int wmain(int argc,wchar_t**argv)
         }
         int failures=0;
         app.UnhandledException([&](auto const&,auto const& args){++failures;std::wcerr<<L"UNHANDLED stage="<<stage<<L" "<<args.Message().c_str()<<std::endl;args.Handled(true);});
+        if(argc>2&&std::wstring_view(argv[2])==L"tabstrip"){
+            stage=L"actual titlebar/tab-strip component comparison";const auto clipped=TestTabStripLayout(work);
+            Require(failures==0,L"No unhandled tab-strip XAML errors");
+            if(argc>3&&std::wstring_view(argv[3])==L"strict")Require(clipped==0,L"Pins fits all measured ancestor viewports");
+            ExitProcess(0);
+        }
         // LoadDefaults reads the compiled inbox only: no user settings or host
         // discovery. Its built-in schemes are required by the real profile UI.
         const Settings settings=Settings::LoadDefaults();
@@ -187,7 +206,7 @@ int wmain(int argc,wchar_t**argv)
         E::MainPage owner{settings};owner.SetHostingWindow(reinterpret_cast<uint64_t>(hwnd));
         X::Hosting::DesktopWindowXamlSource island;auto native=island.as<IDesktopWindowXamlSourceNative>();winrt::check_hresult(native->AttachToWindow(hwnd));island.Content(owner);
         HWND child{};winrt::check_hresult(native->get_WindowHandle(&child));SetWindowPos(child,nullptr,0,0,1024,768,SWP_NOACTIVATE|SWP_NOZORDER|SWP_SHOWWINDOW);ShowWindow(hwnd,SW_SHOWNOACTIVATE);
-        stage=L"NewTabMenu A/B navigation"; TestNewTabMenuNavigation(island,hwnd,settings); stage=L"Transfers Backends navigation"; TestTransferBackendsPage(island,hwnd,settings); island.Content(owner); stage=L"production Add Profile navigation";
+        stage=L"NewTabMenu A/B navigation"; TestNewTabMenuNavigation(island,hwnd,settings); stage=L"Transfers Backends navigation"; TestTransferBackendsPage(island,hwnd,settings,work); island.Content(owner); stage=L"production Add Profile navigation";
         owner.Measure({1024,768});owner.Arrange({0,0,1024,768});owner.UpdateLayout();Pump(250);
         Require(owner.Breadcrumbs().Size()>0,L"Production owner initialized navigation");
         auto crumb=owner.Breadcrumbs().GetAt(0).as<E::Breadcrumb>();crumb.Tag(winrt::box_value(L"AddProfile"));crumb.SubPage(E::BreadcrumbSubPage::None);

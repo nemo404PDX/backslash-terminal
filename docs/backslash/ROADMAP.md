@@ -1,10 +1,10 @@
 # Phased roadmap
 
-## Current position (2026-10-26)
+## Current position
 
 The original phase sequence below is historical planning, not a current execution checklist. Feature availability varies by release; consult the release notes for a downloaded version. [Maintainer notes](../dev/HANDOFF.md) retain dated verification and operational history.
 
-Next bounded work is validation and review of current development, including visual Settings/contrast/focus/width checks and the unresolved intermittent blank-tab report. App/Data relocation and safe reconnection, SFTP UI/engine selection, optional tool management, WebView/MCP views and CRT open/close animations remain future designs. No transfer architecture is selected. The recommended research prototype is one native local+SFTP workspace. Optional native and TUI frontends over a shared backend/live worker are a newer proposed direction, with a conditional WebView hosting spike; see [file transfer](FILE-TRANSFER-DESIGN.md).
+Next bounded work is validation and review of current development, including visual Settings/contrast/focus/width checks and the unresolved intermittent blank-tab report. Experimental native local/SFTP browsing and single-file transfers are implemented; see the [current Transfers scope](TRANSFERS-FOUNDATION.md). App/Data relocation and safe reconnection, other transfer engines, optional tool management, WebView/MCP views and CRT open/close animations remain future designs. Optional native and TUI frontends over a shared backend/live worker are a newer proposed direction, with a conditional WebView hosting spike; see [file transfer](FILE-TRANSFER-DESIGN.md).
 
 ## Historical phase sequence
 
@@ -99,6 +99,6 @@ These are documentation-only future items, outside the current full setup export
 
 ## Transfers follow-up after the documentation sync
 
-The native [Transfers management foundation](TRANSFERS-FOUNDATION.md) is implemented in source: dropdown entry, combined search/status filter, independent tab/split/window preference, repeated-view focus and own-view close backed by process-owned records. It has no transfer backend or real production jobs; native interaction QA is pending. See [current candidate and evidence](../dev/HANDOFF.md).
+The native [Transfers management foundation](TRANSFERS-FOUNDATION.md) is implemented in source: dropdown entry, combined search/status filter, independent tab/split/window preference, repeated-view focus and own-view close backed by process-owned records. It now includes experimental SFTP browsing and real single-file jobs; broader native interaction QA remains limited. See [current candidate and evidence](../dev/HANDOFF.md).
 
 The consolidated [file-transfer delivery slices](FILE-TRANSFER-DESIGN.md#accepted-direction-and-delivery-slices-2026-10-26) prioritize local/remote identity and navigation, conflict review and safe interrupted/replacement behavior before visual extras. Later slices add completion actions and an independently placed image Preview (new window by default, next/previous navigation), with PDF rendering later. Shared native/TUI libraries are distinct from a common live worker. Records-only history clearing, undecided retention and failed/interrupted cleanup policy remain explicit design work. Separate Background sessions and Help are future scope, not automatic detection of arbitrary shell work. These delivery slices do not imply that the broader roadmap is complete.

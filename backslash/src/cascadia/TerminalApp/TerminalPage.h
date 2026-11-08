@@ -171,7 +171,7 @@ namespace winrt::TerminalApp::implementation
         bool IsRunningElevated() const noexcept;
 
         void OpenSettingsUI();
-        void _OpenTransfersUI();
+        void _OpenTransfersUI(bool forceTab = false);
         TerminalApp::IPaneContent _MakeTransfersContent(uint64_t ownershipLease = 0);
         void _FocusTransfersView(const Windows::UI::Xaml::FrameworkElement& view);
         void WindowActivated(const bool activated);
@@ -318,6 +318,7 @@ namespace winrt::TerminalApp::implementation
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowDialogHelper(const std::wstring_view& name);
 
         void _ShowAboutDialog();
+        winrt::Windows::Foundation::IAsyncOperation<bool> _ConfirmSftpWindowClose();
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowQuitDialog();
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowCloseWarningDialog();
         winrt::Windows::Foundation::IAsyncOperation<winrt::Windows::UI::Xaml::Controls::ContentDialogResult> _ShowCloseReadOnlyDialog();

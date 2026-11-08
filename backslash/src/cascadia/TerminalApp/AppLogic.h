@@ -35,6 +35,10 @@ namespace winrt::TerminalApp::implementation
         void Create();
         bool IsRunningElevated() const noexcept;
         bool CanDragDrop() const noexcept;
+        Windows::Foundation::IAsyncAction BeginTransferShutdown();
+        bool TransferShutdownComplete();
+        winrt::hstring TransferShutdownStatus();
+        void MarkTransferShutdownTimeout();
         void ReloadSettings();
         void ReloadSettingsThrottled();
         void NotifyRootInitialized();

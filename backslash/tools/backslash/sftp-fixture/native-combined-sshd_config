@@ -1,0 +1,28 @@
+Port 48223
+AddressFamily inet
+UseDNS no
+ListenAddress 127.0.0.1
+HostKey D:/codex-workspace/backslash-terminal/artifacts/sftp/native-combined-20261030-71d4b908/keys/host_ed25519
+AuthorizedKeysFile D:/codex-workspace/backslash-terminal/artifacts/sftp/native-combined-20261030-71d4b908/keys/authorized_keys
+PidFile D:/codex-workspace/backslash-terminal/artifacts/sftp/native-combined-20261030-71d4b908/config/sshd.pid
+AllowUsers nemo
+AuthenticationMethods publickey
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+HostbasedAuthentication no
+PermitEmptyPasswords no
+PermitRootLogin no
+PermitUserEnvironment no
+PermitUserRC no
+StrictModes yes
+AllowAgentForwarding no
+AllowTcpForwarding no
+X11Forwarding no
+PermitTunnel no
+PermitTTY no
+GatewayPorts no
+MaxSessions 1
+LoginGraceTime 10
+Subsystem sftp internal-sftp
+ForceCommand internal-sftp -d D:/codex-workspace/backslash-terminal/artifacts/sftp/native-combined-20261030-71d4b908/remote -u 077

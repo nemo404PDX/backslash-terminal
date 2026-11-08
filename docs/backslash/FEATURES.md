@@ -2,7 +2,7 @@
 
 [Project entry point](README.md) · [Roadmap](ROADMAP.md)
 
-This document retains requested product scope; implementation is partial. Saved groups, Pins, configurable CRT/bezel controls and SSH tools have implementation records. Additional source features include portable SSH import, resident saved-group reopening, Settings placement/close controls, brand accents and the native Transfers management foundation. File browsing, actual transfer protocols, previews and Background sessions remain future slices; see the consolidated [transfer design](FILE-TRANSFER-DESIGN.md). Consult release notes for the features included in a downloaded version. Requested acceptance directions below are not a claim that every feature is complete.
+This document retains requested product scope; implementation is partial. Saved groups, Pins, configurable CRT/bezel controls and SSH tools have implementation records. Additional source features include portable SSH import, resident saved-group reopening, Settings placement/close controls, brand accents and the native Transfers workspace with experimental local/SFTP browsing and single-file transfers. Other protocols, recursive transfers, previews and Background sessions remain future slices; see the consolidated [transfer design](FILE-TRANSFER-DESIGN.md). Consult release notes for the features included in a downloaded version. Requested acceptance directions below are not a claim that every feature is complete.
 
 ## Requested: named saved workspaces
 

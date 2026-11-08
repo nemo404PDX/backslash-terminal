@@ -5,10 +5,14 @@
 #include "SettingsViewHost.h"
 #include "Utils.h"
 #include "../inc/TransfersViewLayout.h"
+#include <winrt/Windows.Data.Json.h>
+#include "../inc/SftpWorkspaceView.h"
+#include "../inc/TransfersNavigation.h"
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Xaml::Controls;
 using namespace winrt::Microsoft::Terminal::Settings::Model;
 namespace T = ::Microsoft::Terminal::Backslash::Transfers;
+namespace S = ::Microsoft::Terminal::Backslash::Transfers::Sftp;
 namespace B = ::Microsoft::Terminal::Backslash;
 
 namespace winrt::TerminalApp::implementation
@@ -23,10 +27,7 @@ namespace winrt::TerminalApp::implementation
         _empty = _root.FindName(L"Empty").as<TextBlock>();
         _filtersLayout = _root.FindName(L"FiltersLayout").as<Grid>();
         _root.FindName(L"Heading").as<TextBlock>().Text(Title());
-        const auto gear = _root.FindName(L"BackendSettings").as<Button>();
-        Automation::AutomationProperties::SetName(gear, RS_(L"Transfers_BackendSettings"));
-        ToolTipService::SetToolTip(gear, box_value(RS_(L"Transfers_BackendSettings")));
-        gear.Click([weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get(); self && self->OpenBackendSettings) { self->OpenBackendSettings(); } });
+        B::TransfersShell::Attach(_root,[weak=get_weak()] { if(const auto self=weak.get();self&&!self->_closed&&self->OpenBackendSettings)self->OpenBackendSettings(); });
         _root.FindName(L"BackendNotice").as<TextBlock>().Text(RS_(L"Transfers_NoBackend"));
         _search.PlaceholderText(RS_(L"Transfers_Search"));
         Automation::AutomationProperties::SetName(_search, RS_(L"Transfers_Search"));
@@ -53,6 +54,7 @@ namespace winrt::TerminalApp::implementation
             catch (...) { LOG_CAUGHT_EXCEPTION(); }
         });
         _loaded = _root.Loaded(winrt::auto_revoke, [weak = get_weak()](auto&&, auto&&) { if (const auto self = weak.get()) { self->_Refresh(); } });
+        _sftpController=S::WorkspaceController::Create(_root,S::SharedService(),[weak=get_weak()]{if(const auto self=weak.get();self&&!self->_closed)self->_Refresh();});
         UpdateSettings(settings);
         _UpdateFilterLayout();
         _Refresh();
@@ -63,14 +65,12 @@ namespace winrt::TerminalApp::implementation
         if (_closed) { return; }
         _closed = true;
         T::Store::Shared().Unsubscribe(_subscription);
+        _sftpController->Close();
         SettingsViewHost::Instance(B::BuiltinViewId::Transfers).Release(_lease);
         _lease = 0;
         // Detaching the view never changes the process-owned job records.
     }
-    void TransfersPaneContent::UpdateSettings(const CascadiaSettings& settings)
-    {
-        _root.RequestedTheme(settings.GlobalSettings().CurrentTheme().RequestedTheme());
-    }
+    void TransfersPaneContent::UpdateSettings(const CascadiaSettings& settings){_sftpController->UpdateSettings(settings);}
     Windows::UI::Xaml::Media::Brush TransfersPaneContent::BackgroundBrush()
     {
         return _root.Background();
@@ -78,7 +78,7 @@ namespace winrt::TerminalApp::implementation
     INewContentArgs TransfersPaneContent::GetNewTerminalArgs(BuildStartupKind) const { return BaseContentArgs(L"transfers"); }
     void TransfersPaneContent::Focus(FocusState reason)
     {
-        if (!_closed && reason != FocusState::Unfocused) { _search.Focus(reason); }
+        if (!_closed && reason != FocusState::Unfocused) { B::TransfersShell::FocusActiveView(_root,_sftpController->View().localPath,reason); }
     }
     void TransfersPaneContent::_UpdateFilterLayout()
     {
@@ -136,7 +136,19 @@ namespace winrt::TerminalApp::implementation
             row.IsTextSelectionEnabled(true);
             _list.Items().Append(row);
         }
-        _empty.Text(jobs.empty() ? RS_(L"Transfers_Empty") : RS_(L"Transfers_NoMatches"));
+        for(const auto& job:S::SharedService().Jobs()) {
+            T::Job searchable;searchable.name=std::filesystem::path(job.request.local).filename().wstring();searchable.source=job.request.direction==S::Direction::Upload?job.request.local:std::wstring(winrt::to_hstring(job.request.remote));searchable.destination=job.request.direction==S::Direction::Upload?std::wstring(winrt::to_hstring(job.request.remote)):job.request.local;searchable.detail=winrt::to_hstring(job.error);
+            searchable.status=job.phase==S::JobPhase::Completed?T::Status::Completed:job.phase==S::JobPhase::Canceled?T::Status::Canceled:job.phase==S::JobPhase::Failed?T::Status::Failed:job.phase==S::JobPhase::Publishing?T::Status::Verifying:T::Status::Running;
+            if(!T::Matches(searchable,filter,std::wstring_view{_search.Text()}))continue;
+            StackPanel panel;panel.Spacing(4);TextBlock text;
+            text.Text(winrt::hstring(S::DisplayJob(job)));text.TextWrapping(TextWrapping::Wrap);panel.Children().Append(text);
+            StackPanel actions;actions.Orientation(Orientation::Horizontal);actions.Spacing(8);
+            if(job.phase==S::JobPhase::AwaitingDecision){Button replace;replace.Content(box_value(L"Replace..."));replace.Click([weak=get_weak(),id=job.id,decision=job.decision](auto&&,auto&&){if(const auto self=weak.get())self->_sftpController->ConfirmReplacement(id,decision);});actions.Children().Append(replace);}
+            if(job.phase==S::JobPhase::Transferring||job.phase==S::JobPhase::AwaitingDecision){Button cancel;cancel.Content(box_value(L"Cancel"));cancel.Click([id=job.id](auto&&,auto&&){S::SharedService().Cancel(id);});actions.Children().Append(cancel);}
+            if(job.phase==S::JobPhase::Failed||job.phase==S::JobPhase::Canceled){Button retry;retry.Content(box_value(L"Retry"));retry.Click([weak=get_weak(),id=job.id](auto&&,auto&&){if(const auto self=weak.get();self&&!self->_closed){self->_sftpController->Error({});try{S::SharedService().Retry(id);}catch(const std::exception& error){self->_sftpController->Error(winrt::to_hstring(error.what()));}}});actions.Children().Append(retry);}
+            panel.Children().Append(actions);_list.Items().Append(panel);
+        }
+        _empty.Text(jobs.empty() && S::SharedService().Jobs().empty() ? RS_(L"Transfers_Empty") : RS_(L"Transfers_NoMatches"));
         _empty.Visibility(_list.Items().Size() ? Visibility::Collapsed : Visibility::Visible);
         _list.Visibility(_list.Items().Size() ? Visibility::Visible : Visibility::Collapsed);
     }

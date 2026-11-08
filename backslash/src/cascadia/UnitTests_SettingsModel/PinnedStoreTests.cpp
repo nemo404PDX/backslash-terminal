@@ -65,6 +65,13 @@ namespace SettingsModelUnitTests
             });
         }
         for (auto& thread : threads) { thread.join(); }
+        for (const auto& failure : failures)
+        {
+            try { std::rethrow_exception(failure); }
+            catch (const winrt::hresult_error& error) { WEX::Logging::Log::Comment(error.message().c_str()); }
+            catch (const std::exception& error) { WEX::Logging::Log::Comment(winrt::to_hstring(error.what()).c_str()); }
+            catch (...) { WEX::Logging::Log::Comment(L"Pinned-store worker threw a non-standard exception."); }
+        }
         VERIFY_IS_TRUE(failures.empty());
         const auto state = P::Store{ directory, alive }.Get();
         VERIFY_ARE_EQUAL(size_t{ 16 }, state.catalog.pins.size());

@@ -24,6 +24,10 @@ namespace TerminalApp
 
         Boolean HasSettingsStartupActions();
 
+        Windows.Foundation.IAsyncAction BeginTransferShutdown();
+        Boolean TransferShutdownComplete();
+        String TransferShutdownStatus();
+        void MarkTransferShutdownTimeout();
         void ReloadSettings();
         void ReloadSettingsThrottled();
         Microsoft.Terminal.Settings.Model.CascadiaSettings Settings { get; };

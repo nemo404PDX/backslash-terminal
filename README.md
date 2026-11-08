@@ -22,8 +22,9 @@ Portable settings and state are stored in an adjacent `settings` folder. Back up
 - **CRT and bezel appearance:** configure per-profile glow, phosphor tint, scanlines, bezel finishes, SVG badges and badge colors, with preview, inheritance and reset controls. Effects are off by default. [Appearance controls](docs/backslash/CRT-APPEARANCE.md)
 - **Settings placement:** open Settings in a tab, beside a terminal or in a separate window. A split tab's close button closes its focused pane; the context menu also offers Close entire tab. [Settings placement](docs/backslash/SETTINGS-PLACEMENT.md)
 - **SSH and WSL profiles:** explicitly scan and import selected SSH aliases, keep saved connections across restarts, and use local WSL distributions. SSH aliases require this computer's SSH configuration and authentication; keys and credentials are not bundled. [SSH import](docs/backslash/SSH-PORTABLE-IMPORT.md)
+- **Experimental SFTP transfers:** browse local and remote folders and upload or download individual files using a saved SSH profile. Real-world reliability and complete user workflows are not yet verified. Requires noninteractive authentication and an already trusted host key. [Transfers and limitations](docs/backslash/TRANSFERS-FOUNDATION.md)
 
-Feature availability depends on the downloaded version. Integrated file browsing, transfer engines and resumable remote sessions are not available. Broader theme, DPI, accessibility and real SSH/WSL compatibility testing is still needed. See the [feature scope](docs/backslash/FEATURES.md) and [roadmap](docs/backslash/ROADMAP.md).
+Feature availability depends on the downloaded version. Recursive transfers, remote replacement, resumable remote sessions and other transfer engines are not available. Broader theme, DPI, accessibility and real SSH/WSL compatibility testing is still needed. See the [feature scope](docs/backslash/FEATURES.md) and [roadmap](docs/backslash/ROADMAP.md).
 
 ## Build from source
 

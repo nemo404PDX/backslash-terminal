@@ -9,6 +9,7 @@
 //
 
 #include "pch.h"
+#include "../inc/SftpNativeSession.h"
 #include "../inc/TerminalTabPolicy.h"
 #include "TerminalPage.h"
 #include "SettingsViewHost.h"
@@ -533,6 +534,7 @@ namespace winrt::TerminalApp::implementation
         const auto impl = _GetTabImpl(tab);
         uint32_t tabIndex{};
         if (!_tabs.IndexOf(tab, tabIndex) || impl->SettingsTransferPending()) { co_return; }
+        if (!_tabs.IndexOf(tab, tabIndex) || impl->SettingsTransferPending()) { co_return; }
         const auto request = impl->CloseRequest.Begin();
         if (!request) { co_return; }
         const auto release = wil::scope_exit([&] { impl->CloseRequest.End(request); });
@@ -639,7 +641,14 @@ namespace winrt::TerminalApp::implementation
             // if the user manually closed all tabs.
             // Do this only if we are the last window; the monarch will notice
             // we are missing and remove us that way otherwise.
-            CloseWindowRequested.raise(*this, nullptr);
+            if (::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().HasPendingWork())
+            {
+                // A terminal may exit without a user close request. Keep the
+                // process/job alive and surface Transfers; explicit window close
+                // or Quit uses its own cancel-default SFTP warning.
+                Dispatcher().RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,[weak=get_weak()]{if(const auto page=weak.get();page&&page->_tabs.Size()==0){if(::Microsoft::Terminal::Backslash::Transfers::Sftp::SharedService().HasPendingWork()){auto& host=SettingsViewHost::Instance(::Microsoft::Terminal::Backslash::BuiltinViewId::Transfers);if(host.Owner()){host.Request();page->CloseWindowRequested.raise(*page,nullptr);}else page->_OpenTransfersUI(true);}else page->CloseWindowRequested.raise(*page,nullptr);}});
+            }
+            else { CloseWindowRequested.raise(*this, nullptr); }
         }
         else if (focusedTabIndex.has_value() && focusedTabIndex.value() == gsl::narrow_cast<uint32_t>(tabIndex))
         {

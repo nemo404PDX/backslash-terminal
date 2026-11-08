@@ -9,6 +9,7 @@
              xmlns:local="using:TerminalApp"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
+             xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
              mc:Ignorable="d">
     <!--
         If you want to prove this works, then add `RequestedTheme="Light"` to
@@ -52,18 +53,53 @@
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
             <DataTemplate x:Key="TransfersViewTemplate">
-                <Grid x:Name="BackslashTransfersView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="16" RowSpacing="12">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                        <RowDefinition Height="*" /><RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <!-- Keep the header/chrome area available for future controls. -->
-                    <Grid x:Name="TransfersHeader" MinHeight="40" ColumnSpacing="12">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <Button x:Name="BackendSettings" Grid.Column="1" Width="40" Height="40"><FontIcon Glyph="&#xE713;" FontSize="16" /></Button>
-                        <TextBlock x:Name="Heading" FontSize="24" TextWrapping="Wrap" VerticalAlignment="Center" AutomationProperties.HeadingLevel="Level1" />
-                    </Grid>
-                    <Border x:Name="FiltersCard" Grid.Row="1" Padding="16"
+                <Grid x:Name="BackslashTransfersView" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+                  <muxc:NavigationView x:Name="TransfersNavigation"
+                                      IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+                                      IsTitleBarAutoPaddingEnabled="False" AlwaysShowHeader="True" IsPaneOpen="True"
+                                      HorizontalContentAlignment="Stretch">
+                    <muxc:NavigationView.Resources>
+                      <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="{ThemeResource SolidBackgroundFillColorBase}" />
+                      <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="{ThemeResource SolidBackgroundFillColorBase}" />
+                      <Thickness x:Key="NavigationViewHeaderMargin">0,4,0,0</Thickness>
+                      <Thickness x:Key="NavigationViewMinimalHeaderMargin">-40,44,0,0</Thickness>
+                    </muxc:NavigationView.Resources>
+                    <!-- Reserve the native search-row space without adding a search control. -->
+                    <muxc:NavigationView.PaneCustomContent>
+                      <Border x:Name="NavigationSearchRowSpace" Height="{ThemeResource NavigationViewAutoSuggestAreaHeight}" Margin="0,0,0,8" IsHitTestVisible="False" />
+                    </muxc:NavigationView.PaneCustomContent>
+                    <muxc:NavigationView.MenuItems>
+                      <muxc:NavigationViewItem x:Name="ActivityNavItem" Content="Transfers" Tag="activity">
+                        <muxc:NavigationViewItem.Icon><SymbolIcon Symbol="AllApps" /></muxc:NavigationViewItem.Icon>
+                      </muxc:NavigationViewItem>
+                      <muxc:NavigationViewItemHeader x:Name="BackendGroupHeader" Content="Backends" />
+                      <muxc:NavigationViewItem x:Name="SftpNavItem" Content="SFTP" Tag="sftp">
+                        <muxc:NavigationViewItem.Icon><SymbolIcon Symbol="Folder" /></muxc:NavigationViewItem.Icon>
+                      </muxc:NavigationViewItem>
+                    </muxc:NavigationView.MenuItems>
+                    <muxc:NavigationView.PaneFooter>
+                      <Button x:Name="BackendSettings" AutomationProperties.Name="Backend settings" ToolTipService.ToolTip="Backend settings"
+                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Margin="4" Padding="14,8,10,8" MinWidth="0" Background="Transparent" BorderThickness="0">
+                        <StackPanel x:Name="BackendSettingsContent" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left">
+                          <FontIcon x:Name="BackendSettingsIcon" Glyph="&#xE713;" FontSize="16" />
+                          <TextBlock x:Name="BackendSettingsLabel" Text="Backend settings" />
+                        </StackPanel>
+                      </Button>
+                    </muxc:NavigationView.PaneFooter>
+                    <muxc:NavigationView.Header>
+                      <TextBlock x:Name="Heading" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" Margin="16,3,16,5" AutomationProperties.HeadingLevel="Level1" />
+                    </muxc:NavigationView.Header>
+                  <ScrollViewer x:Name="TransfersScrollViewer" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                                HorizontalContentAlignment="Stretch">
+                  <Border x:Name="TransfersContentCard" MaxWidth="1000" Margin="16,8,16,16" Padding="0"
+                          HorizontalAlignment="Center" VerticalAlignment="Top"
+                          >
+                  <StackPanel Spacing="12">
+                    <Grid x:Name="SftpWorkspace" Visibility="Collapsed" />
+                    <StackPanel x:Name="TransferActivity" Spacing="12">
+                    <TextBlock x:Name="TransferActionError" Visibility="Collapsed" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                               Foreground="{ThemeResource SystemFillColorCriticalBrush}" AutomationProperties.LiveSetting="Assertive" />
+                    <Border x:Name="FiltersCard" Padding="16"
                             Background="{ThemeResource ExpanderHeaderBackground}"
                             BorderBrush="{ThemeResource ExpanderHeaderBorderBrush}" BorderThickness="1"
                             CornerRadius="{ThemeResource ControlCornerRadius}">
@@ -74,11 +110,16 @@
                             <ComboBox x:Name="StatusFilter" Grid.Row="1" Grid.ColumnSpan="2" MinWidth="0" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
-                    <Grid Grid.Row="2">
-                        <ListView x:Name="Jobs" SelectionMode="None" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch" />
+                    <Border Padding="16" Background="{ThemeResource ExpanderHeaderBackground}" CornerRadius="{ThemeResource ControlCornerRadius}"><Grid MinHeight="80">
+                        <ListView x:Name="Jobs" MaxHeight="240" MinHeight="80" SelectionMode="None" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch" />
                         <TextBlock x:Name="Empty" TextWrapping="Wrap" VerticalAlignment="Center" HorizontalAlignment="Center" TextAlignment="Center" AutomationProperties.LiveSetting="Polite" />
-                    </Grid>
-                    <TextBlock x:Name="BackendNotice" Grid.Row="3" TextWrapping="Wrap" />
+                    </Grid></Border>
+                    </StackPanel>
+                    <TextBlock x:Name="BackendNotice" TextWrapping="Wrap" Visibility="Collapsed" />
+                  </StackPanel>
+                  </Border>
+                  </ScrollViewer>
+                  </muxc:NavigationView>
                 </Grid>
             </DataTemplate>
             <ResourceDictionary.MergedDictionaries>

@@ -4,6 +4,8 @@
 #include "winrt/TerminalApp.h"
 #include "BasicPaneEvents.h"
 #include "../inc/TransferJobs.h"
+#include "../inc/SftpNativeSession.h"
+#include "../inc/SftpWorkspaceController.h"
 
 namespace winrt::TerminalApp::implementation
 {
@@ -31,6 +33,7 @@ namespace winrt::TerminalApp::implementation
         void Close();
     private:
         void _Refresh();
+        std::shared_ptr<::Microsoft::Terminal::Backslash::Transfers::Sftp::WorkspaceController> _sftpController;
         void _UpdateFilterLayout();
         Windows::UI::Xaml::Controls::Grid _root{nullptr};
         Windows::UI::Xaml::Controls::Grid _filtersLayout{nullptr};

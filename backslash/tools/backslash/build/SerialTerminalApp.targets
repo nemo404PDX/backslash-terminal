@@ -1,0 +1,9 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup Condition="'$(MSBuildProjectName)'=='TerminalAppLib'">
+    <ClCompile><MultiProcessorCompilation>false</MultiProcessorCompilation></ClCompile>
+  </ItemDefinitionGroup>
+  <Target Name="BackslashDiagnosticSerialTerminalApp" BeforeTargets="ClCompile" Condition="'$(MSBuildProjectName)'=='TerminalAppLib'">
+    <ItemGroup><ClCompile Update="@(ClCompile)"><MultiProcessorCompilation>false</MultiProcessorCompilation></ClCompile></ItemGroup>
+    <Message Importance="High" Text="Diagnostic build-local override: TerminalAppLib compiler /MP disabled; debug/warnings unchanged." />
+  </Target>
+</Project>

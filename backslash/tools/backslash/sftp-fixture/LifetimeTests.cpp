@@ -1,0 +1,15 @@
+#define BACKSLASH_SFTP_FIXTURE_DIAGNOSTICS
+#define wmain ExistingNativeFixtureEntry
+#include "../SftpNativeTests.cpp"
+#undef wmain
+#include "FixtureDownloadVerifier.h"
+void ExpectRefused(const std::function<void()>& f){bool refused=false;try{f();}catch(...){refused=true;}Require(refused);}
+int wmain(int argc,wchar_t**argv){for(int i=1;i<argc;i++)if(std::wstring_view(argv[i])==L"--fake-sftp")return Server(false,false);
+ try{Require(argc==2);FixtureDownloadVerifier gate;ExpectRefused([&]{gate.Published();});ExpectRefused([&]{gate.RequirePublished();});gate.Begin("expected");bool uploaded=false;try{gate.Observe("wrong");gate.Published();gate.RequirePublished();uploaded=true;}catch(...){}Require(!uploaded);gate.Begin("expected");gate.Observe("exp");ExpectRefused([&]{gate.Published();});gate.Observe("ected");gate.Published();gate.RequirePublished();gate.Begin("a");ExpectRefused([&]{gate.Observe("aa");});ExpectRefused([&]{gate.RequirePublished();});ExpectRefused([&]{gate.Begin(std::string(65537,'x'));});ExpectRefused([&]{gate.RequirePublished();});
+ const std::filesystem::path root=argv[1];Require(!std::filesystem::exists(root));std::filesystem::create_directory(root);{std::ofstream f(root/L"source.bin",std::ios::binary);f<<"upload-bytes";}wchar_t exe[32768];GetModuleFileNameW(nullptr,exe,32768);ConnectionPlan plan{exe,{L"--fake-sftp"},true};FixtureDownloadVerifier marker,payload;marker.Begin(std::string("a\0b\xff",4));auto* observer=&marker;
+ {NativeSession session(plan,{},[&](std::string_view bytes){observer->Observe(bytes);});Require(session.Browse("/").size()==1);Request first{plan,Direction::Download,(root/L"marker.bin").wstring(),"/source"};session.Prepare(first,{});session.Transfer(first,[](Progress){},[]{return false;});session.Publish(first,{});marker.Published();marker.RequirePublished();
+ Handle premature(CreateFileW(first.local.c_str(),GENERIC_READ,FILE_SHARE_READ|FILE_SHARE_WRITE|FILE_SHARE_DELETE,nullptr,OPEN_EXISTING,0,nullptr));Require(premature.value==INVALID_HANDLE_VALUE&&GetLastError()==ERROR_SHARING_VIOLATION);
+ Request up{plan,Direction::Upload,(root/L"source.bin").wstring(),"/destination"};marker.RequirePublished();session.Prepare(up,{});session.Transfer(up,[](Progress){},[]{return false;});session.Publish(up,{});payload.Begin("upload-bytes");observer=&payload;Request last{plan,Direction::Download,(root/L"download.bin").wstring(),"/destination"};session.Prepare(last,{});session.Transfer(last,[](Progress){},[]{return false;});session.Publish(last,{});payload.Published();payload.RequirePublished();}
+ auto read=[](const auto& p){std::ifstream f(p,std::ios::binary);Require(bool(f));return std::string(std::istreambuf_iterator<char>(f),{});};Require(read(root/L"marker.bin")==std::string("a\0b\xff",4));Require(read(root/L"download.bin")=="upload-bytes");std::cout<<"PASS: marker mismatch forbids upload; bounded/incomplete/overflow verification; full browse-download-upload-download on one production NativeSession/fake child; disk bytes read only after release, exclusive lock preserved. No network.\n";return 0;
+ }catch(const std::exception&e){std::cerr<<e.what()<<"\n";return 1;}}
+

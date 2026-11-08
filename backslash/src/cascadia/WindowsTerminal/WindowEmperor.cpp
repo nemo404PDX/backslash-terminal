@@ -15,6 +15,7 @@
 #include "AppHost.h"
 #include "resource.h"
 #include "../inc/StartupGroupActivation.h"
+#include "../inc/HostTransferShutdown.h"
 #include "VirtualDesktopUtils.h"
 #include "../../types/inc/User32Utils.hpp"
 #include "../../types/inc/utils.hpp"
@@ -538,6 +539,25 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
         DispatchMessageW(&msg);
     }
 
+    // AppLogic lives in TerminalApp.dll, as does the service owning all windows'
+    // SFTP work. Wait for the real worker thread/capture teardown before the
+    // upstream forced process termination. BeginShutdown alone is not a barrier.
+    const auto transferLogic=_app.Logic();
+    winrt::Windows::Foundation::IAsyncAction transferShutdown{nullptr};
+    const wil::unique_handle transferPump{CreateEventW(nullptr,TRUE,FALSE,nullptr)};
+    const auto transferExit=::Microsoft::Terminal::Backslash::Shutdown::BeforeOwnerTermination(
+        [&]{if(!transferShutdown||transferShutdown.Status()==AsyncStatus::Error||transferShutdown.Status()==AsyncStatus::Canceled)transferShutdown=transferLogic.BeginTransferShutdown();},
+        [&]{const auto state=transferShutdown.Status();if(state==AsyncStatus::Error||state==AsyncStatus::Canceled)throw winrt::hresult_error(transferShutdown.ErrorCode());return state==AsyncStatus::Completed;},
+        [&]{return transferLogic.TransferShutdownComplete();},
+        [&]{if(transferPump){DWORD index=0;HANDLE event=transferPump.get();const auto wait=CoWaitForMultipleHandles(COWAIT_DISPATCH_CALLS|COWAIT_DISPATCH_WINDOW_MESSAGES,25,1,&event,&index);if(FAILED(wait)&&wait!=RPC_S_CALLPENDING)Sleep(10);}else Sleep(25);},
+        []{return GetTickCount64();},
+        [&](auto){transferLogic.MarkTransferShutdownTimeout();},
+        [&](auto){
+            auto message=std::wstring{L"SFTP shutdown could not be confirmed. A destination may already have changed and temporary/backup files may remain. Completion is NOT confirmed.\n\n"};
+            try{message+=transferLogic.TransferShutdownStatus();}catch(...){message+=L"Worker status could not be read.";}
+            message+=L"\n\nForce quit anyway? Choose No to keep waiting. You can copy this dialog with Ctrl+C before closing it.";
+            return MessageBoxW(nullptr,message.c_str(),L"Backslash - SFTP shutdown incomplete",MB_YESNO|MB_ICONWARNING|MB_DEFBUTTON2)==IDYES;
+        },35000);
     _finalizeSessionPersistence();
 
     if (_notificationIconShown)
@@ -549,7 +569,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     // We also need to ensure that all UI threads exit before WindowEmperor leaves the scope on the main thread (MSFT:46744208).
     // Both problems can be solved and the shutdown accelerated by using TerminateProcess.
     // std::exit(), etc., cannot be used here, because those use ExitProcess for unpackaged applications.
-    TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
+    TerminateProcess(GetCurrentProcess(), transferExit==::Microsoft::Terminal::Backslash::Shutdown::GateResult::Drained ? 0u : static_cast<UINT>(ERROR_TIMEOUT));
     __assume(false);
 }
 
@@ -861,10 +881,7 @@ void WindowEmperor::_createMessageWindow(const wchar_t* className)
 // That basically means no windows and no message boxes.
 void WindowEmperor::_postQuitMessageIfNeeded() const
 {
-    if (
-        _messageBoxCount <= 0 &&
-        _windowCount <= 0 &&
-        !_app.Logic().Settings().GlobalSettings().AllowHeadless())
+    if (::Microsoft::Terminal::Backslash::Shutdown::ShouldPostQuit(_windowCount, _messageBoxCount, _app.Logic().Settings().GlobalSettings().AllowHeadless()))
     {
         PostQuitMessage(0);
     }
